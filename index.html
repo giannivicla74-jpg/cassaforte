@@ -67,6 +67,30 @@ dialog form{padding:20px}
 #toast.on{opacity:1}
 .hide{display:none!important}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:inherit;font:inherit}
+li.it{background:linear-gradient(180deg,var(--card),color-mix(in srgb,var(--card) 90%,var(--soft)))}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);padding:6px 13px;border-radius:999px;font-size:.85rem}
+.chip.on{background:var(--acc);color:var(--on);border-color:var(--acc);font-weight:600}
+.tag{font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--mute);margin-left:6px;vertical-align:middle}
+.tag.w{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.star{flex:none;margin-left:auto;border:0;background:transparent;color:var(--mute);padding:6px;border-radius:10px;display:grid}
+.star.on{color:#e9a820}
+.meter{height:6px;border-radius:99px;background:var(--soft);margin-top:8px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;border-radius:99px;transition:width .2s,background .2s}
+.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-weight:500}.chk input{width:auto}
+h3{font-size:.95rem;margin:20px 0 8px}
+.pwbox{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pwbox span{min-width:0;overflow-wrap:anywhere}
+.pwbox .btn{font-family:system-ui,sans-serif;letter-spacing:0;flex:none;padding:4px 10px}
+.banner{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:.9rem}
+.banner span{flex:1;min-width:200px}
+details{margin-top:10px}
+summary{cursor:pointer;font-size:.85rem;color:var(--mute);font-weight:600}
+.gopts{display:grid;gap:10px;margin-top:10px}
+.gopts .opts{display:flex;flex-wrap:wrap;gap:8px 16px}
+.gopts .chk{margin:0}
+input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--acc)}
 </style>
 </head>
 <body>
@@ -93,15 +117,16 @@ dialog form{padding:20px}
   <header class="bar">
     <div class="row">
       <div class="brand grow"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor"/></svg></span><div><h1>Cassaforte</h1><div class="mute small" id="count"></div></div></div>
-      <button class="btn s" id="bExport">Esporta</button>
-      <button class="btn s" id="bImport">Importa</button>
+      <button class="btn s" id="bSet">Opzioni</button>
       <button class="btn s" id="bLock">Blocca</button>
     </div>
     <div class="row" style="margin-top:14px">
       <div class="search grow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cerca account" aria-label="Cerca account"></div>
       <button class="btn p" id="bAdd">+ Aggiungi</button>
     </div>
+  <div class="chips" id="chips"></div>
   </header>
+  <div class="banner hide" id="bk"><span id="bkTxt"></span><button class="btn s p" id="bkNow">Esporta ora</button><button class="btn s" id="bkLater">Più tardi</button></div>
   <ul id="list"></ul>
   <input type="file" id="file" accept="application/json,.json" class="hide">
 </div>
@@ -113,6 +138,22 @@ dialog form{padding:20px}
     <label for="fUser">Utente o email</label><input id="fUser" autocapitalize="off">
     <label for="fPass">Password</label>
     <div class="row"><input id="fPass" class="grow" type="text" spellcheck="false"><button type="button" class="btn" id="bGen">Genera</button></div>
+    <div class="meter"><i id="mBar"></i></div><div class="small mute" id="mTxt" style="margin-top:4px;min-height:1.2em"></div>
+    <details id="gOpts"><summary>Opzioni generatore</summary>
+      <div class="gopts">
+        <label for="gLen" style="margin:0">Lunghezza: <b id="gLenV">20</b></label>
+        <input type="range" id="gLen" min="8" max="40" value="20">
+        <div class="opts">
+          <label class="chk"><input type="checkbox" id="g_lower" checked> Minuscole</label>
+          <label class="chk"><input type="checkbox" id="g_upper" checked> Maiuscole</label>
+          <label class="chk"><input type="checkbox" id="g_num" checked> Numeri</label>
+          <label class="chk"><input type="checkbox" id="g_sym" checked> Simboli</label>
+        </div>
+      </div>
+    </details>
+    <label for="fCat">Categoria</label>
+    <select id="fCat"><option>Email</option><option>Social</option><option>Banca</option><option>Lavoro</option><option>Shopping</option><option>Altro</option></select>
+    <label class="chk"><input type="checkbox" id="fFav"> Segna come preferito</label>
     <label for="fUrl">Indirizzo sito</label><input id="fUrl" type="url" placeholder="https://">
     <label for="fNote">Note</label><textarea id="fNote" rows="3"></textarea>
     <div class="row" style="margin-top:16px">
@@ -123,6 +164,31 @@ dialog form{padding:20px}
     </div>
   </form>
 </dialog>
+<dialog id="dlgSet"><div style="padding:20px">
+  <h1>Opzioni</h1>
+  <h3>Backup</h3>
+  <p class="mute small" id="bkInfo" style="margin:0 0 10px"></p>
+  <div class="row"><button class="btn" id="bExport">Esporta backup</button><button class="btn" id="bImport">Importa backup</button></div>
+  <h3>Password principale</h3>
+  <form id="pwForm" autocomplete="off">
+    <label for="pOld" style="margin-top:0">Password attuale</label><input id="pOld" type="password" autocomplete="current-password" required>
+    <label for="pNew">Nuova password</label><input id="pNew" type="password" autocomplete="new-password" required>
+    <label for="pNew2">Ripeti la nuova password</label><input id="pNew2" type="password" autocomplete="new-password" required>
+    <p class="mute small">I backup esportati prima restano protetti dalla vecchia password.</p>
+    <div id="pErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem"></div>
+    <button class="btn p" style="margin-top:6px">Cambia password principale</button>
+  </form>
+  <div class="row" style="margin-top:18px"><span class="grow"></span><button class="btn" id="bSetClose">Chiudi</button></div>
+</div></dialog>
+<dialog id="dlgQ"><form id="fQ" method="dialog" style="padding:20px" autocomplete="off">
+  <h1>Cambia password</h1>
+  <div class="mute small" id="qS"></div>
+  <label for="qPass">Nuova password</label>
+  <div class="row"><input id="qPass" class="grow" type="text" spellcheck="false" required><button type="button" class="btn" id="qGen">Genera</button></div>
+  <div class="meter"><i id="qBar"></i></div><div class="small mute" id="qTxt" style="margin-top:4px;min-height:1.2em"></div>
+  <p class="mute small">Il generatore usa lunghezza e caratteri scelti nel modulo di modifica.</p>
+  <div class="row" style="margin-top:12px"><span class="grow"></span><button type="button" class="btn" id="qCancel">Annulla</button><button class="btn p">Salva</button></div>
+</form></dialog>
 <div id="toast" role="status"></div>
 
 <script>
@@ -155,7 +221,7 @@ function showLock(){
 }
 function lock(){
   key=null;items=[];shown.clear();clearTimeout(lockT);
-  if($('#dlg').open)$('#dlg').close();
+  ['dlg','dlgSet','dlgQ'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});$('#pwForm').reset();$('#fQ').reset();$('#pErr').textContent='';
   showLock();
 }
 function bump(){clearTimeout(lockT);if(key)lockT=setTimeout(lock,2*60*1000)}
@@ -187,17 +253,34 @@ $('#bLock').onclick=lock;
 const ic=p=>`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 const IC={user:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),key:ic('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>'),eye:ic('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),eyeoff:ic('<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6A16 16 0 0 0 2 12s4 7 10 7a9.7 9.7 0 0 0 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),link:ic('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),edit:ic('<path d="M4 20h4L19 9l-4-4L4 16z"/>')};
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
+const CATS=['Email','Social','Banca','Lavoro','Shopping','Altro']; let cat='Tutti';
+const star=f=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`;
+function strength(p){
+  if(!p)return{p:0,t:'',c:'transparent'};
+  let k=0;[/[a-z]/,/[A-Z]/,/\d/,/[^A-Za-z0-9]/].forEach(r=>{if(r.test(p))k++});
+  const n=Math.min(100,Math.min(p.length,16)*4+k*9);
+  return n<40?{p:n,t:'Debole',c:'var(--bad)'}:n<70?{p:n,t:'Discreta',c:'#d99a1a'}:{p:n,t:'Forte',c:'#2f9e6b'};
+}
+function updMeter(){const r=strength($('#fPass').value);$('#mBar').style.width=r.p+'%';$('#mBar').style.background=r.c;$('#mTxt').textContent=r.t?'Robustezza: '+r.t:''}
+$('#fPass').addEventListener('input',updMeter);
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;cat=b.dataset.c;render()});
 function render(){
+  const inCat=i=>cat==='Tutti'||(cat==='★'?i.fav:(i.cat||'Altro')===cat);
+  if(!items.some(inCat))cat='Tutti';
+  updBackup();
   const q=$('#q').value.trim().toLowerCase();
   $('#count').textContent=items.length===1?'1 account':items.length+' account';
-  const rows=items.filter(i=>!q||[i.name,i.user,i.url].join(' ').toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'it'));
+  const chips=['Tutti',...(items.some(i=>i.fav)?['★']:[]),...CATS.filter(c=>items.some(i=>(i.cat||'Altro')===c))];
+  $('#chips').innerHTML=items.length?chips.map(c=>`<button class="chip${c===cat?' on':''}" data-c="${c}">${c==='★'?'★ Preferiti':c}</button>`).join(''):'';
+  const rows=items.filter(i=>inCat(i)&&(!q||[i.name,i.user,i.url].join(' ').toLowerCase().includes(q))).sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||a.name.localeCompare(b.name,'it'));
   $('#list').innerHTML=rows.length?rows.map(i=>`
     <li class="it" data-id="${i.id}">
       <div class="top">
         <div class="av" style="--h:${hue(i.name)}">${esc(i.name.trim().charAt(0).toUpperCase())}</div>
-        <div class="meta"><h2>${esc(i.name)}</h2><div class="u">${esc(i.user)}</div></div>
+        <div class="meta"><h2>${esc(i.name)}<span class="tag">${esc(i.cat||'Altro')}</span>${i.pass&&strength(i.pass).t==='Debole'?'<span class="tag w">Password debole</span>':''}</h2><div class="u">${esc(i.user)}</div></div>
+        <button class="star${i.fav?' on':''}" data-a="fv" aria-label="${i.fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${star(i.fav)}</button>
       </div>
-      ${i.pass?`<div class="pwbox">${shown.has(i.id)?esc(i.pass):'••••••••••'}</div>`:`<div class="pwbox none">Nessuna password salvata</div>`}
+      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span><button class="btn s" data-a="qp">Cambia</button></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span><button class="btn s" data-a="qp">Imposta</button></div>`}
       ${i.note?`<div class="note">${esc(i.note)}</div>`:''}
       <div class="acts">
         <button class="btn s" data-a="cu">${IC.user}Utente</button>
@@ -206,7 +289,7 @@ function render(){
         ${i.url?`<a class="btn s" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${IC.link}Sito</a>`:''}
         <button class="btn s" data-a="ed">${IC.edit}Modifica</button>
       </div>
-    </li>`).join(''):`<li class="empty mute"><div class="mark">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor"/></svg>'}</div>${items.length?'Nessun account corrisponde alla ricerca.':'Non hai ancora salvato nulla.<br>Premi <b>+ Aggiungi</b> per inserire il primo account.'}</li>`;
+    </li>`).join(''):`<li class="empty mute"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor"/></svg></div>${items.length?'Nessun account corrisponde.':'Non hai ancora salvato nulla.<br>Premi <b>+ Aggiungi</b> per inserire il primo account.'}</li>`;
 }
 $('#q').addEventListener('input',render);
 async function copy(t,m){
@@ -222,6 +305,8 @@ $('#list').addEventListener('click',e=>{
   if(a==='cp')copy(it.pass,'Password copiata (si cancella tra 30 s)');
   if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
   if(a==='ed')openForm(it);
+  if(a==='fv'){it.fav=!it.fav;persist().then(render)}
+  if(a==='qp')openQuick(it);
 });
 
 /* Modulo */
@@ -229,21 +314,15 @@ function openForm(it){
   editId=it?it.id:null;
   $('#dlgT').textContent=it?'Modifica account':'Nuovo account';
   $('#fName').value=it?.name||'';$('#fUser').value=it?.user||'';$('#fPass').value=it?.pass||'';
-  $('#fUrl').value=it?.url||'';$('#fNote').value=it?.note||'';
+  $('#fUrl').value=it?.url||'';$('#fNote').value=it?.note||'';$('#fCat').value=it?.cat||'Altro';$('#fFav').checked=!!it?.fav;
   $('#bDel').classList.toggle('hide',!it);
-  $('#dlg').showModal();
+  updMeter();$('#dlg').showModal();
 }
 $('#bAdd').onclick=()=>openForm(null);
 $('#bCancel').onclick=()=>$('#dlg').close();
-function gen(len=20){
-  const set='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*-_+=?';
-  const r=new Uint32Array(len), lim=Math.floor(2**32/set.length)*set.length; let out='';
-  while(out.length<len){crypto.getRandomValues(r);for(const n of r){if(n<lim&&out.length<len)out+=set[n%set.length]}}
-  return out;
-}
-$('#bGen').onclick=()=>{$('#fPass').value=gen()};
+$('#bGen').onclick=()=>{const g=gen();if(g){$('#fPass').value=g;updMeter()}};
 $('#form').addEventListener('submit',async e=>{
-  const d={name:$('#fName').value.trim(),user:$('#fUser').value.trim(),pass:$('#fPass').value,url:$('#fUrl').value.trim(),note:$('#fNote').value.trim()};
+  const d={name:$('#fName').value.trim(),user:$('#fUser').value.trim(),pass:$('#fPass').value,url:$('#fUrl').value.trim(),note:$('#fNote').value.trim(),cat:$('#fCat').value,fav:$('#fFav').checked};
   if(!d.name)return;
   if(editId){Object.assign(items.find(x=>x.id===editId),d)}
   else items.push({id:crypto.randomUUID(),...d});
@@ -261,6 +340,7 @@ $('#bExport').onclick=()=>{
   a.href=URL.createObjectURL(new Blob([v],{type:'application/json'}));
   a.download='cassaforte-backup-'+new Date().toISOString().slice(0,10)+'.json';
   a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  localStorage.setItem('lastBackup',Date.now());updBackup();updBkInfo();toast('Backup esportato');
 };
 $('#bImport').onclick=()=>$('#file').click();
 $('#file').addEventListener('change',async e=>{
@@ -271,6 +351,66 @@ $('#file').addEventListener('change',async e=>{
     if(!confirm('Importare il backup sostituirà tutti gli account attuali. Dovrai usare la password principale del backup. Continuare?'))return;
     localStorage.setItem('vault',JSON.stringify(v)); lock(); toast('Backup importato: sblocca con la sua password');
   }catch{toast('File di backup non valido')}
+});
+
+/* Generatore */
+const SETS={lower:'abcdefghijkmnopqrstuvwxyz',upper:'ABCDEFGHJKLMNPQRSTUVWXYZ',num:'23456789',sym:'!@#$%^&*-_+=?'};
+function rnd(n){const r=new Uint32Array(1),lim=Math.floor(2**32/n)*n;do{crypto.getRandomValues(r)}while(r[0]>=lim);return r[0]%n}
+function gen(){
+  const len=+$('#gLen').value, sel=Object.keys(SETS).filter(k=>$('#g_'+k).checked);
+  if(!sel.length){toast('Scegli almeno un tipo di carattere');return''}
+  const all=sel.map(k=>SETS[k]).join(''), out=sel.map(k=>SETS[k][rnd(SETS[k].length)]);
+  while(out.length<len)out.push(all[rnd(all.length)]);
+  for(let i=out.length-1;i>0;i--){const j=rnd(i+1);[out[i],out[j]]=[out[j],out[i]]}
+  return out.slice(0,len).join('');
+}
+function saveG(){localStorage.setItem('gopts',JSON.stringify({len:+$('#gLen').value,lower:$('#g_lower').checked,upper:$('#g_upper').checked,num:$('#g_num').checked,sym:$('#g_sym').checked}))}
+try{const o=JSON.parse(localStorage.getItem('gopts'));if(o){$('#gLen').value=o.len;['lower','upper','num','sym'].forEach(k=>$('#g_'+k).checked=!!o[k])}}catch{}
+$('#gLenV').textContent=$('#gLen').value;
+$('#gOpts').addEventListener('input',()=>{$('#gLenV').textContent=$('#gLen').value;saveG()});
+
+/* Modifica rapida password */
+let qId=null;
+function updQ(){const r=strength($('#qPass').value);$('#qBar').style.width=r.p+'%';$('#qBar').style.background=r.c;$('#qTxt').textContent=r.t?'Robustezza: '+r.t:''}
+function openQuick(it){qId=it.id;$('#qS').textContent=it.name+(it.user?' · '+it.user:'');$('#qPass').value='';updQ();$('#dlgQ').showModal()}
+$('#qPass').addEventListener('input',updQ);
+$('#qGen').onclick=()=>{const g=gen();if(g){$('#qPass').value=g;updQ()}};
+$('#qCancel').onclick=()=>$('#dlgQ').close();
+$('#fQ').addEventListener('submit',async()=>{
+  const it=items.find(x=>x.id===qId); if(!it||!$('#qPass').value)return;
+  it.pass=$('#qPass').value; await persist(); render(); toast('Password aggiornata');
+});
+
+/* Avviso di backup */
+const DAY=864e5;
+function updBackup(){
+  const now=Date.now(); let since=+localStorage.getItem('vaultSince');
+  if(!since){since=now;localStorage.setItem('vaultSince',now)}
+  const last=+localStorage.getItem('lastBackup')||0, ref=last||since, snooze=+localStorage.getItem('bkSnooze')||0;
+  const due=items.length>0&&now-ref>14*DAY&&now>snooze;
+  $('#bk').classList.toggle('hide',!due);
+  if(due){const d=Math.floor((now-ref)/DAY);
+    $('#bkTxt').textContent=last?`L'ultimo backup risale a ${d} giorni fa. Esportane uno nuovo per non perdere i dati.`:'Non hai ancora esportato nessun backup. Ne basta uno per non perdere tutto se cambi telefono o cancelli i dati del browser.'}
+}
+function updBkInfo(){const l=+localStorage.getItem('lastBackup');$('#bkInfo').textContent=l?'Ultimo backup: '+new Date(l).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}):'Nessun backup ancora esportato.'}
+$('#bkNow').onclick=()=>$('#bExport').click();
+$('#bkLater').onclick=()=>{localStorage.setItem('bkSnooze',Date.now()+3*DAY);updBackup()};
+
+/* Opzioni e cambio password principale */
+$('#bSet').onclick=()=>{updBkInfo();$('#pErr').textContent='';$('#dlgSet').showModal()};
+$('#bSetClose').onclick=()=>$('#dlgSet').close();
+$('#pwForm').addEventListener('submit',async e=>{
+  e.preventDefault(); const err=$('#pErr'); err.textContent='';
+  const o=$('#pOld').value, n=$('#pNew').value, v=getVault();
+  if(n.length<8){err.textContent='La nuova password deve avere almeno 8 caratteri.';return}
+  if(n!==$('#pNew2').value){err.textContent='Le due nuove password non coincidono.';return}
+  const btn=e.submitter; if(btn)btn.disabled=true;
+  try{
+    try{const k=await derive(o,unb64(v.salt));await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(v.iv)},k,unb64(v.data))}
+    catch{err.textContent='La password attuale non è corretta.';return}
+    salt=crypto.getRandomValues(new Uint8Array(16)); key=await derive(n,salt); await persist();
+    $('#pwForm').reset(); $('#dlgSet').close(); toast('Password principale cambiata');
+  }finally{if(btn)btn.disabled=false}
 });
 
 showLock();
