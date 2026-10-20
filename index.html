@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14313a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Cassaforte</title>
+<style>
+:root{--bg:#eef1ef;--card:#fff;--ink:#14232b;--mute:#5d6e75;--line:#d5dcd9;--acc:#14313a;--on:#fff;--brass:#a97a1c;--bad:#b3261e;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1a1f;--card:#16262d;--ink:#e6edeb;--mute:#8fa2a9;--line:#27393f;--acc:#d6a540;--on:#10191d;--brass:#d6a540;--bad:#ff8a80;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}
+.mute{color:var(--mute)}
+input,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+label{display:block;font-size:.85rem;color:var(--mute);margin:12px 0 4px}
+.btn{border:1px solid var(--line);background:var(--card);padding:10px 14px;border-radius:8px}
+.btn.p{background:var(--acc);color:var(--on);border-color:var(--acc);font-weight:600}
+.btn.s{padding:6px 10px;font-size:.85rem}
+.btn.d{color:var(--bad)}
+.row{display:flex;gap:8px;align-items:center}
+.grow{flex:1}
+#lock{max-width:380px;margin:12vh auto 0;padding:24px}
+#lock .btn{width:100%;margin-top:16px}
+#err{color:var(--bad);min-height:1.4em;margin-top:8px;font-size:.9rem}
+header.bar{position:sticky;top:0;background:var(--bg);padding:12px 0;z-index:2}
+ul{list-style:none;margin:12px 0;padding:0}
+li.it{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:8px;padding:12px;margin-bottom:10px}
+li.it h2{font-size:1.05rem;margin:0}
+li.it .u{color:var(--mute);font-size:.9rem;word-break:break-all}
+li.it .pw{font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:6px;word-break:break-all}
+li.it .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.empty{text-align:center;padding:40px 0}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:min(560px,94vw);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog form{padding:16px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--acc);color:var(--on);padding:10px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<main id="lock">
+  <h1>Cassaforte</h1>
+  <p class="mute" id="lockMsg"></p>
+  <form id="lockForm" autocomplete="off">
+    <label for="mp">Password principale</label>
+    <input id="mp" type="password" autocomplete="current-password" required>
+    <div id="mp2w" class="hide">
+      <label for="mp2">Ripeti la password principale</label>
+      <input id="mp2" type="password" autocomplete="new-password">
+    </div>
+    <div id="err" role="alert"></div>
+    <button class="btn p" id="lockBtn">Sblocca</button>
+  </form>
+</main>
+
+<div id="app" class="wrap hide">
+  <header class="bar">
+    <div class="row">
+      <h1 class="grow">Cassaforte</h1>
+      <button class="btn s" id="bExport">Esporta</button>
+      <button class="btn s" id="bImport">Importa</button>
+      <button class="btn s" id="bLock">Blocca</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="q" type="search" placeholder="Cerca account" class="grow" aria-label="Cerca account">
+      <button class="btn p" id="bAdd">Aggiungi</button>
+    </div>
+  </header>
+  <ul id="list"></ul>
+  <input type="file" id="file" accept="application/json,.json" class="hide">
+</div>
+
+<dialog id="dlg">
+  <form id="form" method="dialog" autocomplete="off">
+    <h1 id="dlgT">Nuovo account</h1>
+    <label for="fName">Servizio</label><input id="fName" required placeholder="es. Netflix">
+    <label for="fUser">Utente o email</label><input id="fUser" autocapitalize="off">
+    <label for="fPass">Password</label>
+    <div class="row"><input id="fPass" class="grow" type="text" spellcheck="false"><button type="button" class="btn" id="bGen">Genera</button></div>
+    <label for="fUrl">Indirizzo sito</label><input id="fUrl" type="url" placeholder="https://">
+    <label for="fNote">Note</label><textarea id="fNote" rows="3"></textarea>
+    <div class="row" style="margin-top:16px">
+      <button type="button" class="btn d" id="bDel">Elimina</button>
+      <span class="grow"></span>
+      <button type="button" class="btn" id="bCancel">Annulla</button>
+      <button class="btn p" id="bSave">Salva</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script>
+const $=s=>document.querySelector(s), enc=new TextEncoder(), dec=new TextDecoder();
+const b64=b=>{let s='';new Uint8Array(b).forEach(c=>s+=String.fromCharCode(c));return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let key=null, salt=null, items=[], editId=null, shown=new Set(), lockT, clipT;
+
+const getVault=()=>{try{return JSON.parse(localStorage.getItem('vault'))}catch{return null}};
+async function derive(pw,s){
+  const k=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:310000,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function persist(){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(items)));
+  localStorage.setItem('vault',JSON.stringify({v:1,salt:b64(salt),iv:b64(iv),data:b64(ct)}));
+}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1800)}
+
+/* Blocco / sblocco */
+function showLock(){
+  const v=getVault(), nuovo=!v;
+  $('#lockMsg').textContent=nuovo?'Crea una password principale. Non si può recuperare: se la dimentichi, i dati restano illeggibili.':'Inserisci la password principale per aprire i tuoi account.';
+  $('#mp2w').classList.toggle('hide',!nuovo); $('#mp2').required=nuovo;
+  $('#lockBtn').textContent=nuovo?'Crea cassaforte':'Sblocca';
+  $('#mp').value=$('#mp2').value=''; $('#err').textContent='';
+  $('#lock').classList.remove('hide'); $('#app').classList.add('hide');
+}
+function lock(){
+  key=null;items=[];shown.clear();clearTimeout(lockT);
+  if($('#dlg').open)$('#dlg').close();
+  showLock();
+}
+function bump(){clearTimeout(lockT);if(key)lockT=setTimeout(lock,2*60*1000)}
+['click','keydown','touchstart'].forEach(e=>addEventListener(e,bump,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&key)lock()});
+
+$('#lockForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const pw=$('#mp').value, v=getVault(), btn=$('#lockBtn'); $('#err').textContent='';
+  btn.disabled=true;
+  try{
+    if(!v){
+      if(pw.length<8){$('#err').textContent='Usa almeno 8 caratteri.';return}
+      if(pw!==$('#mp2').value){$('#err').textContent='Le due password non coincidono.';return}
+      salt=crypto.getRandomValues(new Uint8Array(16)); key=await derive(pw,salt); items=[]; await persist();
+    }else{
+      salt=unb64(v.salt); const k=await derive(pw,salt);
+      try{
+        const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(v.iv)},k,unb64(v.data));
+        items=JSON.parse(dec.decode(pt)); key=k;
+      }catch{$('#err').textContent='Password errata.';return}
+    }
+    $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); bump();
+  }finally{btn.disabled=false}
+});
+$('#bLock').onclick=lock;
+
+/* Elenco */
+function render(){
+  const q=$('#q').value.trim().toLowerCase();
+  const rows=items.filter(i=>!q||[i.name,i.user,i.url].join(' ').toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'it'));
+  $('#list').innerHTML=rows.length?rows.map(i=>`
+    <li class="it" data-id="${i.id}">
+      <h2>${esc(i.name)}</h2>
+      <div class="u">${esc(i.user)}</div>
+      <div class="pw">${shown.has(i.id)?esc(i.pass):'••••••••••'}</div>
+      ${i.note?`<div class="mute" style="margin-top:6px;font-size:.9rem;white-space:pre-wrap">${esc(i.note)}</div>`:''}
+      <div class="acts">
+        <button class="btn s" data-a="cu">Copia utente</button>
+        <button class="btn s" data-a="cp">Copia password</button>
+        <button class="btn s" data-a="sh">${shown.has(i.id)?'Nascondi':'Mostra'}</button>
+        ${i.url?`<a class="btn s" style="text-decoration:none" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">Apri sito</a>`:''}
+        <button class="btn s" data-a="ed">Modifica</button>
+      </div>
+    </li>`).join(''):`<li class="empty mute">${items.length?'Nessun account corrisponde alla ricerca.':'Non hai ancora salvato nulla. Premi Aggiungi per inserire il primo account.'}</li>`;
+}
+$('#q').addEventListener('input',render);
+async function copy(t,m){
+  try{await navigator.clipboard.writeText(t);toast(m);clearTimeout(clipT);
+    clipT=setTimeout(()=>navigator.clipboard.writeText('').catch(()=>{}),30000)}
+  catch{toast('Copia non riuscita')}
+}
+$('#list').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-a]'); if(!b)return;
+  const id=b.closest('li').dataset.id, it=items.find(x=>x.id===id); if(!it)return;
+  const a=b.dataset.a;
+  if(a==='cu')copy(it.user,'Utente copiato');
+  if(a==='cp')copy(it.pass,'Password copiata (si cancella tra 30 s)');
+  if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
+  if(a==='ed')openForm(it);
+});
+
+/* Modulo */
+function openForm(it){
+  editId=it?it.id:null;
+  $('#dlgT').textContent=it?'Modifica account':'Nuovo account';
+  $('#fName').value=it?.name||'';$('#fUser').value=it?.user||'';$('#fPass').value=it?.pass||'';
+  $('#fUrl').value=it?.url||'';$('#fNote').value=it?.note||'';
+  $('#bDel').classList.toggle('hide',!it);
+  $('#dlg').showModal();
+}
+$('#bAdd').onclick=()=>openForm(null);
+$('#bCancel').onclick=()=>$('#dlg').close();
+function gen(len=20){
+  const set='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*-_+=?';
+  const r=new Uint32Array(len), lim=Math.floor(2**32/set.length)*set.length; let out='';
+  while(out.length<len){crypto.getRandomValues(r);for(const n of r){if(n<lim&&out.length<len)out+=set[n%set.length]}}
+  return out;
+}
+$('#bGen').onclick=()=>{$('#fPass').value=gen()};
+$('#form').addEventListener('submit',async e=>{
+  const d={name:$('#fName').value.trim(),user:$('#fUser').value.trim(),pass:$('#fPass').value,url:$('#fUrl').value.trim(),note:$('#fNote').value.trim()};
+  if(!d.name)return;
+  if(editId){Object.assign(items.find(x=>x.id===editId),d)}
+  else items.push({id:crypto.randomUUID(),...d});
+  await persist(); render(); toast('Salvato');
+});
+$('#bDel').onclick=async()=>{
+  if(!confirm('Eliminare questo account? L\u2019operazione non si può annullare.'))return;
+  items=items.filter(x=>x.id!==editId); await persist(); $('#dlg').close(); render(); toast('Eliminato');
+};
+
+/* Backup: il file resta cifrato con la password principale */
+$('#bExport').onclick=()=>{
+  const v=localStorage.getItem('vault'); if(!v)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([v],{type:'application/json'}));
+  a.download='cassaforte-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+$('#bImport').onclick=()=>$('#file').click();
+$('#file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f)return;
+  try{
+    const v=JSON.parse(await f.text());
+    if(!(v.salt&&v.iv&&v.data))throw 0;
+    if(!confirm('Importare il backup sostituirà tutti gli account attuali. Dovrai usare la password principale del backup. Continuare?'))return;
+    localStorage.setItem('vault',JSON.stringify(v)); lock(); toast('Backup importato: sblocca con la sua password');
+  }catch{toast('File di backup non valido')}
+});
+
+showLock();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
