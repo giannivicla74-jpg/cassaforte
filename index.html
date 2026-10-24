@@ -40,6 +40,7 @@ label{display:block;font-size:.82rem;font-weight:600;color:var(--mute);margin:14
 .logo{width:68px;height:68px;border-radius:22px;margin:0 auto 16px;box-shadow:0 10px 28px var(--glow)}
 .logo svg{width:34px;height:34px}
 .mark{width:42px;height:42px;border-radius:13px}.mark svg{width:22px;height:22px}
+.logo img,.mark img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 #lock .btn{width:100%;margin-top:18px;padding:12px}
 #err{color:var(--bad);min-height:1.4em;margin-top:8px;font-size:.9rem}
 header.bar{position:sticky;top:0;z-index:2;margin:0 -16px;padding:16px 16px 12px;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -91,13 +92,28 @@ summary{cursor:pointer;font-size:.85rem;color:var(--mute);font-weight:600}
 .gopts .opts{display:flex;flex-wrap:wrap;gap:8px 16px}
 .gopts .chk{margin:0}
 input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--acc)}
+.banner.warn{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--card))}
+.stat-box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.badge-ok{color:#2f9e6b;font-weight:600}
+.badge-no{color:var(--bad);font-weight:600}
+dialog#dlgHelp{max-height:86vh;overflow-y:auto}
+.guide-sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.guide-sec h4{margin:0 0 6px;font-size:1rem;display:flex;align-items:center;gap:8px}
+.guide-sec p{margin:4px 0 8px;font-size:.9rem;line-height:1.5}
+.guide-sec ul{margin:6px 0;padding-left:20px;font-size:.88rem;line-height:1.5}
+.guide-sec li{margin-bottom:4px}
+.callout{background:var(--soft);border-left:4px solid var(--brass);padding:10px 12px;border-radius:8px;font-size:.88rem;margin:8px 0;line-height:1.45}
+.callout.danger{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--soft))}
+.app-credit{text-align:center;font-size:.78rem;color:var(--mute);margin:24px 0 12px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;letter-spacing:.01em}
+.app-credit .code-sym{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;color:var(--brass);letter-spacing:0}
+.app-credit strong{color:var(--ink);font-weight:600}
 </style>
 </head>
 <body>
 
 <main id="lock">
   <div class="card lockcard">
-    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor"/></svg></div>
+    <div class="logo"><img src="icon-192.png" alt="Cassaforte"></div>
     <h1>Cassaforte</h1>
     <p class="mute" id="lockMsg"></p>
     <form id="lockForm" autocomplete="off">
@@ -109,14 +125,19 @@ input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--a
       </div>
       <div id="err" role="alert"></div>
       <button class="btn p" id="lockBtn">Sblocca</button>
+      <div style="text-align:center;margin-top:14px"><button type="button" class="btn s" id="bHelpLock" style="border:0;background:transparent;color:var(--mute);text-decoration:underline">Come funziona & Sicurezza</button></div>
     </form>
   </div>
+  <footer class="app-credit">
+    <span class="code-sym">&lt;/&gt;</span> Software Engineered &amp; Designed by: <strong>GC CodeLab &bull; Giovanni Cavallo</strong>
+  </footer>
 </main>
 
 <div id="app" class="wrap hide">
   <header class="bar">
     <div class="row">
-      <div class="brand grow"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor"/></svg></span><div><h1>Cassaforte</h1><div class="mute small" id="count"></div></div></div>
+      <div class="brand grow"><span class="mark"><img src="icon-192.png" alt="Cassaforte"></span><div><h1>Cassaforte</h1><div class="mute small" id="count"></div></div></div>
+      <button class="btn s" id="bHelp" title="Manuale e sicurezza"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Guida</button>
       <button class="btn s" id="bSet">Opzioni</button>
       <button class="btn s" id="bLock">Blocca</button>
     </div>
@@ -126,9 +147,21 @@ input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--a
     </div>
   <div class="chips" id="chips"></div>
   </header>
-  <div class="banner hide" id="bk"><span id="bkTxt"></span><button class="btn s p" id="bkNow">Esporta ora</button><button class="btn s" id="bkLater">Più tardi</button></div>
+  <div class="banner hide" id="bk">
+    <div style="display:flex;align-items:flex-start;gap:10px;width:100%">
+      <span class="mark" style="width:32px;height:32px;border-radius:9px;background:var(--bad);color:#fff"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+      <div style="flex:1"><b id="bkHead" style="display:block;margin-bottom:2px">Avviso Backup</b><span id="bkTxt"></span></div>
+    </div>
+    <div class="row" style="margin-top:8px;width:100%;justify-content:flex-end;gap:6px">
+      <button class="btn s p" id="bkNow">Invia / Salva subito</button>
+      <button class="btn s" id="bkLater">Più tardi</button>
+    </div>
+  </div>
   <ul id="list"></ul>
   <input type="file" id="file" accept="application/json,.json" class="hide">
+  <footer class="app-credit">
+    <span class="code-sym">&lt;/&gt;</span> Software Engineered &amp; Designed by: <strong>GC CodeLab &bull; Giovanni Cavallo</strong>
+  </footer>
 </div>
 
 <dialog id="dlg">
@@ -165,10 +198,38 @@ input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--a
   </form>
 </dialog>
 <dialog id="dlgSet"><div style="padding:20px">
-  <h1>Opzioni</h1>
-  <h3>Backup</h3>
-  <p class="mute small" id="bkInfo" style="margin:0 0 10px"></p>
-  <div class="row"><button class="btn" id="bExport">Esporta backup</button><button class="btn" id="bImport">Importa backup</button></div>
+  <h1>Opzioni & Sicurezza</h1>
+  
+  <h3>Salvataggio & Backup</h3>
+  <div class="stat-box">
+    <div style="font-weight:600;margin-bottom:4px">Stato Backup</div>
+    <div class="mute small" id="bkInfo" style="margin:0 0 12px"></div>
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <button class="btn p" id="bShare"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Invia / Condividi</button>
+      <button class="btn" id="bExport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Scarica JSON</button>
+      <button class="btn" id="bImport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importa</button>
+    </div>
+  </div>
+
+  <div class="stat-box" id="fsBox">
+    <div style="font-weight:600;margin-bottom:4px">Auto-Sync su file (PC / Cloud)</div>
+    <p class="mute small" id="fsInfo" style="margin:0 0 10px">Salva automaticamente una copia cifrata su un file a scelta del computer (es. dentro Google Drive, OneDrive o Documenti).</p>
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <button class="btn s" id="bSyncFile">Collega file di auto-sync</button>
+      <button class="btn s d hide" id="bStopSync">Disconnetti sync</button>
+    </div>
+  </div>
+
+  <div class="stat-box">
+    <div class="row" style="align-items:center">
+      <div class="grow">
+        <div style="font-weight:600">Protezione memoria browser</div>
+        <div class="mute small" id="stPersistInfo">Verifica...</div>
+      </div>
+      <button class="btn s" id="bReqPersist">Attiva</button>
+    </div>
+  </div>
+
   <h3>Password principale</h3>
   <form id="pwForm" autocomplete="off">
     <label for="pOld" style="margin-top:0">Password attuale</label><input id="pOld" type="password" autocomplete="current-password" required>
@@ -178,8 +239,85 @@ input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--a
     <div id="pErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem"></div>
     <button class="btn p" style="margin-top:6px">Cambia password principale</button>
   </form>
-  <div class="row" style="margin-top:18px"><span class="grow"></span><button class="btn" id="bSetClose">Chiudi</button></div>
+  <div class="row" style="margin-top:18px"><button type="button" class="btn s" id="bHelpFromSet">📖 Manuale Sicurezza & Backup</button><span class="grow"></span><button class="btn" id="bSetClose">Chiudi</button></div>
 </div></dialog>
+
+<dialog id="dlgHelp">
+  <div style="padding:20px">
+    <div class="row" style="margin-bottom:14px">
+      <div class="grow"><h1 style="margin:0">Manuale & Sicurezza</h1><div class="mute small">Come funziona la tua Cassaforte e perché il backup è vitale</div></div>
+      <button class="btn s" id="bHelpClose">✕ Chiudi</button>
+    </div>
+
+    <div class="callout danger">
+      <b>⚠️ REGOLA D'ORO: NESSUN RECUPERO PASSWORD</b><br>
+      Questa applicazione funziona <b>esclusivamente in locale senza server</b>. Se dimentichi la password principale o cancelli i dati del browser senza un file di backup, <u>nessuno al mondo potrà recuperare i tuoi account</u>.
+    </div>
+
+    <div class="guide-sec">
+      <h4>🛡️ 1. Come funziona (Zero Cloud & Privacy 100%)</h4>
+      <p>A differenza dei gestori di password commerciali con abbonamento, <b>Cassaforte non invia nulla su Internet</b>.</p>
+      <ul>
+        <li>Tutte le tue password restano memorizzate esclusivamente nella memoria protetta di questo browser.</li>
+        <li>Nessun account da registrare, nessun tracciamento e nessuna profilazione dei tuoi dati.</li>
+        <li>Funziona sempre, anche offline senza connessione Internet.</li>
+      </ul>
+    </div>
+
+    <div class="guide-sec">
+      <h4>🔐 2. Crittografia e Protezione dei Dati</h4>
+      <p>I tuoi dati non vengono mai salvati in chiaro:</p>
+      <ul>
+        <li><b>AES-GCM a 256 bit</b>: lo standard di cifratura simmetrica più sicuro al mondo.</li>
+        <li><b>PBKDF2 con 310.000 iterazioni SHA-256</b>: rende praticamente impossibili gli attacchi a forza bruta per indovinare la tua chiave.</li>
+        <li><b>Blocco automatico</b>: la cassaforte si blocca da sola dopo 2 minuti di inattività o non appena riduci a icona la finestra o cambi scheda, azzerando la chiave decifrata dalla memoria RAM.</li>
+        <li><b>Appunti protetti</b>: quando copi utente o password, gli appunti del telefono o PC vengono cancellati dopo 30 secondi.</li>
+      </ul>
+    </div>
+
+    <div class="guide-sec">
+      <h4>💾 3. Perché fare il Backup è FONDAMENTALE</h4>
+      <p>Essendo un archivio solo locale, esistono eventi quotidiani che possono cancellare i dati dal browser:</p>
+      <ul>
+        <li>Se cambi smartphone o PC (i dati non si trasferiscono da soli);</li>
+        <li>Se fai una pulizia della cronologia o dei cookie/dati dei siti web;</li>
+        <li>Se disinstalli l'app dalla schermata Home;</li>
+        <li>Se il dispositivo si rompe o viene ripristinato ai dati di fabbrica.</li>
+      </ul>
+      <div class="callout">
+        <b>Il file di backup è sicuro?</b><br>
+        Assolutamente sì! Il file <code>.json</code> esportato è <b>completamente cifrato con la tua password principale</b>. Anche se lo salvi su Google Drive o lo invii via WhatsApp o email, nessuno potrà mai aprirlo o leggerne il contenuto senza la tua password.
+      </div>
+    </div>
+
+    <div class="guide-sec">
+      <h4>📲 4. Come Salvare il Backup in 1 Tocco</h4>
+      <p>Fare una copia di sicurezza è semplicissimo:</p>
+      <ul>
+        <li>Clicca sul pulsante <b>"Invia / Condividi backup"</b>.</li>
+        <li><b>Su smartphone</b>: seleziona <i>WhatsApp</i> (mandalo alla chat con te stesso), <i>Email</i> (invialo alla tua casella), oppure salvalo su <i>Google Drive</i> o <i>iCloud</i>.</li>
+        <li><b>Su computer</b>: scarica il file JSON o attiva l'<b>Auto-Sync su file</b> dentro una cartella sincronizzata (es. cartella Google Drive o OneDrive del PC).</li>
+      </ul>
+    </div>
+
+    <div class="guide-sec">
+      <h4>🔄 5. Come Ripristinare i Dati (su un nuovo telefono o PC)</h4>
+      <p>Hai cambiato dispositivo o reinstallato il browser?</p>
+      <ul>
+        <li>1. Apri l'app sul nuovo telefono o computer.</li>
+        <li>2. Vai nelle <b>Opzioni</b> e clicca su <b>Importa backup</b>.</li>
+        <li>3. Seleziona il tuo file <code>.json</code> e digita la password principale usata al momento dell'esportazione: <b>tutti i tuoi account saranno immediatamente ripristinati</b>.</li>
+      </ul>
+    </div>
+
+    <div class="app-credit" style="margin-top:20px;border-top:1px solid var(--line);padding-top:14px">
+      <span class="code-sym">&lt;/&gt;</span> Software Engineered &amp; Designed by: <strong>GC CodeLab &bull; Giovanni Cavallo</strong>
+    </div>
+
+    <div class="row" style="margin-top:14px"><span class="grow"></span><button class="btn p" id="bHelpCloseBottom">Ho capito, chiudi</button></div>
+  </div>
+</dialog>
+
 <dialog id="dlgQ"><form id="fQ" method="dialog" style="padding:20px" autocomplete="off">
   <h1>Cambia password</h1>
   <div class="mute small" id="qS"></div>
@@ -196,7 +334,7 @@ const $=s=>document.querySelector(s), enc=new TextEncoder(), dec=new TextDecoder
 const b64=b=>{let s='';new Uint8Array(b).forEach(c=>s+=String.fromCharCode(c));return btoa(s)};
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let key=null, salt=null, items=[], editId=null, shown=new Set(), lockT, clipT;
+let key=null, salt=null, items=[], editId=null, shown=new Set(), lockT, clipT, syncHandle=null;
 
 const getVault=()=>{try{return JSON.parse(localStorage.getItem('vault'))}catch{return null}};
 async function derive(pw,s){
@@ -206,7 +344,15 @@ async function derive(pw,s){
 async function persist(){
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(items)));
-  localStorage.setItem('vault',JSON.stringify({v:1,salt:b64(salt),iv:b64(iv),data:b64(ct)}));
+  const vStr=JSON.stringify({v:1,salt:b64(salt),iv:b64(iv),data:b64(ct)});
+  localStorage.setItem('vault',vStr);
+  if(syncHandle){
+    try{
+      const w=await syncHandle.createWritable();
+      await w.write(vStr);
+      await w.close();
+    }catch(e){console.warn('Auto-sync write error',e)}
+  }
 }
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1800)}
 
@@ -221,7 +367,7 @@ function showLock(){
 }
 function lock(){
   key=null;items=[];shown.clear();clearTimeout(lockT);
-  ['dlg','dlgSet','dlgQ'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});$('#pwForm').reset();$('#fQ').reset();$('#pErr').textContent='';
+  ['dlg','dlgSet','dlgQ','dlgHelp'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});$('#pwForm').reset();$('#fQ').reset();$('#pErr').textContent='';
   showLock();
 }
 function bump(){clearTimeout(lockT);if(key)lockT=setTimeout(lock,2*60*1000)}
@@ -244,7 +390,7 @@ $('#lockForm').addEventListener('submit',async e=>{
         items=JSON.parse(dec.decode(pt)); key=k;
       }catch{$('#err').textContent='Password errata.';return}
     }
-    $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); bump();
+    $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); bump(); checkAndRequestPersistence(true);
   }finally{btn.disabled=false}
 });
 $('#bLock').onclick=lock;
@@ -289,7 +435,7 @@ function render(){
         ${i.url?`<a class="btn s" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${IC.link}Sito</a>`:''}
         <button class="btn s" data-a="ed">${IC.edit}Modifica</button>
       </div>
-    </li>`).join(''):`<li class="empty mute"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor"/></svg></div>${items.length?'Nessun account corrisponde.':'Non hai ancora salvato nulla.<br>Premi <b>+ Aggiungi</b> per inserire il primo account.'}</li>`;
+    </li>`).join(''):`<li class="empty mute"><div class="mark" style="width:56px;height:56px;border-radius:18px"><img src="icon-192.png" alt="Cassaforte"></div>${items.length?'Nessun account corrisponde.':'Non hai ancora salvato nulla.<br>Premi <b>+ Aggiungi</b> per inserire il primo account.'}</li>`;
 }
 $('#q').addEventListener('input',render);
 async function copy(t,m){
@@ -334,14 +480,39 @@ $('#bDel').onclick=async()=>{
 };
 
 /* Backup: il file resta cifrato con la password principale */
-$('#bExport').onclick=()=>{
+async function exportBackup(forceDownload=false){
   const v=localStorage.getItem('vault'); if(!v)return;
+  const filename='cassaforte-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  const blob=new Blob([v],{type:'application/json'});
+  if(!forceDownload&&navigator.canShare){
+    try{
+      const file=new File([blob],filename,{type:'application/json'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({
+          title:'Backup Cassaforte Password',
+          text:'Backup cifrato della Cassaforte (salvalo su Drive/iCloud o inviatelo via WhatsApp/Email).',
+          files:[file]
+        });
+        localStorage.setItem('lastBackup',Date.now());
+        localStorage.removeItem('bkSnooze');
+        updBackup();updBkInfo();toast('Backup condiviso');return;
+      }
+    }catch(err){
+      if(err.name==='AbortError')return;
+      console.warn('Share fallito, uso download',err);
+    }
+  }
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([v],{type:'application/json'}));
-  a.download='cassaforte-backup-'+new Date().toISOString().slice(0,10)+'.json';
-  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  localStorage.setItem('lastBackup',Date.now());updBackup();updBkInfo();toast('Backup esportato');
-};
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  localStorage.setItem('lastBackup',Date.now());
+  localStorage.removeItem('bkSnooze');
+  updBackup();updBkInfo();toast('File di backup scaricato');
+}
+$('#bExport').onclick=()=>exportBackup(true);
+$('#bShare').onclick=()=>exportBackup(false);
 $('#bImport').onclick=()=>$('#file').click();
 $('#file').addEventListener('change',async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f)return;
@@ -381,23 +552,89 @@ $('#fQ').addEventListener('submit',async()=>{
   it.pass=$('#qPass').value; await persist(); render(); toast('Password aggiornata');
 });
 
-/* Avviso di backup */
+/* Avviso di backup proattivo */
 const DAY=864e5;
 function updBackup(){
-  const now=Date.now(); let since=+localStorage.getItem('vaultSince');
-  if(!since){since=now;localStorage.setItem('vaultSince',now)}
-  const last=+localStorage.getItem('lastBackup')||0, ref=last||since, snooze=+localStorage.getItem('bkSnooze')||0;
-  const due=items.length>0&&now-ref>14*DAY&&now>snooze;
+  const now=Date.now(), last=+localStorage.getItem('lastBackup')||0, snooze=+localStorage.getItem('bkSnooze')||0;
+  if(items.length>0&&!last){
+    const due=now>snooze;
+    $('#bk').classList.toggle('hide',!due);
+    $('#bk').classList.add('warn');
+    $('#bkHead').textContent='⚠️ ATTENZIONE: Nessun backup effettuato!';
+    $('#bkTxt').textContent='I tuoi dati sono conservati SOLO nella memoria di questo browser. Inviati subito una copia (via WhatsApp, Email o Drive) per non perdere le tue password se pulisci la cronologia o cambi dispositivo.';
+    return;
+  }
+  const due=items.length>0&&(now-last>14*DAY)&&(now>snooze);
   $('#bk').classList.toggle('hide',!due);
-  if(due){const d=Math.floor((now-ref)/DAY);
-    $('#bkTxt').textContent=last?`L'ultimo backup risale a ${d} giorni fa. Esportane uno nuovo per non perdere i dati.`:'Non hai ancora esportato nessun backup. Ne basta uno per non perdere tutto se cambi telefono o cancelli i dati del browser.'}
+  if(due){
+    $('#bk').classList.remove('warn');
+    const d=Math.floor((now-last)/DAY);
+    $('#bkHead').textContent='Promemoria backup periodico';
+    $('#bkTxt').textContent=`L'ultimo backup risale a ${d} giorni fa. Invia o scarica una copia aggiornata per non rischiare di perdere le modifiche recenti.`;
+  }
 }
-function updBkInfo(){const l=+localStorage.getItem('lastBackup');$('#bkInfo').textContent=l?'Ultimo backup: '+new Date(l).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}):'Nessun backup ancora esportato.'}
-$('#bkNow').onclick=()=>$('#bExport').click();
-$('#bkLater').onclick=()=>{localStorage.setItem('bkSnooze',Date.now()+3*DAY);updBackup()};
+function updBkInfo(){
+  const l=+localStorage.getItem('lastBackup');
+  $('#bkInfo').innerHTML=l
+    ?`Ultimo backup: <b>${new Date(l).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</b>`
+    :`<span class="badge-no">NESSUN BACKUP EFFETTUATO!</span> I tuoi dati sono a rischio immediato di perdita in caso di pulizia del browser o cambio dispositivo.`;
+}
+$('#bkNow').onclick=()=>exportBackup(false);
+$('#bkLater').onclick=()=>{localStorage.setItem('bkSnooze',Date.now()+2*DAY);updBackup();toast('Ti ricorderemo del backup tra 2 giorni')};
+
+/* Protezione memoria del browser (Persistent Storage API) */
+async function checkAndRequestPersistence(request=false){
+  if(!navigator.storage||!navigator.storage.persisted){
+    $('#stPersistInfo').textContent='Non supportata da questo browser';
+    $('#bReqPersist').classList.add('hide');
+    return;
+  }
+  let p=await navigator.storage.persisted();
+  if(!p&&request&&navigator.storage.persist){
+    p=await navigator.storage.persist().catch(()=>false);
+  }
+  $('#stPersistInfo').innerHTML=p
+    ?'<span class="badge-ok">Attiva</span>: il browser non cancellerà i dati per liberare spazio su disco.'
+    :'<span class="badge-no">Non attiva</span>: il sistema potrebbe cancellare i dati se la memoria è piena.';
+  $('#bReqPersist').classList.toggle('hide',!!p);
+}
+$('#bReqPersist').onclick=async()=>{await checkAndRequestPersistence(true);toast('Richiesta inviata al browser')};
+
+/* Auto-sync su file locale/cloud (File System Access API - PC/Desktop) */
+if(!window.showSaveFilePicker){
+  $('#fsBox').classList.add('hide');
+}else{
+  $('#bSyncFile').onclick=async()=>{
+    try{
+      syncHandle=await window.showSaveFilePicker({
+        suggestedName:'cassaforte-sync.json',
+        types:[{description:'File JSON cifrato',accept:{'application/json':['.json']}}]
+      });
+      const v=localStorage.getItem('vault');
+      if(v&&syncHandle){
+        const w=await syncHandle.createWritable();
+        await w.write(v);
+        await w.close();
+      }
+      $('#fsInfo').innerHTML=`<span class="badge-ok">Attivo su:</span> <b>${esc(syncHandle.name)}</b> (ogni salvataggio aggiornerà automaticamente questo file).`;
+      $('#bSyncFile').textContent='Cambia file';
+      $('#bStopSync').classList.remove('hide');
+      toast('Auto-sync su file attivato');
+    }catch(e){
+      if(e.name!=='AbortError')toast('Selezione file annullata');
+    }
+  };
+  $('#bStopSync').onclick=()=>{
+    syncHandle=null;
+    $('#fsInfo').textContent='Salva automaticamente una copia cifrata su un file a scelta del computer (es. dentro Google Drive, OneDrive o Documenti).';
+    $('#bSyncFile').textContent='Collega file di auto-sync';
+    $('#bStopSync').classList.add('hide');
+    toast('Auto-sync disattivato');
+  };
+}
 
 /* Opzioni e cambio password principale */
-$('#bSet').onclick=()=>{updBkInfo();$('#pErr').textContent='';$('#dlgSet').showModal()};
+$('#bSet').onclick=()=>{updBkInfo();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
 $('#bSetClose').onclick=()=>$('#dlgSet').close();
 $('#pwForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=$('#pErr'); err.textContent='';
@@ -412,6 +649,15 @@ $('#pwForm').addEventListener('submit',async e=>{
     $('#pwForm').reset(); $('#dlgSet').close(); toast('Password principale cambiata');
   }finally{if(btn)btn.disabled=false}
 });
+
+/* Manuale e Guida Sicurezza */
+const openHelp=()=>$('#dlgHelp').showModal();
+const closeHelp=()=>$('#dlgHelp').close();
+$('#bHelp').onclick=openHelp;
+$('#bHelpLock').onclick=openHelp;
+$('#bHelpFromSet').onclick=()=>{ $('#dlgSet').close(); openHelp(); };
+$('#bHelpClose').onclick=closeHelp;
+$('#bHelpCloseBottom').onclick=closeHelp;
 
 showLock();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
