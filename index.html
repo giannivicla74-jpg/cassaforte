@@ -232,6 +232,27 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
     </div>
   </div>
 
+  <h3>Blocco automatico</h3>
+  <div class="stat-box">
+    <label for="sIdle" style="margin-top:0">Blocca dopo un periodo di inattività</label>
+    <select id="sIdle">
+      <option value="1">1 minuto</option>
+      <option value="2">2 minuti (consigliato)</option>
+      <option value="5">5 minuti</option>
+      <option value="10">10 minuti</option>
+      <option value="15">15 minuti</option>
+      <option value="30">30 minuti</option>
+    </select>
+    <label for="sAway">Quando passi a un'altra app o scheda</label>
+    <select id="sAway">
+      <option value="0">Blocca subito (consigliato)</option>
+      <option value="30">Blocca dopo 30 secondi</option>
+      <option value="60">Blocca dopo 1 minuto</option>
+      <option value="300">Blocca dopo 5 minuti</option>
+    </select>
+    <p class="mute small" style="margin:8px 0 0">Tempi più lunghi sono più comodi (es. per incollare una password in un'altra app) ma meno sicuri se qualcuno prende in mano il dispositivo sbloccato.</p>
+  </div>
+
   <h3>Password principale</h3>
   <form id="pwForm" autocomplete="off">
     <label for="pOld" style="margin-top:0">Password attuale</label><input id="pOld" type="password" autocomplete="current-password" required>
@@ -272,7 +293,7 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
       <ul>
         <li><b>AES-GCM a 256 bit</b>: lo standard di cifratura simmetrica più sicuro al mondo.</li>
         <li><b>PBKDF2 con 600.000 iterazioni SHA-256</b>: rende molto lenti gli attacchi a forza bruta. La vera difesa resta una password principale lunga (es. 4–5 parole a caso).</li>
-        <li><b>Blocco automatico</b>: la cassaforte si blocca da sola dopo 2 minuti di inattività o non appena riduci a icona la finestra o cambi scheda, azzerando la chiave decifrata dalla memoria RAM.</li>
+        <li><b>Blocco automatico</b>: la cassaforte si blocca da sola dopo un periodo di inattività (2 minuti, regolabile in <b>Opzioni</b>) e quando passi a un'altra app o scheda (subito, oppure dopo un breve ritardo a tua scelta), scartando la chiave di decifratura.</li>
         <li><b>Appunti protetti</b>: quando copi utente o password, gli appunti vengono svuotati dopo 30 secondi (se in quel momento sei in un'altra app, appena torni qui o blocchi la cassaforte). Attenzione: alcune tastiere e sistemi conservano una cronologia degli appunti che l'app non può cancellare.</li>
       </ul>
     </div>

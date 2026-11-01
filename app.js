@@ -79,8 +79,8 @@ function showLock(){
   $('#lock').classList.remove('hide'); $('#app').classList.add('hide');
 }
 function lock(){
-  sess++; key=null; salt=null; iter=0; items=[]; shown.clear(); clearTimeout(lockT);
-  editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0;
+  sess++; key=null; salt=null; iter=0; items=[]; shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
+  editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0;
   clearClip(true);
   ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   ['#pwForm','#fQ','#form','#impForm'].forEach(f=>$(f).reset());
@@ -90,13 +90,40 @@ function lock(){
   $('#bk').classList.add('hide');
   showLock();
 }
-function bump(){clearTimeout(lockT);if(key)lockT=setTimeout(lock,2*60*1000)}
+/* Impostazioni del blocco automatico (scelte in Opzioni; accettati solo i valori del menu) */
+const IDLE_OPTS=[1,2,5,10,15,30], AWAY_OPTS=[0,30,60,300];
+function lockCfg(){
+  let c={};try{c=JSON.parse(localStorage.getItem('lockCfg'))||{}}catch{}
+  return{idle:IDLE_OPTS.includes(c.idle)?c.idle:2, away:AWAY_OPTS.includes(c.away)?c.away:0};
+}
+function saveLockCfg(){
+  const c={idle:+$('#sIdle').value, away:+$('#sAway').value};
+  try{localStorage.setItem('lockCfg',JSON.stringify(c))}catch{}
+  return lockCfg();
+}
+let hiddenAt=0, awayT;
+function bump(){clearTimeout(lockT);if(key)lockT=setTimeout(lock,lockCfg().idle*60*1000)}
 ['click','keydown','touchstart'].forEach(e=>addEventListener(e,bump,{passive:true}));
 const allowExternal=(ms=120000)=>{extUntil=Date.now()+ms};
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){if(key&&Date.now()>extUntil)lock()}
-  else{if(key&&extUntil&&Date.now()>extUntil)lock(); extUntil=0}
+  if(document.hidden){
+    if(!key)return;
+    hiddenAt=Date.now();
+    // tolleranza: la maggiore tra quella scelta dall'utente e quella di un'operazione in corso (condivisione, file)
+    const grace=Math.max(lockCfg().away*1000, extUntil-hiddenAt);
+    if(grace<=0)return lock();
+    clearTimeout(awayT); awayT=setTimeout(()=>{if(document.hidden&&key)lock()},grace);
+  }else{
+    clearTimeout(awayT);
+    // i timer in background possono essere sospesi: ricontrolla al ritorno
+    if(key&&hiddenAt&&Date.now()-hiddenAt>Math.max(lockCfg().away*1000, extUntil-hiddenAt))lock();
+    hiddenAt=0; extUntil=0;
+  }
 });
+const minTxt=m=>m===1?'1 minuto':m+' minuti';
+const awayTxt=s=>s===0?'subito':s<60?`dopo ${s} secondi`:`dopo ${minTxt(s/60)}`;
+$('#sIdle').addEventListener('change',()=>{const c=saveLockCfg();bump();toast('Blocco dopo '+minTxt(c.idle)+' di inattività')});
+$('#sAway').addEventListener('change',()=>{const c=saveLockCfg();toast('Cambiando app: blocco '+awayTxt(c.away))});
 // Un'altra scheda ha modificato la cassaforte: blocca per non sovrascrivere i suoi dati
 addEventListener('storage',e=>{
   if(e.key!=='vault'&&e.key!==null)return;
@@ -460,7 +487,7 @@ if(!window.showSaveFilePicker){
 }
 
 /* Opzioni e cambio password principale */
-$('#bSet').onclick=()=>{updBkInfo();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
+$('#bSet').onclick=()=>{const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;updBkInfo();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
 $('#bSetClose').onclick=()=>$('#dlgSet').close();
 $('#pwForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=$('#pErr'); err.textContent='';
