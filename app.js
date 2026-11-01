@@ -7,6 +7,16 @@ let syncHandle=null, pendingHandle=null, pendingImport=null;
 let sess=0;            // cresce a ogni blocco: invalida le operazioni asincrone iniziate prima
 let saveQ=Promise.resolve(); // serializza i salvataggi
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
+/* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
+const APP_VERSION='1.5.0';
+const CHANGELOG=[
+  ['1.5.0',['Numero di versione visibile e sezione Novità nel manuale']],
+  ['1.4.0',['Nuova grafica dell’avviso di backup','Intestazione adatta agli schermi del telefono']],
+  ['1.3.0',['Blocco automatico regolabile in Opzioni (inattività e cambio app)']],
+  ['1.2.0',['Protezione più forte: 600.000 iterazioni PBKDF2 (backup vecchi ancora validi)','Content-Security-Policy contro codice malevolo']],
+  ['1.1.0',['Import sicuro con scelta Unisci / Sostituisci','Correzioni di bug che potevano far perdere dati','Auto-sync su file ricordato dopo il riavvio']],
+  ['1.0.0',['Prima versione: cassaforte cifrata, generatore, backup']]
+];
 const CATS=['Email','Social','Banca','Lavoro','Shopping','Altro'];
 
 const getVault=()=>{try{return JSON.parse(localStorage.getItem('vault'))}catch{return null}};
@@ -516,6 +526,10 @@ $('#bHelpLock').onclick=openHelp;
 $('#bHelpFromSet').onclick=()=>{ $('#dlgSet').close(); openHelp(); };
 $('#bHelpClose').onclick=closeHelp;
 $('#bHelpCloseBottom').onclick=closeHelp;
+
+/* Versione e novità */
+document.querySelectorAll('.appver').forEach(e=>e.textContent=APP_VERSION);
+$('#news').innerHTML=CHANGELOG.map(([v,l],i)=>`<div class="news-v"><span class="ver">v${esc(v)}</span>${i===0?'<span class="now">attuale</span>':''}</div><ul>${l.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>`).join('');
 
 showLock();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
