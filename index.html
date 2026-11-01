@@ -46,6 +46,9 @@ label{display:block;font-size:.82rem;font-weight:600;color:var(--mute);margin:14
 #err{color:var(--bad);min-height:1.4em;margin-top:8px;font-size:.9rem}
 header.bar{position:sticky;top:0;z-index:2;margin:0 -16px;padding:16px 16px 12px;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .brand{display:flex;align-items:center;gap:12px}
+.brand>div{min-width:0}
+.brand h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:480px){header.bar .row:first-child .lbl{display:none}header.bar .row:first-child>.btn{padding:8px 10px}.brand{gap:10px}}
 .search{position:relative}
 .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute);width:18px;height:18px;pointer-events:none}
 .search input{padding-left:40px}
@@ -85,15 +88,21 @@ h3{font-size:.95rem;margin:20px 0 8px}
 .pwbox{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .pwbox span{min-width:0;overflow-wrap:anywhere}
 .pwbox .btn{font-family:system-ui,sans-serif;letter-spacing:0;flex:none;padding:4px 10px}
-.banner{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:.9rem}
-.banner span{flex:1;min-width:200px}
+.banner{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:14px;padding:14px;margin:8px 0 12px;font-size:.9rem;box-shadow:var(--sh)}
+.bk-ic{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--brass) 16%,transparent);color:var(--brass)}
+.bk-ic svg{width:19px;height:19px}
+.bk-body{flex:1;min-width:0}
+.bk-body b{display:block;font-size:.98rem;margin:6px 0 4px}
+.bk-body p{margin:0;color:var(--mute);line-height:1.5}
+.bk-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.banner.warn .bk-ic{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
 details{margin-top:10px}
 summary{cursor:pointer;font-size:.85rem;color:var(--mute);font-weight:600}
 .gopts{display:grid;gap:10px;margin-top:10px}
 .gopts .opts{display:flex;flex-wrap:wrap;gap:8px 16px}
 .gopts .chk{margin:0}
 input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--acc)}
-.banner.warn{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--card))}
+.banner.warn{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 6%,var(--card))}
 .stat-box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
 .badge-ok{color:#2f9e6b;font-weight:600}
 .badge-no{color:var(--bad);font-weight:600}
@@ -138,9 +147,9 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
   <header class="bar">
     <div class="row">
       <div class="brand grow"><span class="mark"><img src="icon-192.png" alt="Cassaforte"></span><div><h1>Cassaforte</h1><div class="mute small" id="count"></div></div></div>
-      <button class="btn s" id="bHelp" title="Manuale e sicurezza"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Guida</button>
-      <button class="btn s" id="bSet">Opzioni</button>
-      <button class="btn s" id="bLock">Blocca</button>
+      <button class="btn s" id="bHelp" title="Manuale e sicurezza"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span class="lbl"> Guida</span></button>
+      <button class="btn s" id="bSet" title="Opzioni" aria-label="Opzioni"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl"> Opzioni</span></button>
+      <button class="btn s" id="bLock" title="Blocca" aria-label="Blocca"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="lbl"> Blocca</span></button>
     </div>
     <div class="row" style="margin-top:14px">
       <div class="search grow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cerca account" aria-label="Cerca account"></div>
@@ -148,14 +157,15 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
     </div>
   <div class="chips" id="chips"></div>
   </header>
-  <div class="banner hide" id="bk">
-    <div style="display:flex;align-items:flex-start;gap:10px;width:100%">
-      <span class="mark" style="width:32px;height:32px;border-radius:9px;background:var(--bad);color:#fff"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-      <div style="flex:1"><b id="bkHead" style="display:block;margin-bottom:2px">Avviso Backup</b><span id="bkTxt"></span></div>
-    </div>
-    <div class="row" style="margin-top:8px;width:100%;justify-content:flex-end;gap:6px">
-      <button class="btn s p" id="bkNow">Invia / Salva subito</button>
-      <button class="btn s" id="bkLater">Più tardi</button>
+  <div class="banner hide" id="bk" role="status">
+    <div class="bk-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    <div class="bk-body">
+      <b id="bkHead">Avviso backup</b>
+      <p id="bkTxt"></p>
+      <div class="bk-acts">
+        <button class="btn s" id="bkLater">Più tardi</button>
+        <button class="btn s p" id="bkNow">Fai il backup ora</button>
+      </div>
     </div>
   </div>
   <ul id="list"></ul>

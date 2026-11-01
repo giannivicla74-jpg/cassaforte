@@ -379,8 +379,8 @@ function updBackup(){
     const due=now>snooze;
     $('#bk').classList.toggle('hide',!due);
     $('#bk').classList.add('warn');
-    $('#bkHead').textContent='⚠️ ATTENZIONE: Nessun backup effettuato!';
-    $('#bkTxt').textContent='I tuoi dati sono conservati SOLO nella memoria di questo browser. Inviati subito una copia (via WhatsApp, Email o Drive) per non perdere le tue password se pulisci la cronologia o cambi dispositivo.';
+    $('#bkHead').textContent='Non hai ancora fatto un backup';
+    $('#bkTxt').textContent='Le tue password sono salvate solo in questo browser. Inviati una copia cifrata (WhatsApp, email o Drive): se pulisci la cronologia o cambi dispositivo, senza backup le perdi.';
     return;
   }
   const due=items.length>0&&(now-last>14*DAY)&&(now>snooze);
@@ -388,8 +388,8 @@ function updBackup(){
   if(due){
     $('#bk').classList.remove('warn');
     const d=Math.floor((now-last)/DAY);
-    $('#bkHead').textContent='Promemoria backup periodico';
-    $('#bkTxt').textContent=`L'ultimo backup risale a ${d} giorni fa. Invia o scarica una copia aggiornata per non rischiare di perdere le modifiche recenti.`;
+    $('#bkHead').textContent='È ora di aggiornare il backup';
+    $('#bkTxt').textContent=`L'ultimo backup risale a ${d} giorni fa. Fanne uno nuovo per non perdere le modifiche recenti.`;
   }
 }
 function updBkInfo(){
