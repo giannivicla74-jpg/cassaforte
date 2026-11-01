@@ -8,8 +8,9 @@ let sess=0;            // cresce a ogni blocco: invalida le operazioni asincrone
 let saveQ=Promise.resolve(); // serializza i salvataggi
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.7.1';
 const CHANGELOG=[
+  ['1.7.1',['Nuovo indirizzo: cassaforte.gccodelab.it (reinstalla l’app da qui e importa il backup)']],
   ['1.7.0',['Stampa archivio cartaceo con le password (protetta dalla password principale)']],
   ['1.6.0',['Tema chiaro, scuro o automatico a scelta in Opzioni']],
   ['1.5.0',['Numero di versione visibile e sezione Novità nel manuale']],
