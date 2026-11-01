@@ -8,8 +8,9 @@ let sess=0;            // cresce a ogni blocco: invalida le operazioni asincrone
 let saveQ=Promise.resolve(); // serializza i salvataggi
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 const CHANGELOG=[
+  ['1.7.0',['Stampa archivio cartaceo con le password (protetta dalla password principale)']],
   ['1.6.0',['Tema chiaro, scuro o automatico a scelta in Opzioni']],
   ['1.5.0',['Numero di versione visibile e sezione Novità nel manuale']],
   ['1.4.0',['Nuova grafica dell’avviso di backup','Intestazione adatta agli schermi del telefono']],
@@ -93,12 +94,12 @@ function lock(){
   sess++; key=null; salt=null; iter=0; items=[]; shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0;
   clearClip(true);
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   ['#pwForm','#fQ','#form','#impForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent='';
   // Nessun dato in chiaro deve restare nella pagina mentre è bloccata
   $('#list').innerHTML=''; $('#chips').innerHTML=''; $('#count').textContent=''; $('#q').value='';
-  $('#bk').classList.add('hide');
+  $('#bk').classList.add('hide'); $('#printArea').innerHTML=''; $('#printSheet').innerHTML=''; $('#prForm').reset();
   showLock();
 }
 /* Impostazioni del blocco automatico (scelte in Opzioni; accettati solo i valori del menu) */
@@ -191,7 +192,7 @@ function render(){
   $('#count').textContent=items.length===1?'1 account':items.length+' account';
   const chips=['Tutti',...(items.some(i=>i.fav)?['★']:[]),...CATS.filter(c=>items.some(i=>(i.cat||'Altro')===c))];
   $('#chips').innerHTML=items.length?chips.map(c=>`<button class="chip${c===cat?' on':''}" data-c="${c}">${c==='★'?'★ Preferiti':c}</button>`).join(''):'';
-  const rows=items.filter(i=>inCat(i)&&(!q||[i.name,i.user,i.url].join(' ').toLowerCase().includes(q))).sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||a.name.localeCompare(b.name,'it'));
+  const rows=items.filter(i=>inCat(i)&&(!q||[i.name,i.user,i.url].join(' ').toLowerCase().includes(q))).sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||a.name.localeCompare(b.name,'it',{numeric:true}));
   $('#list').innerHTML=rows.length?rows.map(i=>{const href=safeUrl(i.url);return`
     <li class="it" data-id="${esc(i.id)}">
       <div class="top">
@@ -527,6 +528,54 @@ $('#bHelpLock').onclick=openHelp;
 $('#bHelpFromSet').onclick=()=>{ $('#dlgSet').close(); openHelp(); };
 $('#bHelpClose').onclick=closeHelp;
 $('#bHelpCloseBottom').onclick=closeHelp;
+
+/* Stampa archivio cartaceo: le password compaiono in chiaro solo dopo aver reinserito la password principale,
+   e l'anteprima viene cancellata dalla pagina appena si chiude o la cassaforte si blocca */
+function buildPrint(notes){
+  const ord=c=>{const k=CATS.indexOf(c);return k<0?99:k};
+  const rows=[...items].sort((a,b)=>ord(a.cat)-ord(b.cat)||a.name.localeCompare(b.name,'it',{numeric:true}));
+  const when=new Date().toLocaleString('it-IT',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const f=v=>v?esc(v):'<span class="pr-empty">—</span>';
+  let out=`<header class="pr-head"><h2>Cassaforte · Archivio password</h2><div class="pr-meta">Stampato il ${esc(when)} · ${rows.length} account</div><p class="pr-warn">DOCUMENTO RISERVATO: contiene password in chiaro. Conservalo in un luogo sicuro e distruggi le stampe precedenti.</p></header>`;
+  let cur=null;
+  for(const i of rows){
+    if(i.cat!==cur){cur=i.cat;out+=`<h3 class="pr-cat">${esc(cur)}</h3>`}
+    out+=`<section class="pr-item"><div class="pr-name">${i.fav?'★ ':''}${esc(i.name)}</div><table>`
+      +`<tr><th>Utente</th><td>${f(i.user)}</td></tr>`
+      +`<tr><th>Password</th><td class="pr-pw">${f(i.pass)}</td></tr>`
+      +(i.url?`<tr><th>Sito</th><td>${esc(i.url)}</td></tr>`:'')
+      +(notes&&i.note?`<tr><th>Note</th><td class="pr-note">${esc(i.note)}</td></tr>`:'')
+      +'</table></section>';
+  }
+  return out+`<div class="pr-foot">Cassaforte v${esc(APP_VERSION)} · Questa stampa sostituisce quelle precedenti.</div>`;
+}
+function closePrint(){$('#printArea').innerHTML='';$('#printSheet').innerHTML='';$('#prForm').reset();extUntil=0;if($('#dlgPrint').open)$('#dlgPrint').close()}
+$('#bPrint').onclick=()=>{
+  if(!items.length){toast('Non ci sono account da stampare');return}
+  $('#prForm').reset();$('#prErr').textContent='';$('#printArea').innerHTML='';
+  $('#prStep1').classList.remove('hide');$('#prStep2').classList.add('hide');
+  if($('#dlgSet').open)$('#dlgSet').close();
+  $('#dlgPrint').showModal();
+};
+$('#prCancel').onclick=closePrint;
+$('#prClose').onclick=closePrint;
+$('#dlgPrint').addEventListener('close',()=>{$('#printArea').innerHTML='';$('#printSheet').innerHTML='';$('#prForm').reset()}); // anche con il tasto Esc
+$('#prForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const s=sess, v=getVault(), err=$('#prErr'), btn=$('#prOk'); err.textContent=''; btn.disabled=true;
+  try{
+    try{const k=await derive($('#prPw').value,unb64(v.salt),iterOf(v));await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(v.iv)},k,unb64(v.data))}
+    catch{err.textContent='Password non corretta.';return}
+    if(s!==sess||!key)return;
+    $('#prPw').value='';
+    $('#printArea').innerHTML=buildPrint($('#prNotes').checked);
+    $('#prStep1').classList.add('hide');$('#prStep2').classList.remove('hide');
+    $('#dlgPrint').scrollTop=0;
+  }finally{btn.disabled=false}
+});
+// La finestra di stampa (soprattutto su telefono) manda la pagina in background: non bloccare per 10 minuti
+// Si stampa una copia fuori dalla finestra modale: dentro la modale il browser stamperebbe solo la prima pagina
+$('#prGo').onclick=()=>{$('#printSheet').innerHTML=$('#printArea').innerHTML;allowExternal(10*60*1000);window.print()};
 
 /* Tema: automatico (segue il sistema), chiaro o scuro. Applicato in anticipo da theme.js */
 const curTheme=()=>document.documentElement.getAttribute('data-theme')||'auto';

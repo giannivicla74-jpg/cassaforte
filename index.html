@@ -124,6 +124,31 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
 .news-v{margin:10px 0 2px;font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:8px}
 .news-v .ver{color:var(--brass)}
 .news-v .now{font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--brass);color:var(--on)}
+/* Stampa archivio */
+dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
+.pr-bar{position:sticky;top:0;z-index:1;background:var(--bg);padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#printSheet{display:none}
+#printArea{background:#fff;color:#111;margin:16px 20px 20px;padding:28px;border-radius:8px;border:1px solid var(--line);font-size:14px;line-height:1.4;color-scheme:light}
+.pr-head h2{margin:0 0 4px;font-size:20px}
+.pr-meta{color:#555;font-size:12px}
+.pr-warn{border:1.5px solid #b3261e;color:#b3261e;font-weight:700;font-size:12px;padding:6px 10px;border-radius:6px;margin:12px 0 4px}
+.pr-cat{font-size:15px;margin:22px 0 8px;padding-bottom:4px;border-bottom:2px solid #111;break-after:avoid;page-break-after:avoid}
+.pr-item{border:1px solid #bbb;border-radius:6px;padding:8px 12px;margin-bottom:8px;break-inside:avoid;page-break-inside:avoid}
+.pr-name{font-weight:700;margin-bottom:4px;overflow-wrap:anywhere}
+.pr-item table{border-collapse:collapse;width:100%}
+.pr-item th{text-align:left;font-weight:600;color:#555;width:84px;padding:3px 8px 3px 0;vertical-align:top;font-size:12px}
+.pr-item td{padding:3px 0;overflow-wrap:anywhere}
+.pr-pw{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;letter-spacing:.06em}
+.pr-note{white-space:pre-wrap}
+.pr-empty{color:#999}
+.pr-foot{margin-top:18px;color:#555;font-size:11px;border-top:1px solid #ccc;padding-top:6px}
+@media print{
+  @page{margin:14mm}
+  html,body{background:#fff!important;color:#000!important}
+  body{padding:0!important;min-height:0}
+  body>*:not(#printSheet){display:none!important}
+  #printSheet{display:block;color:#111;font-size:14px;line-height:1.4}
+}
 </style>
 </head>
 <body>
@@ -237,6 +262,7 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
       <button class="btn p" id="bShare"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Invia / Condividi</button>
       <button class="btn" id="bExport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Scarica JSON</button>
       <button class="btn" id="bImport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importa</button>
+      <button class="btn" id="bPrint"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Stampa archivio</button>
     </div>
   </div>
 
@@ -363,6 +389,16 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
     </div>
 
     <div class="guide-sec">
+      <h4>🖨️ 6. Archivio cartaceo</h4>
+      <p>In <b>Opzioni → Stampa archivio</b> puoi stampare (o salvare in PDF) l'elenco di tutti gli account <b>con le password visibili</b>, da conservare come copia di emergenza su carta.</p>
+      <ul>
+        <li>Ti viene chiesta di nuovo la password principale.</li>
+        <li>Conserva il foglio in un luogo sicuro e chiuso: è come lasciare scritte tutte le chiavi di casa.</li>
+        <li>Quando aggiorni le password, ristampa e distruggi la copia vecchia.</li>
+      </ul>
+    </div>
+
+    <div class="guide-sec">
       <h4>🆕 Novità</h4>
       <div id="news"></div>
     </div>
@@ -394,6 +430,24 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
   <div id="impErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem;margin-top:8px"></div>
   <div class="row" style="margin-top:8px"><span class="grow"></span><button type="button" class="btn" id="impCancel">Annulla</button><button class="btn p" id="impOk">Importa</button></div>
 </form></dialog>
+<dialog id="dlgPrint">
+  <div id="prStep1" style="padding:20px">
+    <h1>Stampa archivio</h1>
+    <div class="callout danger"><b>Il foglio mostrerà tutte le password in chiaro.</b> Chiunque lo trovi può entrare nei tuoi account: conservalo in un luogo sicuro (es. una cassaforte o un cassetto chiuso a chiave) e distruggi le stampe vecchie. Evita stampanti condivise o dell'ufficio e, se salvi in PDF, non metterlo in cartelle sincronizzate o inviate per email.</div>
+    <form id="prForm" autocomplete="off">
+      <label for="prPw">Per sicurezza, inserisci la password principale</label>
+      <input id="prPw" type="password" autocomplete="current-password" required>
+      <label class="chk"><input type="checkbox" id="prNotes" checked> Includi le note</label>
+      <div id="prErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem;margin-top:8px"></div>
+      <div class="row" style="margin-top:8px"><span class="grow"></span><button type="button" class="btn" id="prCancel">Annulla</button><button class="btn p" id="prOk">Mostra anteprima</button></div>
+    </form>
+  </div>
+  <div id="prStep2" class="hide">
+    <div class="row pr-bar"><b class="grow">Anteprima di stampa</b><button type="button" class="btn" id="prClose">Chiudi</button><button type="button" class="btn p" id="prGo">Stampa / Salva PDF</button></div>
+    <div id="printArea"></div>
+  </div>
+</dialog>
+<div id="printSheet"></div>
 <div id="toast" role="status"></div>
 
 <script src="app.js"></script>
