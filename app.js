@@ -8,8 +8,9 @@ let sess=0;            // cresce a ogni blocco: invalida le operazioni asincrone
 let saveQ=Promise.resolve(); // serializza i salvataggi
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.6.0';
 const CHANGELOG=[
+  ['1.6.0',['Tema chiaro, scuro o automatico a scelta in Opzioni']],
   ['1.5.0',['Numero di versione visibile e sezione Novità nel manuale']],
   ['1.4.0',['Nuova grafica dell’avviso di backup','Intestazione adatta agli schermi del telefono']],
   ['1.3.0',['Blocco automatico regolabile in Opzioni (inattività e cambio app)']],
@@ -526,6 +527,18 @@ $('#bHelpLock').onclick=openHelp;
 $('#bHelpFromSet').onclick=()=>{ $('#dlgSet').close(); openHelp(); };
 $('#bHelpClose').onclick=closeHelp;
 $('#bHelpCloseBottom').onclick=closeHelp;
+
+/* Tema: automatico (segue il sistema), chiaro o scuro. Applicato in anticipo da theme.js */
+const curTheme=()=>document.documentElement.getAttribute('data-theme')||'auto';
+function updThemeUI(){document.querySelectorAll('#themeSel [data-t]').forEach(b=>{const on=b.dataset.t===curTheme();b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)})}
+function setTheme(t){
+  if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
+  else{t='auto';document.documentElement.removeAttribute('data-theme')}
+  try{t==='auto'?localStorage.removeItem('theme'):localStorage.setItem('theme',t)}catch{}
+  updThemeUI();
+}
+$('#themeSel').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)setTheme(b.dataset.t)});
+updThemeUI();
 
 /* Versione e novità */
 document.querySelectorAll('.appver').forEach(e=>e.textContent=APP_VERSION);
