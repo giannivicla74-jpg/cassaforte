@@ -123,6 +123,14 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
 .guide-sec li{margin-bottom:4px}
 .callout{background:var(--soft);border-left:4px solid var(--brass);padding:10px 12px;border-radius:8px;font-size:.88rem;margin:8px 0;line-height:1.45}
 .callout.danger{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--soft))}
+.ex-mock{background:var(--bg);border:1px dashed var(--brass);border-radius:12px;padding:12px;margin:10px 0;font-size:.83rem}
+.ex-mock-t{font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--brass);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ex-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;background:var(--card);border:1px solid var(--line);font-weight:600;font-size:.8rem}
+.ex-pill.p{background:var(--acc);color:var(--on);border-color:var(--acc)}
+.ex-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-top:8px}
+.ex-step{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center}
+.ex-step b{display:block;font-size:.82rem;margin-top:4px}
+.ex-step span{font-size:.76rem;color:var(--mute)}
 .app-credit{text-align:center;font-size:.78rem;color:var(--mute);margin:24px 0 12px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;letter-spacing:.01em}
 .app-credit .code-sym{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;color:var(--brass);letter-spacing:0}
 .app-credit strong{color:var(--ink);font-weight:600}
@@ -397,39 +405,108 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     </div>
 
     <div class="guide-sec">
-      <h4>💾 3. Perché fare il Backup è FONDAMENTALE</h4>
-      <p>Essendo un archivio solo locale, esistono eventi quotidiani che possono cancellare i dati dal browser:</p>
-      <ul>
-        <li>Se cambi smartphone o PC (i dati non si trasferiscono da soli);</li>
-        <li>Se fai una pulizia della cronologia o dei cookie/dati dei siti web;</li>
-        <li>Se disinstalli l'app dalla schermata Home;</li>
-        <li>Se il dispositivo si rompe o viene ripristinato ai dati di fabbrica.</li>
-      </ul>
+      <h4>💾 3. Le 3 Soluzioni di Salvataggio (Scegli quella più adatta a te)</h4>
+      <p>Se il telefono si rompe, viene smarrito o cancelli i dati del browser, hai <b>3 modi semplici</b> per non perdere mai nulla. Puoi usarne uno solo oppure combinarli insieme:</p>
+
       <div class="callout">
-        <b>Il file di backup è sicuro?</b><br>
-        Assolutamente sì! Il file <code>.json</code> esportato è <b>completamente cifrato con la tua password principale</b>. Anche se lo salvi su Google Drive o lo invii via WhatsApp o email, nessuno potrà mai aprirlo o leggerne il contenuto senza la tua password.
+        <b>☁️ SOLUZIONE 1: Cloud Sync Cifrato Automatico (Consigliata — Zero pensieri)</b><br>
+        Ideale se non vuoi ricordarti di fare il backup a mano o se usi sia lo smartphone sia il PC.
+      </div>
+      <p><b>Come si attiva passo-passo:</b></p>
+      <ul>
+        <li><b>Passo 1:</b> Tocca il pulsante <b>⚙️ Opzioni</b> in alto a destra.</li>
+        <li><b>Passo 2:</b> Nel riquadro <b>☁️ Cloud Sync Cifrato</b>, tocca <b>"Attiva Cloud Sync automatico"</b>.</li>
+        <li><b>Passo 3:</b> L'app crea il tuo <b>Codice Cloud</b> personale di 16 caratteri (diviso in 4 blocchi). Tocca <b>"Copia codice"</b> e scrivilo su un foglio insieme alla tua Password Principale.</li>
+        <li><b>Passo 4 (Automatico):</b> Da quel momento non devi fare più nulla! A ogni password aggiunta o modificata, l'app aggiorna da sola la copia cifrata sul Cloud.</li>
+      </ul>
+      <div class="ex-mock" aria-label="Esempio visivo Soluzione 1">
+        <div class="ex-mock-t">🖼️ Esempio visivo — Riquadro Cloud Sync attivo in Opzioni</div>
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px">
+          <div style="font-weight:700;margin-bottom:4px">☁️ Cloud Sync Cifrato</div>
+          <div class="small" style="margin-bottom:8px"><span class="badge-ok">● Cloud Sync attivo</span>: ogni modifica viene salvata cifrata sul Cloud.</div>
+          <div class="pwbox" style="margin:0">
+            <div><div class="mute small" style="font-family:system-ui,sans-serif">Il tuo Codice Cloud:</div><b>K7M9-P4X2-R8W3-L5N6</b></div>
+            <span class="ex-pill">Copia codice</span>
+          </div>
+        </div>
+        <div class="ex-flow">
+          <div class="ex-step">📱 <b>1. Modifichi</b><span>Aggiungi o cambi una password</span></div>
+          <div class="ex-step">🔐 <b>2. Cifra in locale</b><span>Blocco AES-256 con la tua password</span></div>
+          <div class="ex-step">☁️ <b>3. Salva su Cloud</b><span>Copia automatica pronta al recupero</span></div>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:16px">
+        <b>📁 SOLUZIONE 2: Salvataggio File su Google Drive, WhatsApp o PC</b><br>
+        Ideale se preferisci custodire tu stesso il file <code>.json</code> cifrato nel tuo Google Drive, iCloud o nella chat di WhatsApp.
+      </div>
+      <p><b>Come funziona su Smartphone (Android / iPhone) passo-passo:</b></p>
+      <ul>
+        <li><b>Passo 1:</b> Apri <b>⚙️ Opzioni → Salvataggio &amp; Backup</b>.</li>
+        <li><b>Passo 2:</b> Tocca il pulsante <b>"Invia / Condividi"</b>.</li>
+        <li><b>Passo 3:</b> Dal menu che si apre sul telefono, tocca l'icona di <b>Google Drive</b> (o <i>Salva su File / iCloud</i>), oppure scegli <b>WhatsApp</b> e invia il file nella chat con te stesso.</li>
+      </ul>
+      <p><b>Come funziona su Computer (PC / Mac) passo-passo:</b></p>
+      <ul>
+        <li>In <b>⚙️ Opzioni → Auto-Sync su file</b>, clicca su <b>"Collega file di auto-sync"</b> e scegli una cartella sincronizzata del tuo computer (es. la cartella <i>Google Drive</i> o <i>OneDrive</i>): il PC aggiornerà quel file da solo a ogni salvataggio.</li>
+      </ul>
+      <div class="ex-mock" aria-label="Esempio visivo Soluzione 2">
+        <div class="ex-mock-t">🖼️ Esempio visivo — Condivisione file cifrato in 1 tocco</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
+          <span class="ex-pill p">📤 Invia / Condividi</span>
+          <span class="ex-pill">⬇️ Scarica JSON</span>
+        </div>
+        <div class="ex-flow">
+          <div class="ex-step">🟢 <b>WhatsApp</b><span>Invia alla chat personale "Tu"</span></div>
+          <div class="ex-step">🔺 <b>Google Drive</b><span>Salva nel tuo Drive personale</span></div>
+          <div class="ex-step">💻 <b>Auto-Sync PC</b><span>File aggiornato su OneDrive/Drive</span></div>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:16px">
+        <b>🔔 SOLUZIONE 3: Avviso Immediato "Modifiche non salvate" (Zero dimenticanze)</b><br>
+        Ideale se non usi il Cloud Sync automatico ma vuoi essere sicuro al 100% di non dimenticare mai un backup dopo aver inserito una nuova password.
+      </div>
+      <p><b>Come funziona passo-passo:</b></p>
+      <ul>
+        <li><b>Passo 1:</b> Inserisci un nuovo account o cambi una password e premi <b>Salva</b>.</li>
+        <li><b>Passo 2:</b> Se non c'è un sync automatico attivo, <b>subito dopo il salvataggio</b> compare in cima allo schermo l'avviso rosso: <i>"Hai modifiche non salvate nel backup"</i>.</li>
+        <li><b>Passo 3:</b> Ti basta toccare il pulsante <b>"Fai il backup ora"</b> direttamente dentro l'avviso per inviare subito il file aggiornato su Google Drive o WhatsApp (oppure <i>"Più tardi"</i> per rimandare il promemoria di 2 giorni).</li>
+      </ul>
+      <div class="ex-mock" aria-label="Esempio visivo Soluzione 3">
+        <div class="ex-mock-t">🖼️ Esempio visivo — Avviso automatico dopo una modifica</div>
+        <div style="background:color-mix(in srgb,var(--bad) 7%,var(--card));border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:10px;padding:10px">
+          <b style="display:block;margin-bottom:3px">⚠️ Hai modifiche non salvate nel backup</b>
+          <div class="mute small" style="margin-bottom:8px">Hai aggiunto o modificato degli account dopo l'ultimo backup. Salva subito una copia su Drive/WhatsApp o attiva il Cloud Sync.</div>
+          <div style="display:flex;justify-content:flex-end;gap:6px">
+            <span class="ex-pill">Più tardi</span>
+            <span class="ex-pill p">Fai il backup ora</span>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="guide-sec">
-      <h4>📲 4. Come Salvare il Backup in 1 Tocco</h4>
-      <p>Fare una copia di sicurezza è semplicissimo:</p>
+      <h4>🔄 4. Si è rotto il telefono! Come recupero tutto sul telefono nuovo?</h4>
+      <p>Quando prendi un telefono nuovo (o apri l'app su un altro computer), <b>non serve nemmeno creare una cassaforte vuota</b>:</p>
       <ul>
-        <li>In <b>Opzioni</b> clicca sul pulsante <b>"Invia / Condividi"</b>.</li>
-        <li><b>Su smartphone</b>: seleziona <i>WhatsApp</i> (mandalo alla chat con te stesso), <i>Email</i> (invialo alla tua casella), oppure salvalo su <i>Google Drive</i> o <i>iCloud</i>.</li>
-        <li><b>Su computer</b>: scarica il file JSON o attiva l'<b>Auto-Sync su file</b> dentro una cartella sincronizzata (es. cartella Google Drive o OneDrive del PC).</li>
+        <li><b>Passo 1:</b> Apri <b>cassaforte.gccodelab.it</b> sul telefono nuovo.</li>
+        <li><b>Passo 2:</b> Nella schermata iniziale, tocca la scritta dorata sotto il pulsante principale:<br>
+          <b>"☁️ Telefono nuovo o rotto? Ripristina da Cloud / Backup"</b>.</li>
+        <li><b>Passo 3 — Se usavi la Soluzione 1 (Codice Cloud):</b> digita il tuo <b>Codice Cloud</b> e la tua <b>Password Principale</b>, poi premi <b>Ripristina</b>. In 1 secondo riavrai tutte le tue password e il Cloud Sync resterà già collegato!</li>
+        <li><b>Passo 3 (alternativo) — Se usavi la Soluzione 2 o 3 (File su Google Drive / WhatsApp):</b> tocca il pulsante <b>"📁 Oppure scegli un file .json da Google Drive / Telefono"</b>, seleziona il file <code>cassaforte-backup.json</code>, inserisci la tua <b>Password Principale</b> e premi <b>Ripristina</b>.</li>
       </ul>
-    </div>
-
-    <div class="guide-sec">
-      <h4>🔄 5. Come Ripristinare i Dati (su un nuovo telefono o PC)</h4>
-      <p>Hai cambiato dispositivo o reinstallato il browser?</p>
-      <ul>
-        <li>1. Apri l'app sul nuovo telefono o computer.</li>
-        <li>2. Crea (o sblocca) la cassaforte, vai nelle <b>Opzioni</b> e clicca su <b>Importa</b>.</li>
-        <li>3. Seleziona il tuo file <code>.json</code> e digita la password principale usata al momento dell'esportazione. Scegli <b>Unisci</b> (aggiunge gli account del backup a quelli attuali) oppure <b>Sostituisci</b> (usa solo quelli del backup).</li>
-        <li>Se la password del backup è errata, i dati attuali <b>non vengono toccati</b>. Gli account importati vengono protetti con la tua password principale attuale.</li>
-      </ul>
+      <div class="ex-mock" aria-label="Esempio visivo Ripristino su telefono nuovo">
+        <div class="ex-mock-t">🖼️ Esempio visivo — Schermata di Ripristino immediato</div>
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px">
+          <div style="font-weight:700;margin-bottom:6px">☁️ Ripristina Cassaforte</div>
+          <div class="small mute" style="margin-bottom:6px">1) Con Codice Cloud:</div>
+          <div style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-family:ui-monospace,monospace;font-size:.8rem;margin-bottom:8px">K7M9-P4X2-R8W3-L5N6</div>
+          <div class="small mute" style="margin-bottom:6px">2) Oppure da file salvato su Drive / WhatsApp:</div>
+          <div class="ex-pill" style="width:100%;justify-content:center;margin-bottom:8px">📁 Scegli un file .json da Google Drive / Telefono</div>
+          <div style="display:flex;justify-content:flex-end"><span class="ex-pill p">Ripristina</span></div>
+        </div>
+      </div>
     </div>
 
     <div class="guide-sec">
