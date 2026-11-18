@@ -25,6 +25,10 @@ h1{font-size:1.4rem;margin:0;letter-spacing:-.02em}
 .mute{color:var(--mute)}.small{font-size:.8rem}
 input,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card);transition:border-color .15s}
 input:focus,textarea:focus{border-color:var(--brass)}
+.pww{position:relative}
+.pww input{padding-right:42px}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--mute);width:34px;height:34px;border-radius:8px;display:grid;place-items:center;padding:0}
+.pw-eye:hover{color:var(--ink);background:var(--soft)}
 label{display:block;font-size:.82rem;font-weight:600;color:var(--mute);margin:14px 0 5px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);padding:10px 14px;border-radius:10px;text-decoration:none;color:inherit;transition:border-color .15s,transform .05s,filter .15s}
 .btn:hover{border-color:var(--brass)}.btn:active{transform:scale(.97)}
@@ -177,10 +181,10 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     <p class="mute" id="lockMsg"></p>
     <form id="lockForm" autocomplete="off">
       <label for="mp">Password principale</label>
-      <input id="mp" type="password" autocomplete="current-password" required>
+      <div class="pww"><input id="mp" type="password" autocomplete="current-password" required><button type="button" class="pw-eye" data-eye="#mp" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
       <div id="mp2w" class="hide">
         <label for="mp2">Ripeti la password principale</label>
-        <input id="mp2" type="password" autocomplete="new-password">
+        <div class="pww"><input id="mp2" type="password" autocomplete="new-password"><button type="button" class="pw-eye" data-eye="#mp2" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
       </div>
       <div id="err" role="alert"></div>
       <button class="btn p" id="lockBtn">Sblocca</button>
@@ -364,9 +368,9 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
 
   <h3>Password principale</h3>
   <form id="pwForm" autocomplete="off">
-    <label for="pOld" style="margin-top:0">Password attuale</label><input id="pOld" type="password" autocomplete="current-password" required>
-    <label for="pNew">Nuova password</label><input id="pNew" type="password" autocomplete="new-password" required>
-    <label for="pNew2">Ripeti la nuova password</label><input id="pNew2" type="password" autocomplete="new-password" required>
+    <label for="pOld" style="margin-top:0">Password attuale</label><div class="pww"><input id="pOld" type="password" autocomplete="current-password" required><button type="button" class="pw-eye" data-eye="#pOld" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
+    <label for="pNew">Nuova password</label><div class="pww"><input id="pNew" type="password" autocomplete="new-password" required><button type="button" class="pw-eye" data-eye="#pNew" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
+    <label for="pNew2">Ripeti la nuova password</label><div class="pww"><input id="pNew2" type="password" autocomplete="new-password" required><button type="button" class="pw-eye" data-eye="#pNew2" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
     <p class="mute small">I backup esportati prima restano protetti dalla vecchia password.</p>
     <div id="pErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem"></div>
     <button class="btn p" style="margin-top:6px">Cambia password principale</button>
@@ -610,7 +614,7 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
   <h1>Importa backup</h1>
   <div class="mute small" id="impInfo"></div>
   <label for="impPw">Password principale del backup</label>
-  <input id="impPw" type="password" autocomplete="off" required>
+  <div class="pww"><input id="impPw" type="password" autocomplete="off" required><button type="button" class="pw-eye" data-eye="#impPw" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
   <label class="chk"><input type="radio" name="impMode" value="merge" checked> Unisci: aggiungi gli account del backup a quelli attuali</label>
   <label class="chk"><input type="radio" name="impMode" value="replace"> Sostituisci: elimina gli account attuali e tieni solo quelli del backup</label>
   <div id="impErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem;margin-top:8px"></div>
@@ -622,7 +626,7 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     <div class="callout danger"><b>Il foglio mostrerà tutte le password in chiaro.</b> Chiunque lo trovi può entrare nei tuoi account: conservalo in un luogo sicuro (es. una cassaforte o un cassetto chiuso a chiave) e distruggi le stampe vecchie. Evita stampanti condivise o dell'ufficio e, se salvi in PDF, non metterlo in cartelle sincronizzate o inviate per email.</div>
     <form id="prForm" autocomplete="off">
       <label for="prPw">Per sicurezza, inserisci la password principale</label>
-      <input id="prPw" type="password" autocomplete="current-password" required>
+      <div class="pww"><input id="prPw" type="password" autocomplete="current-password" required><button type="button" class="pw-eye" data-eye="#prPw" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
       <label class="chk"><input type="checkbox" id="prNotes" checked> Includi le note</label>
       <div id="prErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem;margin-top:8px"></div>
       <div class="row" style="margin-top:8px"><span class="grow"></span><button type="button" class="btn" id="prCancel">Annulla</button><button class="btn p" id="prOk">Mostra anteprima</button></div>
@@ -641,7 +645,7 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     <input id="cCode" placeholder="es. ABCD-EFGH-JKLM-NPQR" autocapitalize="characters" spellcheck="false" required>
     <div id="cPwWrap">
       <label for="cPw">Password principale della cassaforte</label>
-      <input id="cPw" type="password" autocomplete="off">
+      <div class="pww"><input id="cPw" type="password" autocomplete="off"><button type="button" class="pw-eye" data-eye="#cPw" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
     </div>
     <div id="cErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem;margin-top:8px"></div>
     <div id="cFileAlt" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">

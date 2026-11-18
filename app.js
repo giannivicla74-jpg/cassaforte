@@ -73,6 +73,24 @@ async function commit(fn,msg){
 }
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
 
+function resetPwEyes(){
+  document.querySelectorAll('.pw-eye[data-eye]').forEach(b=>{
+    const inp=$(b.dataset.eye);
+    if(inp)inp.type='password';
+    if(typeof IC!=='undefined')b.innerHTML=IC.eye;
+    b.setAttribute('aria-label','Mostra password');
+  });
+}
+addEventListener('click',e=>{
+  const b=e.target.closest('.pw-eye[data-eye]');
+  if(!b)return;
+  const inp=$(b.dataset.eye); if(!inp)return;
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  b.innerHTML=show?IC.eyeoff:IC.eye;
+  b.setAttribute('aria-label',show?'Nascondi password':'Mostra password');
+});
+
 /* Blocco / sblocco */
 function showLock(){
   const v=getVault(), nuovo=!v;
@@ -80,6 +98,7 @@ function showLock(){
   $('#mp2w').classList.toggle('hide',!nuovo); $('#mp2').required=nuovo;
   $('#lockBtn').textContent=nuovo?'Crea cassaforte':'Sblocca';
   $('#mp').value=$('#mp2').value=''; $('#err').textContent='';
+  resetPwEyes();
   $('#lock').classList.remove('hide'); $('#app').classList.add('hide');
 }
 function lock(){
@@ -875,4 +894,5 @@ document.querySelectorAll('.appver').forEach(e=>e.textContent=APP_VERSION);
 $('#news').innerHTML=CHANGELOG.map(([v,l],i)=>`<div class="news-v"><span class="ver">v${esc(v)}</span>${i===0?'<span class="now">attuale</span>':''}</div><ul>${l.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>`).join('');
 
 showLock();
+resetPwEyes();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
