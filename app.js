@@ -5,8 +5,13 @@ let sess=0;            // cresce a ogni blocco: invalida le operazioni asincrone
 let saveQ=Promise.resolve(); // serializza i salvataggi
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.8.0';
+const APP_VERSION='1.9.0';
 const CHANGELOG=[
+  ['1.9.0',[
+    'Cloud Sync Cifrato automatico (Zero-Knowledge) con Codice Cloud anti-rottura telefono',
+    'Ripristino immediato dalla schermata iniziale (da Codice Cloud o file JSON su Google Drive)',
+    'Avviso immediato sul banner dopo ogni modifica non ancora salvata in un backup esterno'
+  ]],
   ['1.8.0',[
     'Lucchetto "Resta aperta" per sospendere temporaneamente il blocco automatico',
     'Controllo Salute Password: avviso su password riutilizzate, deboli o vecchie (>1 anno)',
@@ -44,18 +49,24 @@ function persist(){
     const vStr=await encryptVault(k,s,it,snapshot);
     localStorage.setItem('vault',vStr);
     await syncWrite(vStr);
+    await cloudWrite(vStr);
   });
   saveQ=job.catch(()=>{});
   return job;
 }
 /* Applica una modifica e la salva; se il salvataggio fallisce la annulla */
 async function commit(fn,msg){
-  const prev=structuredClone(items), s=sess;
+  const prev=structuredClone(items), prevChg=localStorage.getItem('lastChange'), s=sess;
   fn();
+  localStorage.setItem('lastChange',Date.now());
   try{await persist();render();if(msg)toast(msg);return true}
   catch(e){
     console.error(e);
-    if(s===sess){items=prev;render();toast('Salvataggio non riuscito: modifica annullata')}
+    if(s===sess){
+      items=prev;
+      if(prevChg)localStorage.setItem('lastChange',prevChg);else localStorage.removeItem('lastChange');
+      render();toast('Salvataggio non riuscito: modifica annullata');
+    }
     else toast('Cassaforte bloccata: modifica non salvata');
     return false;
   }
@@ -75,9 +86,9 @@ function lock(){
   sess++; key=null; salt=null; iter=0; items=[]; shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
-  ['#pwForm','#fQ','#form','#impForm'].forEach(f=>$(f).reset());
-  $('#pErr').textContent=''; $('#impErr').textContent='';
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
+  $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent='';
   // Nessun dato in chiaro deve restare nella pagina mentre è bloccata
   $('#list').innerHTML=''; $('#chips').innerHTML=''; $('#count').textContent=''; $('#q').value='';
   $('#bk').classList.add('hide'); $('#printArea').innerHTML=''; $('#printSheet').innerHTML=''; $('#prForm').reset();
@@ -476,16 +487,23 @@ $('#fQ').addEventListener('submit',async e=>{
   if(await commit(()=>{Object.assign(it,recordPasswordChange(it,p),{pass:p})},'Password aggiornata'))$('#dlgQ').close();
 });
 
-/* Avviso di backup proattivo */
+/* Avviso di backup proattivo (incluso avviso immediato dopo ogni modifica non salvata) */
 const DAY=864e5;
 function updBackup(){
-  const now=Date.now(), last=+localStorage.getItem('lastBackup')||0, snooze=+localStorage.getItem('bkSnooze')||0;
+  const now=Date.now(), last=+localStorage.getItem('lastBackup')||0, chg=+localStorage.getItem('lastChange')||0, snooze=+localStorage.getItem('bkSnooze')||0;
   if(items.length>0&&!last){
     const due=now>snooze;
     $('#bk').classList.toggle('hide',!due);
     $('#bk').classList.add('warn');
     $('#bkHead').textContent='Non hai ancora fatto un backup';
-    $('#bkTxt').textContent='Le tue password sono salvate solo in questo browser. Inviati una copia cifrata (WhatsApp, email o Drive): se pulisci la cronologia o cambi dispositivo, senza backup le perdi.';
+    $('#bkTxt').textContent='Le tue password sono salvate solo in questo browser. Attiva il Cloud Sync in Opzioni o inviati una copia cifrata (Drive, WhatsApp, email): se il telefono si rompe senza backup le perdi.';
+    return;
+  }
+  if(items.length>0&&chg>last&&now>snooze){
+    $('#bk').classList.remove('hide');
+    $('#bk').classList.add('warn');
+    $('#bkHead').textContent='Hai modifiche non salvate nel backup';
+    $('#bkTxt').textContent='Hai aggiunto o modificato degli account dopo l’ultimo backup. Salva subito una copia su Drive/WhatsApp o attiva il Cloud Sync in Opzioni.';
     return;
   }
   const due=items.length>0&&(now-last>14*DAY)&&(now>snooze);
@@ -591,8 +609,177 @@ if(!window.showSaveFilePicker){
   };
 }
 
+/* Cloud Sync Cifrato Zero-Knowledge (Firebase Firestore REST API) */
+const CLOUD_URL='https://firestore.googleapis.com/v1/projects/gestionale-flotta-d6448/databases/(default)/documents/cassaforte_vaults/';
+const getCloudCode=()=>localStorage.getItem('cloudCode')||'';
+function updCloudUI(state=''){
+  const code=getCloudCode(), active=!!code;
+  $('#cloudCodeWrap').classList.toggle('hide',!active);
+  $('#cloudCodeTxt').textContent=code;
+  $('#bCloudEnable').classList.toggle('hide',active);
+  $('#bCloudLink').textContent=active?'Cambia Codice Cloud':'Ho già un Codice Cloud';
+  $('#bCloudPull').classList.toggle('hide',!active);
+  $('#bCloudDisable').classList.toggle('hide',!active);
+  if(!active){
+    $('#cloudInfo').textContent='Salva automaticamente una copia cifrata sul Cloud a ogni modifica. Nemmeno il server può leggerla senza la tua Password Principale.';
+  }else if(state==='error'){
+    $('#cloudInfo').innerHTML='<span class="badge-no">Errore di rete:</span> ultimo salvataggio Cloud non riuscito (riproverà al prossimo salvataggio).';
+  }else{
+    const t=+localStorage.getItem('lastCloudSync');
+    const when=t?new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'attivo';
+    $('#cloudInfo').innerHTML=`<span class="badge-ok">Cloud Sync attivo</span> (${esc(when)}): ogni modifica viene salvata cifrata sul Cloud.`;
+  }
+}
+async function cloudWrite(vStr){
+  const code=getCloudCode();
+  if(!code||!vStr)return false;
+  try{
+    const docId=await cloudDocId(code);
+    const res=await fetch(CLOUD_URL+docId,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fields:{vault:{stringValue:vStr},updatedAt:{integerValue:String(Date.now())}}})
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    localStorage.setItem('lastCloudSync',Date.now());
+    markBackup();
+    updCloudUI('ok');
+    return true;
+  }catch(e){
+    console.warn('Cloud sync write error',e);
+    updCloudUI('error');
+    return false;
+  }
+}
+async function cloudRead(code){
+  const docId=await cloudDocId(code);
+  const res=await fetch(CLOUD_URL+docId);
+  if(res.status===404)throw new Error('Nessun backup trovato per questo Codice Cloud.');
+  if(!res.ok)throw new Error('Errore di connessione al Cloud ('+res.status+').');
+  const doc=await res.json();
+  const vStr=doc?.fields?.vault?.stringValue;
+  if(!vStr)throw new Error('Dati Cloud non validi.');
+  const v=JSON.parse(vStr);
+  if(!(v&&typeof v.salt==='string'&&typeof v.iv==='string'&&typeof v.data==='string'))throw new Error('Formato Cloud non valido.');
+  unb64(v.salt);unb64(v.iv);unb64(v.data);
+  return {v, vStr};
+}
+$('#bCloudEnable').onclick=async()=>{
+  const vStr=localStorage.getItem('vault'); if(!vStr)return;
+  const code=generateCloudCode();
+  localStorage.setItem('cloudCode',code);
+  updCloudUI();
+  const btn=$('#bCloudEnable'); btn.disabled=true;
+  try{
+    if(await cloudWrite(vStr))toast('Cloud Sync attivato! Annota il tuo Codice Cloud');
+    else toast('Codice creato, ma connessione al Cloud non riuscita');
+  }finally{btn.disabled=false}
+};
+$('#bCopyCloud').onclick=()=>{const c=getCloudCode();if(c)copy(c,'Codice Cloud copiato')};
+$('#bCloudDisable').onclick=()=>{
+  if(!confirm('Disattivare il Cloud Sync automatico su questo dispositivo?'))return;
+  localStorage.removeItem('cloudCode');
+  updCloudUI();
+  toast('Cloud Sync disattivato');
+};
+$('#bCloudPull').onclick=async()=>{
+  const code=getCloudCode(); if(!code||!key)return;
+  const btn=$('#bCloudPull'); btn.disabled=true;
+  try{
+    const {v}=await cloudRead(code);
+    pendingImport=v;
+    $('#impForm').reset();$('#impErr').textContent='';
+    $('#impInfo').textContent='Backup scaricato dal Cloud ('+code+'). Inserisci la password principale per unirlo o sostituirlo.';
+    if($('#dlgSet').open)$('#dlgSet').close();
+    $('#dlgImp').showModal();
+  }catch(e){
+    toast(e.message||'Impossibile scaricare dal Cloud');
+  }finally{btn.disabled=false}
+};
+let cloudDlgFromLock=false, pendingLockFile=null;
+function openCloudDialog(fromLock){
+  cloudDlgFromLock=!!fromLock;
+  pendingLockFile=null;
+  $('#cloudForm').reset();
+  $('#cErr').textContent='';
+  $('#cCode').required=true;
+  $('#cCode').disabled=false;
+  $('#cCode').value=fromLock?'':getCloudCode();
+  $('#cPw').required=true;
+  $('#cFileAlt').classList.toggle('hide',!fromLock);
+  $('#cloudDlgT').textContent=fromLock?'☁️ Ripristina Cassaforte':'☁️ Collega Codice Cloud';
+  $('#cloudDlgMsg').textContent=fromLock
+    ?'Hai cambiato o rotto il telefono? Inserisci il tuo Codice Cloud (oppure scegli il file .json da Google Drive) e la tua Password Principale.'
+    :'Inserisci un Codice Cloud già esistente su un altro dispositivo per scaricare e sincronizzare gli account.';
+  if($('#dlgSet').open)$('#dlgSet').close();
+  $('#dlgCloud').showModal();
+}
+$('#bRestoreLock').onclick=()=>openCloudDialog(true);
+$('#bCloudLink').onclick=()=>openCloudDialog(false);
+$('#cCancel').onclick=()=>{pendingLockFile=null;$('#dlgCloud').close()};
+$('#bRestoreFileLock').onclick=()=>$('#fileLock').click();
+$('#fileLock').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f)return;
+  try{
+    const vStr=await f.text(), v=JSON.parse(vStr);
+    if(!(v&&typeof v.salt==='string'&&typeof v.iv==='string'&&typeof v.data==='string'))throw 0;
+    unb64(v.salt);unb64(v.iv);unb64(v.data);
+    pendingLockFile={v,vStr,name:f.name};
+    $('#cCode').required=false;
+    $('#cCode').value='[File: '+f.name+']';
+    $('#cCode').disabled=true;
+    $('#cErr').textContent='';
+    $('#cPw').focus();
+  }catch{
+    $('#cErr').textContent='File .json non valido.';
+  }
+});
+$('#cloudForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const pw=$('#cPw').value, err=$('#cErr'), btn=$('#cOk');
+  err.textContent=''; btn.disabled=true;
+  try{
+    let v, vStr, cleanCode='';
+    if(pendingLockFile){
+      v=pendingLockFile.v; vStr=pendingLockFile.vStr;
+    }else{
+      const rawCode=$('#cCode').value.trim();
+      const norm=normalizeCloudCode(rawCode);
+      if(norm.length<12){err.textContent='Inserisci un Codice Cloud valido (almeno 12 caratteri).';return}
+      cleanCode=norm.match(/.{1,4}/g).join('-');
+      try{({v,vStr}=await cloudRead(cleanCode))}
+      catch(ex){err.textContent=ex.message||'Impossibile scaricare dal Cloud.';return}
+    }
+    let decRes;
+    try{decRes=await decryptVault(pw,v)}
+    catch{err.textContent='Password principale errata.';return}
+    if(cloudDlgFromLock||!key){
+      localStorage.setItem('vault',vStr);
+      if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now())}
+      markBackup();
+      salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
+      $('#dlgCloud').close();
+      $('#lock').classList.add('hide'); $('#app').classList.remove('hide');
+      render(); bump(); checkAndRequestPersistence(true); initSync();
+      upgradeKdf(pw);
+      toast(`Cassaforte ripristinata: ${items.length} account`);
+    }else{
+      if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now())}
+      let added=0, same=0;
+      const ok=await commit(()=>{
+        const res=mergeItems(items,decRes.items);
+        items=res.items; added=res.added; same=res.same;
+      });
+      if(ok){
+        $('#dlgCloud').close();
+        toast(`Cloud collegato: ${added} aggiunti${same?`, ${same} già presenti`:''}`);
+      }
+    }
+  }finally{btn.disabled=false}
+});
+
 /* Opzioni e cambio password principale */
-$('#bSet').onclick=()=>{const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;updBkInfo();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
+$('#bSet').onclick=()=>{const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;updBkInfo();updCloudUI();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
 $('#bSetClose').onclick=()=>$('#dlgSet').close();
 $('#pwForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=$('#pErr'); err.textContent='';

@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14313a">
 <script src="theme.js"></script>
@@ -173,7 +173,10 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
       </div>
       <div id="err" role="alert"></div>
       <button class="btn p" id="lockBtn">Sblocca</button>
-      <div style="text-align:center;margin-top:14px"><button type="button" class="btn s" id="bHelpLock" style="border:0;background:transparent;color:var(--mute);text-decoration:underline">Come funziona & Sicurezza</button></div>
+      <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;gap:6px">
+        <button type="button" class="btn s" id="bRestoreLock" style="border:0;background:transparent;color:var(--brass);font-weight:600;text-decoration:underline;margin:0">☁️ Telefono nuovo o rotto? Ripristina da Cloud / Backup</button>
+        <button type="button" class="btn s" id="bHelpLock" style="border:0;background:transparent;color:var(--mute);text-decoration:underline;margin:0">Come funziona &amp; Sicurezza</button>
+      </div>
     </form>
   </div>
   <footer class="app-credit">
@@ -289,6 +292,21 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
       <button class="btn" id="bImport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importa JSON</button>
       <button class="btn" id="bImportCsv"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg> Importa CSV</button>
       <button class="btn" id="bPrint"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Stampa archivio</button>
+    </div>
+  </div>
+
+  <div class="stat-box" id="cloudBox">
+    <div style="font-weight:600;margin-bottom:4px">☁️ Cloud Sync Cifrato (Anti-rottura telefono / Multi-dispositivo)</div>
+    <p class="mute small" id="cloudInfo" style="margin:0 0 10px">Salva automaticamente una copia cifrata sul Cloud a ogni modifica. Nemmeno il server può leggerla senza la tua Password Principale.</p>
+    <div id="cloudCodeWrap" class="pwbox hide" style="margin:0 0 10px">
+      <div><div class="mute small" style="font-family:system-ui,sans-serif">Il tuo Codice Cloud (conservalo insieme alla password!):</div><b id="cloudCodeTxt"></b></div>
+      <button type="button" class="btn s" id="bCopyCloud">Copia codice</button>
+    </div>
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <button type="button" class="btn s p" id="bCloudEnable">Attiva Cloud Sync automatico</button>
+      <button type="button" class="btn s" id="bCloudLink">Ho già un Codice Cloud</button>
+      <button type="button" class="btn s hide" id="bCloudPull">Scarica da Cloud ora</button>
+      <button type="button" class="btn s d hide" id="bCloudDisable">Disattiva Cloud</button>
     </div>
   </div>
 
@@ -472,6 +490,28 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     <div class="row pr-bar"><b class="grow">Anteprima di stampa</b><button type="button" class="btn" id="prClose">Chiudi</button><button type="button" class="btn p" id="prGo">Stampa / Salva PDF</button></div>
     <div id="printArea"></div>
   </div>
+</dialog>
+<dialog id="dlgCloud">
+  <form id="cloudForm" style="padding:20px" autocomplete="off">
+    <h1 id="cloudDlgT">☁️ Ripristina da Cloud</h1>
+    <p class="mute small" id="cloudDlgMsg">Inserisci il tuo Codice Cloud e la Password Principale per recuperare i tuoi account.</p>
+    <label for="cCode">Codice Cloud</label>
+    <input id="cCode" placeholder="es. ABCD-EFGH-JKLM-NPQR" autocapitalize="characters" spellcheck="false" required>
+    <div id="cPwWrap">
+      <label for="cPw">Password principale della cassaforte</label>
+      <input id="cPw" type="password" autocomplete="off">
+    </div>
+    <div id="cErr" role="alert" style="color:var(--bad);min-height:1.3em;font-size:.9rem;margin-top:8px"></div>
+    <div id="cFileAlt" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+      <button type="button" class="btn s" id="bRestoreFileLock" style="width:100%">📁 Oppure scegli un file .json da Google Drive / Telefono</button>
+      <input type="file" id="fileLock" accept="application/json,.json" class="hide">
+    </div>
+    <div class="row" style="margin-top:14px">
+      <span class="grow"></span>
+      <button type="button" class="btn" id="cCancel">Annulla</button>
+      <button class="btn p" id="cOk">Ripristina</button>
+    </div>
+  </form>
 </dialog>
 <div id="printSheet"></div>
 <div id="toast" role="status"></div>

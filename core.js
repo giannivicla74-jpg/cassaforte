@@ -142,6 +142,25 @@ function filterItems(list,cat,q,sortBy='az',warnIds=null){
 }
 
 const SETS={lower:'abcdefghijkmnopqrstuvwxyz',upper:'ABCDEFGHJKLMNPQRSTUVWXYZ',num:'23456789',sym:'!@#$%^&*-_+=?'};
+const CLOUD_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function generateCloudCode(){
+  const parts=[];
+  for(let g=0;g<4;g++){
+    let s='';
+    for(let i=0;i<4;i++)s+=CLOUD_CHARS[rnd(CLOUD_CHARS.length)];
+    parts.push(s);
+  }
+  return parts.join('-');
+}
+function normalizeCloudCode(code){
+  return String(code??'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+async function cloudDocId(code){
+  const norm=normalizeCloudCode(code);
+  if(norm.length<12)throw new Error('Codice Cloud troppo corto');
+  const buf=await crypto.subtle.digest('SHA-256',enc.encode('cassaforte-cloud-v1:'+norm));
+  return Array.from(new Uint8Array(buf),b=>b.toString(16).padStart(2,'0')).join('');
+}
 const WORDS_IT=[
   'albero','ancora','aquila','arancia','argento','armadio','aurora','balena','barca','bussola',
   'camino','campana','candela','castello','cavallo','cerchio','chiave','collina','cometa','corallo',
@@ -237,6 +256,7 @@ if(typeof module!=='undefined'&&module.exports){
   module.exports={
     CATS,ITER,ITER_OLD,DAY_MS,OLD_DAYS,MAX_HISTORY,iterOf,b64,unb64,esc,derive,encryptVault,decryptVault,
     clean,recordPasswordChange,parseItems,normUrl,safeUrl,sameItem,mergeItems,auditItems,filterItems,
-    strength,SETS,WORDS_IT,rnd,generatePassword,parseCsvRows,parseCsvItems
+    strength,SETS,WORDS_IT,rnd,generatePassword,parseCsvRows,parseCsvItems,
+    generateCloudCode,normalizeCloudCode,cloudDocId
   };
 }
