@@ -131,6 +131,9 @@ dialog#dlgHelp{max-height:86vh;overflow-y:auto}
 .ex-step{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center}
 .ex-step b{display:block;font-size:.82rem;margin-top:4px}
 .ex-step span{font-size:.76rem;color:var(--mute)}
+.guide-tbl{width:100%;border-collapse:collapse;margin:8px 0;font-size:.82rem}
+.guide-tbl th,.guide-tbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.guide-tbl th{background:var(--soft);font-weight:700}
 .app-credit{text-align:center;font-size:.78rem;color:var(--mute);margin:24px 0 12px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;letter-spacing:.01em}
 .app-credit .code-sym{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;color:var(--brass);letter-spacing:0}
 .app-credit strong{color:var(--ink);font-weight:600}
@@ -435,6 +438,57 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
           <div class="ex-step">☁️ <b>3. Salva su Cloud</b><span>Copia automatica pronta al recupero</span></div>
         </div>
       </div>
+
+      <details style="background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0" open>
+        <summary style="color:var(--ink);font-size:.9rem">🔍 Approfondimento: Come funziona davvero il Cloud Sync Cifrato?</summary>
+        <p style="margin-top:8px">Immagina il <b>Cloud Sync Cifrato</b> esattamente come una <b>cassetta di sicurezza anonima in banca</b>:</p>
+
+        <p><b>1. Cosa succede quando tocchi "Attiva Cloud Sync automatico"?</b><br>
+        Quando premi quel pulsante in <b>Opzioni</b>, l'app fa tre cose in un istante:</p>
+        <ul>
+          <li><b>Ti assegna una cassetta segreta tutta tua:</b> genera un codice casuale di 16 lettere e numeri, ad esempio <code>K7M9-P4X2-R8W3-L5N6</code> (il tuo <b>Codice Cloud</b>).</li>
+          <li><b>Chiude le tue password dentro un forziere:</b> prende tutti i tuoi account e li cifra sul tuo telefono usando la tua <b>Password Principale</b> (<code>AES-256</code>).</li>
+          <li><b>Spedisce il forziere chiuso sul Cloud:</b> lo salva in modo sicuro e automatico online.</li>
+        </ul>
+
+        <p><b>2. Cosa devi fare tu dopo averlo attivato?</b><br>
+        <b>Una cosa sola:</b> prendi un foglietto di carta a casa e scrivi insieme:</p>
+        <ul>
+          <li>La tua <b>Password Principale</b></li>
+          <li>Il tuo <b>Codice Cloud</b> (es. <code>K7M9-P4X2-R8W3-L5N6</code>)</li>
+        </ul>
+        <p><b>Dopo di che te ne puoi dimenticare!</b> Ogni volta che in futuro aggiungerai un nuovo account, cambierai una password o modificherai una nota, appena premi <b>Salva</b> l'app aggiornerà <b>da sola in automatico</b> il forziere sul Cloud, senza che tu debba premere nulla.</p>
+
+        <p><b>3. Perché servono DUE cose (Codice Cloud + Password Principale)?</b><br>
+        Perché ognuno ha un compito ben preciso:</p>
+        <table class="guide-tbl">
+          <thead>
+            <tr><th>Elemento</th><th>A cosa serve (Metafora)</th><th>Chi lo conosce</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Codice Cloud</b><br><code>K7M9-P4X2-R8W3-L5N6</code></td>
+              <td>È il <b>numero della tua cassetta</b>: dice all'app <i>dove</i> si trova il tuo forziere sul Cloud.</td>
+              <td><b>Solo tu.</b> Sul server viene salvata solo un'impronta matematica (<code>SHA-256</code>), non il codice vero.</td>
+            </tr>
+            <tr>
+              <td><b>Password Principale</b></td>
+              <td>È la <b>chiave del forziere</b>: è l'unica cosa al mondo capace di <i>aprire e decifrare</i> i dati dentro la cassetta.</td>
+              <td><b>Solo tu.</b> Non viene MAI inviata su Internet né al server.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout" style="background:var(--card)">
+          <b>Cosa significa per la tua sicurezza?</b><br>
+          Anche se qualcuno entrasse nel server Cloud, vedrebbe solo una sequenza incomprensibile di lettere e numeri casuali (<code>"9fK2x8mP..."</code>). Senza la tua <b>Password Principale</b>, è matematicamente impossibile leggere anche una sola password.
+        </div>
+
+        <p><b>4. Quando ti tornerà utile? (I 2 casi reali)</b></p>
+        <ul>
+          <li><b>Caso 1 — Se ti si rompe o ti rubano il cellulare:</b> compri il telefono nuovo, apri <b>cassaforte.gccodelab.it</b>, tocchi <b>"☁️ Telefono nuovo o rotto? Ripristina da Cloud / Backup"</b>, inserisci il tuo <b>Codice Cloud</b> (per trovare il forziere) e la tua <b>Password Principale</b> (per aprirlo). In 1 secondo tutte le tue password ricompaiono sul telefono nuovo, fino all'ultima modifica fatta prima che il vecchio telefono si rompesse!</li>
+          <li><b>Caso 2 — Se vuoi avere le stesse password anche sul PC:</b> apri l'app sul computer, vai in <b>Opzioni → Cloud Sync Cifrato</b> e clicchi <b>"Ho già un Codice Cloud"</b>. Inserisci il Codice Cloud del tuo telefono: l'app scarica gli account dal Cloud e collega anche il computer alla stessa cassetta!</li>
+        </ul>
+      </details>
 
       <div class="callout" style="margin-top:16px">
         <b>📁 SOLUZIONE 2: Salvataggio File su Google Drive, WhatsApp o PC</b><br>
