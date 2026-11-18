@@ -379,28 +379,28 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     </div>
 
     <div class="callout danger">
-      <b>⚠️ REGOLA D'ORO: NESSUN RECUPERO PASSWORD</b><br>
-      Questa applicazione funziona <b>esclusivamente in locale senza server</b>. Se dimentichi la password principale o cancelli i dati del browser senza un file di backup, <u>nessuno al mondo potrà recuperare i tuoi account</u>.
+      <b>⚠️ REGOLA D'ORO: NESSUN RECUPERO DELLA PASSWORD PRINCIPALE</b><br>
+      Tutta la sicurezza dipende dalla tua <b>Password Principale</b>. Se la dimentichi (oppure se perdi il telefono senza aver attivato il <b>Cloud Sync Cifrato</b> o salvato un <b>file di backup</b>), <u>nessuno al mondo potrà recuperare i tuoi account</u>.
     </div>
 
     <div class="guide-sec">
-      <h4>🛡️ 1. Come funziona (Zero Cloud & Privacy 100%)</h4>
-      <p>A differenza dei gestori di password commerciali con abbonamento, <b>Cassaforte non invia nulla su Internet</b>.</p>
+      <h4>🛡️ 1. Come funziona (100% Locale + Cloud Zero-Knowledge opzionale)</h4>
+      <p>A differenza dei gestori di password commerciali con abbonamento, <b>Cassaforte non richiede registrazioni e non traccia nulla</b>:</p>
       <ul>
-        <li>Tutte le tue password restano memorizzate esclusivamente nella memoria protetta di questo browser.</li>
-        <li>Nessun account da registrare, nessun tracciamento e nessuna profilazione dei tuoi dati.</li>
-        <li>Funziona sempre, anche offline senza connessione Internet.</li>
+        <li><b>Di default è 100% locale</b>: tutte le password restano nella memoria protetta del browser e l'app funziona sempre, anche <b>offline</b> senza Internet.</li>
+        <li><b>Cloud Sync Cifrato (opzionale)</b>: solo se scegli tu di attivarlo in <b>Opzioni</b>, l'app salva una copia di emergenza sul Cloud già chiusa a chiave sul tuo dispositivo (<i>Zero-Knowledge</i>: nemmeno il server può sapere cosa contiene).</li>
+        <li>Nessun account email da registrare, nessuna pubblicità e nessuna profilazione.</li>
       </ul>
     </div>
 
     <div class="guide-sec">
-      <h4>🔐 2. Crittografia e Protezione dei Dati</h4>
+      <h4>🔐 2. Crittografia, Blocco Automatico e Lucchetto "Resta aperta"</h4>
       <p>I tuoi dati non vengono mai salvati in chiaro:</p>
       <ul>
-        <li><b>AES-GCM a 256 bit</b>: lo standard di cifratura simmetrica più sicuro al mondo.</li>
-        <li><b>PBKDF2 con 600.000 iterazioni SHA-256</b>: rende molto lenti gli attacchi a forza bruta. La vera difesa resta una password principale lunga (es. 4–5 parole a caso).</li>
-        <li><b>Blocco automatico</b>: la cassaforte si blocca da sola dopo un periodo di inattività (2 minuti, regolabile in <b>Opzioni</b>) e quando passi a un'altra app o scheda (subito, oppure dopo un breve ritardo a tua scelta), scartando la chiave di decifratura.</li>
-        <li><b>Appunti protetti</b>: quando copi utente o password, gli appunti vengono svuotati dopo 30 secondi (se in quel momento sei in un'altra app, appena torni qui o blocchi la cassaforte). Attenzione: alcune tastiere e sistemi conservano una cronologia degli appunti che l'app non può cancellare.</li>
+        <li><b>AES-GCM a 256 bit + PBKDF2 (600.000 iterazioni SHA-256)</b>: lo standard crittografico più sicuro al mondo. Usa una Password Principale robusta (es. 4–5 parole).</li>
+        <li><b>Blocco automatico</b>: la cassaforte si chiude da sola dopo un periodo di inattività (2 minuti, regolabile in <b>Opzioni</b>) e quando passi a un'altra app o scheda.</li>
+        <li><b>Pulsante "Resta aperta" (lucchetto aperto in alto)</b>: se devi copiare e incollare più dati passando da un'app all'altra, tocca <b>Resta aperta</b> nella barra in alto per sospendere temporaneamente il blocco automatico finché non premi tu su <b>Blocca</b>.</li>
+        <li><b>Appunti protetti</b>: quando copi utente o password, gli appunti vengono svuotati automaticamente dopo 30 secondi (o al blocco della cassaforte).</li>
       </ul>
     </div>
 
@@ -507,6 +507,17 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
           <div style="display:flex;justify-content:flex-end"><span class="ex-pill p">Ripristina</span></div>
         </div>
       </div>
+    </div>
+
+    <div class="guide-sec">
+      <h4>🧰 5. Funzioni Intelligenti: Salute Password, Cronologia, Passphrase e CSV</h4>
+      <ul>
+        <li><b>🛡️ Controllo Salute Password</b>: l'app segnala automaticamente con un badge rosso le <b>password deboli</b>, <b>riutilizzate su più siti</b> o <b>più vecchie di 1 anno</b>, e aggiunge il filtro rapido <b>⚠️ Da controllare</b> in cima alla lista.</li>
+        <li><b>⏪ Cronologia vecchie password</b>: quando cambi la password di un account, le <b>ultime 5 password precedenti</b> vengono conservate con la data (visibili aprendo <b>Modifica → Cronologia password precedenti</b>).</li>
+        <li><b>🎲 Generatore Caratteri &amp; Passphrase</b>: dentro <b>Opzioni generatore</b> puoi scegliere tra password a caratteri casuali oppure <b>Parole (Passphrase)</b> in italiano facili da digitare ma fortissime (es. <i>Bussola-castello-limone-veliero-42</i>).</li>
+        <li><b>🗂️ Categorie personalizzate e Ordinamento</b>: puoi ordinare per <b>A → Z</b>, <b>Recenti</b> o <b>Categoria</b> e creare nuove categorie personalizzate scegliendo <b>+ Nuova categoria...</b> nel modulo dell'account.</li>
+        <li><b>📥 Importa JSON e CSV</b>: da <b>Opzioni</b> puoi sia unire/sostituire un backup cifrato (<b>Importa JSON</b>), sia importare in un colpo solo tutte le password esportate da Chrome, Edge, Firefox, Bitwarden o Safari (<b>Importa CSV</b>).</li>
+      </ul>
     </div>
 
     <div class="guide-sec">
