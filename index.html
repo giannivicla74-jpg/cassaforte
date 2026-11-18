@@ -32,6 +32,7 @@ label{display:block;font-size:.82rem;font-weight:600;color:var(--mute);margin:14
 .btn.p:hover{filter:brightness(1.08)}
 .btn.s{padding:7px 11px;font-size:.85rem}
 .btn.d{color:var(--bad)}
+.btn.keep-on{background:color-mix(in srgb,var(--brass) 18%,var(--card));border-color:var(--brass);color:var(--brass);font-weight:600}
 .row{display:flex;gap:8px;align-items:center}
 .grow{flex:1;min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh)}
@@ -80,6 +81,11 @@ li.it{background:linear-gradient(180deg,var(--card),color-mix(in srgb,var(--card
 .chip{flex:none;border:1px solid var(--line);background:var(--card);padding:6px 13px;border-radius:999px;font-size:.85rem}
 .seg{display:flex;gap:6px;flex-wrap:wrap}.seg .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px}
 .chip.on{background:var(--acc);color:var(--on);border-color:var(--acc);font-weight:600}
+.chip.warn-chip{border-color:var(--bad);color:var(--bad)}
+.chip.warn-chip.on{background:var(--bad);color:#fff;border-color:var(--bad)}
+.hist-list{margin:8px 0 0;padding:0;display:grid;gap:6px}
+.hist-it{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--soft);padding:7px 10px;border-radius:8px;font-size:.83rem}
+.hist-pw{font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
 .tag{font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--mute);margin-left:6px;vertical-align:middle}
 .tag.w{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
 .star{flex:none;margin-left:auto;border:0;background:transparent;color:var(--mute);padding:6px;border-radius:10px;display:grid}
@@ -181,10 +187,12 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
       <div class="brand grow"><span class="mark"><img src="icon-192.png" alt="Cassaforte"></span><div><h1>Cassaforte</h1><div class="mute small" id="count"></div></div></div>
       <button class="btn s" id="bHelp" title="Manuale e sicurezza"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span class="lbl"> Guida</span></button>
       <button class="btn s" id="bSet" title="Opzioni" aria-label="Opzioni"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl"> Opzioni</span></button>
+      <button class="btn s" id="bKeep" title="Mantieni sbloccata (sospende il blocco automatico)" aria-label="Mantieni sbloccata" aria-pressed="false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.9-1"/></svg><span class="lbl"> Resta aperta</span></button>
       <button class="btn s" id="bLock" title="Blocca" aria-label="Blocca"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="lbl"> Blocca</span></button>
     </div>
     <div class="row" style="margin-top:14px">
       <div class="search grow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cerca account" aria-label="Cerca account"></div>
+      <select id="sortBy" aria-label="Ordina account" title="Ordina account" style="width:auto;padding:10px"><option value="az">A → Z</option><option value="recent">Recenti</option><option value="cat">Categoria</option></select>
       <button class="btn p" id="bAdd">+ Aggiungi</button>
     </div>
   <div class="chips" id="chips"></div>
@@ -202,6 +210,7 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
   </div>
   <ul id="list"></ul>
   <input type="file" id="file" accept="application/json,.json" class="hide">
+  <input type="file" id="fileCsv" accept=".csv,text/csv" class="hide">
   <footer class="app-credit">
     <span class="code-sym">&lt;/&gt;</span> Software Engineered &amp; Designed by: <strong>GC CodeLab &bull; Giovanni Cavallo</strong> <span class="ver">v<span class="appver"></span></span>
   </footer>
@@ -217,18 +226,34 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     <div class="meter"><i id="mBar"></i></div><div class="small mute" id="mTxt" style="margin-top:4px;min-height:1.2em"></div>
     <details id="gOpts"><summary>Opzioni generatore</summary>
       <div class="gopts">
-        <label for="gLen" style="margin:0">Lunghezza: <b id="gLenV">20</b></label>
-        <input type="range" id="gLen" min="8" max="40" value="20">
-        <div class="opts">
-          <label class="chk"><input type="checkbox" id="g_lower" checked> Minuscole</label>
-          <label class="chk"><input type="checkbox" id="g_upper" checked> Maiuscole</label>
-          <label class="chk"><input type="checkbox" id="g_num" checked> Numeri</label>
-          <label class="chk"><input type="checkbox" id="g_sym" checked> Simboli</label>
+        <div class="seg" id="gModeSel" role="group" aria-label="Tipo generatore">
+          <button type="button" class="chip on" data-gm="chars">Caratteri</button>
+          <button type="button" class="chip" data-gm="words">Parole (Passphrase)</button>
+        </div>
+        <div id="gCharsBox" class="gopts" style="margin-top:2px">
+          <label for="gLen" style="margin:0">Lunghezza: <b id="gLenV">20</b></label>
+          <input type="range" id="gLen" min="8" max="40" value="20">
+          <div class="opts">
+            <label class="chk"><input type="checkbox" id="g_lower" checked> Minuscole</label>
+            <label class="chk"><input type="checkbox" id="g_upper" checked> Maiuscole</label>
+            <label class="chk"><input type="checkbox" id="g_num" checked> Numeri</label>
+            <label class="chk"><input type="checkbox" id="g_sym" checked> Simboli</label>
+          </div>
+        </div>
+        <div id="gWordsBox" class="gopts hide" style="margin-top:2px">
+          <label for="gWords" style="margin:0">Numero di parole: <b id="gWordsV">4</b></label>
+          <input type="range" id="gWords" min="3" max="8" value="4">
+          <div class="opts">
+            <label class="chk"><input type="checkbox" id="g_wupper" checked> Iniziale maiuscola</label>
+            <label class="chk"><input type="checkbox" id="g_wnum" checked> Aggiungi numero</label>
+          </div>
         </div>
       </div>
     </details>
+    <details id="histBox" class="hide"><summary id="histSum">Cronologia password precedenti</summary><ul id="histList" class="hist-list"></ul></details>
     <label for="fCat">Categoria</label>
     <select id="fCat"><option>Email</option><option>Social</option><option>Banca</option><option>Lavoro</option><option>Shopping</option><option>Altro</option></select>
+    <input id="fCatNew" class="hide" style="margin-top:8px" placeholder="Nome nuova categoria (es. Casa, Streaming)" maxlength="32">
     <label class="chk"><input type="checkbox" id="fFav"> Segna come preferito</label>
     <label for="fUrl">Indirizzo sito</label><input id="fUrl" type="text" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="es. netflix.com">
     <label for="fNote">Note</label><textarea id="fNote" rows="3"></textarea>
@@ -261,7 +286,8 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     <div class="row" style="flex-wrap:wrap;gap:8px">
       <button class="btn p" id="bShare"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Invia / Condividi</button>
       <button class="btn" id="bExport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Scarica JSON</button>
-      <button class="btn" id="bImport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importa</button>
+      <button class="btn" id="bImport"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importa JSON</button>
+      <button class="btn" id="bImportCsv"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg> Importa CSV</button>
       <button class="btn" id="bPrint"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Stampa archivio</button>
     </div>
   </div>
@@ -450,6 +476,7 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
 <div id="printSheet"></div>
 <div id="toast" role="status"></div>
 
+<script src="core.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
