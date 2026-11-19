@@ -262,6 +262,19 @@ li.it{transition:transform .15s,box-shadow .15s}
   55%{background-position:0 0;filter:none}
   100%{background-position:0 0;filter:none}
 }
+/* Anello di luce che gira lungo il bordo dello scudo (barra in alto e schermata di apertura) */
+@property --ring{syntax:'<angle>';inherits:false;initial-value:0deg}
+.brand .mark,#lock .logo{position:relative;overflow:visible}
+.brand .mark{--r:13px}#lock .logo{--r:28px}
+.brand .mark::before,#lock .logo::before{
+  content:"";position:absolute;inset:-3px;border-radius:calc(var(--r) + 3px);z-index:0;pointer-events:none;
+  background:conic-gradient(from var(--ring),transparent 0deg,transparent 190deg,color-mix(in srgb,var(--brass) 45%,transparent) 260deg,var(--brass) 325deg,color-mix(in srgb,var(--brass) 35%,#fff) 350deg,transparent 360deg);
+  animation:ring 2.2s linear infinite
+}
+#lock .logo::before{inset:-5px;border-radius:calc(var(--r) + 5px)}
+.brand .mark img,#lock .logo img{position:relative;z-index:1}
+#lock .logo::after{display:none}
+@keyframes ring{to{--ring:360deg}}
 /* Sblocco con impronta */
 #lock .btn.bio{margin-top:10px;border:2px solid var(--brass);color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 8%,var(--card))}
 .bio-ic{font-size:1.15rem}

@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.12.2';
+const APP_VERSION='1.12.3';
 const CHANGELOG=[
+  ['1.12.3',[
+    'Anello di luce che gira intorno allo scudo, nel colore scelto'
+  ]],
   ['1.12.2',[
     'Guida: nuova sezione passo passo “Sblocco con impronta o viso”',
     'Riflesso di luce sulla scritta più intenso e più frequente'
