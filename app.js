@@ -3,10 +3,15 @@ let key=null, salt=null, iter=0, items=[], editId=null, qId=null, shown=new Set(
 let syncHandle=null, pendingHandle=null, pendingImport=null;
 let sess=0;            // cresce a ogni blocco: invalida le operazioni asincrone iniziate prima
 let saveQ=Promise.resolve(); // serializza i salvataggi
+let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.9.0';
+const APP_VERSION='1.9.1';
 const CHANGELOG=[
+  ['1.9.1',[
+    'Avvio e salvataggio veloci anche con segnale internet debole',
+    'Conferma prima di sostituire la cassaforte del dispositivo con un backup'
+  ]],
   ['1.9.0',[
     'Cloud Sync Cifrato automatico (Zero-Knowledge) con Codice Cloud anti-rottura telefono',
     'Ripristino immediato dalla schermata iniziale (da Codice Cloud o file JSON su Google Drive)',
@@ -49,7 +54,8 @@ function persist(){
     const vStr=await encryptVault(k,s,it,snapshot);
     localStorage.setItem('vault',vStr);
     await syncWrite(vStr);
-    await cloudWrite(vStr);
+    // Il Cloud non blocca il salvataggio: con segnale debole l'app resterebbe ferma ad aspettare
+    cloudQ=cloudQ.then(()=>cloudWrite(vStr)).catch(()=>{});
   });
   saveQ=job.catch(()=>{});
   return job;
@@ -656,6 +662,7 @@ async function cloudWrite(vStr){
     const docId=await cloudDocId(code);
     const res=await fetch(CLOUD_URL+docId,{
       method:'PATCH',
+      signal:AbortSignal.timeout?AbortSignal.timeout(20000):undefined,
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({fields:{vault:{stringValue:vStr},updatedAt:{integerValue:String(Date.now())}}})
     });
@@ -672,7 +679,9 @@ async function cloudWrite(vStr){
 }
 async function cloudRead(code){
   const docId=await cloudDocId(code);
-  const res=await fetch(CLOUD_URL+docId);
+  let res;
+  try{res=await fetch(CLOUD_URL+docId,{signal:AbortSignal.timeout?AbortSignal.timeout(30000):undefined})}
+  catch{throw new Error('Connessione al Cloud non riuscita o troppo lenta: riprova con un segnale migliore.')}
   if(res.status===404)throw new Error('Nessun backup trovato per questo Codice Cloud.');
   if(!res.ok)throw new Error('Errore di connessione al Cloud ('+res.status+').');
   const doc=await res.json();
@@ -773,6 +782,8 @@ $('#cloudForm').addEventListener('submit',async e=>{
     try{decRes=await decryptVault(pw,v)}
     catch{err.textContent='Password principale errata.';return}
     if(cloudDlgFromLock||!key){
+      const cur=localStorage.getItem('vault');
+      if(cur&&cur!==vStr&&!confirm('Su questo dispositivo c’è già una cassaforte. Sostituirla con quella del backup? Gli account presenti solo qui andranno persi.'))return;
       localStorage.setItem('vault',vStr);
       if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now())}
       markBackup();
