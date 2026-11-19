@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.11.0';
+const APP_VERSION='1.11.1';
 const CHANGELOG=[
+  ['1.11.1',[
+    'Pulsante “Copia” nel riquadro della password, per incollarla subito nel sito'
+  ]],
   ['1.11.0',[
     'Nuova vista a elenco compatto, oltre a quella a schede (pulsante accanto a “+ Aggiungi”)'
   ]],
@@ -217,7 +220,7 @@ $('#bKeep').onclick=()=>{
 
 /* Elenco */
 const ic=p=>`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
-const IC={user:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),key:ic('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>'),eye:ic('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),eyeoff:ic('<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6A16 16 0 0 0 2 12s4 7 10 7a9.7 9.7 0 0 0 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),link:ic('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),edit:ic('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),cards:ic('<rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>'),lines:ic('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>')};
+const IC={user:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),key:ic('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>'),eye:ic('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),eyeoff:ic('<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6A16 16 0 0 0 2 12s4 7 10 7a9.7 9.7 0 0 0 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),link:ic('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),edit:ic('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),copy:ic('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>'),cards:ic('<rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>'),lines:ic('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>')};
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 let cat='Tutti';
 const star=f=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`;
@@ -317,7 +320,7 @@ function render(){
     audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':''
   ].join('');
   const accBody=i=>`
-      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span></div>`}
+      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span><button class="btn s cpy" data-a="cp" aria-label="Copia la password di ${esc(i.name)}">${IC.copy}Copia</button></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span></div>`}
       ${i.note?`<div class="note">${esc(i.note)}</div>`:''}
       <div class="acts">
         <button class="btn s" data-a="cu">${IC.user}Utente</button>
@@ -366,8 +369,13 @@ $('#q').addEventListener('input',render);
 /* Appunti: svuotati dopo 30 s. Il browser permette di scrivere negli appunti solo con la pagina in primo piano,
    quindi se in quel momento sei in un'altra app li svuotiamo appena torni (o al blocco manuale). */
 async function copy(t,m){
-  try{await navigator.clipboard.writeText(t);toast(m,true);buzz(25);clipAt=Date.now();clipClearPending=false;clearTimeout(clipT);clipT=setTimeout(()=>clearClip(),30000)}
-  catch{toast('Copia non riuscita')}
+  try{await navigator.clipboard.writeText(t);toast(m,true);buzz(25);clipAt=Date.now();clipClearPending=false;clearTimeout(clipT);clipT=setTimeout(()=>clearClip(),30000);return true}
+  catch{toast('Copia non riuscita');return false}
+}
+/* Il pulsante "Copia" diventa verde per un attimo, così si vede che ha funzionato */
+function copiedFx(b){
+  b.classList.add('done');b.innerHTML='✓ Copiata';
+  setTimeout(()=>{if(b.isConnected){b.classList.remove('done');b.innerHTML=IC.copy+'Copia'}},1600);
 }
 function clearClip(force){
   if(!clipAt)return;
@@ -388,7 +396,7 @@ $('#list').addEventListener('click',e=>{
     return;
   }
   if(a==='cu')copy(it.user,'Utente copiato');
-  if(a==='cp')copy(it.pass,'Password copiata (si cancella tra 30 s)');
+  if(a==='cp')copy(it.pass,'Password copiata: incollala nel sito').then(ok=>{if(ok&&b.classList.contains('cpy'))copiedFx(b)});
   if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
   if(a==='ed')openForm(it);
   if(a==='fv')commit(()=>{it.fav=!it.fav});
