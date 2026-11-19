@@ -289,6 +289,21 @@ li.it{transition:transform .15s,box-shadow .15s}
 @keyframes slotGlow{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brass) 60%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
 input.slotting{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;border-color:var(--brass)}
 input.slot-done{animation:slotGlow .6s ease-out}
+/* "Tutto quello che sa fare" */
+.feat-btn{width:100%;margin-top:14px;padding:13px;font-weight:700;border:2px solid var(--brass);color:var(--brass);background:linear-gradient(135deg,color-mix(in srgb,var(--brass) 14%,var(--card)),var(--card))}
+dialog#dlgFeat{max-height:90vh;overflow-y:auto}
+.feat{padding:22px 20px 20px}
+.feat-head{text-align:center;margin-bottom:8px}
+.feat-head .logo{width:72px;height:72px;border-radius:22px;margin:0 auto 12px}
+.feat-head h1{font-size:1.35rem;line-height:1.25}
+.feat-head p{font-size:.88rem;margin:8px 0 0}
+.feat-g{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:14px;padding:12px 14px;margin-top:12px}
+.feat-g h2{font-size:1rem;margin:0 0 6px}
+.feat-g ul{margin:0;padding-left:18px;list-style:disc;font-size:.88rem;line-height:1.5}
+.feat-g li{margin:4px 0}
+.feat-g li::marker{color:var(--brass)}
+.feat-foot{text-align:center;color:var(--mute);font-size:.82rem;margin:16px 0 12px}
+.feat-foot .code-sym{color:var(--brass);font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700}
 /* Schede speciali: carta, Wi-Fi, nota */
 .seg.types{margin-top:12px}
 .seg.types{flex-wrap:nowrap;gap:5px}
@@ -358,6 +373,7 @@ li.ln:first-child{border-top:0}
       <button type="button" class="btn bio hide" id="bBio"><span class="bio-ic" aria-hidden="true">👆</span> Sblocca con impronta o viso</button>
       <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;gap:6px">
         <button type="button" class="btn s" id="bRestoreLock" style="border:0;background:transparent;color:var(--brass);font-weight:600;text-decoration:underline;margin:0">☁️ Telefono nuovo o rotto? Ripristina da Cloud / Backup</button>
+        <button type="button" class="btn s" id="bFeatLock" style="border:0;background:transparent;color:var(--brass);font-weight:600;margin:0">✨ Tutto quello che sa fare</button>
         <button type="button" class="btn s" id="bHelpLock" style="border:0;background:transparent;color:var(--mute);text-decoration:underline;margin:0">Come funziona &amp; Sicurezza</button>
       </div>
     </form>
@@ -405,6 +421,7 @@ li.ln:first-child{border-top:0}
   <ul id="list"></ul>
   <input type="file" id="file" accept="application/json,.json" class="hide">
   <input type="file" id="fileCsv" accept=".csv,text/csv" class="hide">
+  <button type="button" class="btn feat-btn" id="bFeat">✨ Tutto quello che sa fare la Cassaforte</button>
   <footer class="app-credit">
     <span class="code-sym">&lt;/&gt;</span> Software Engineered &amp; Designed by: <strong>GC CodeLab &bull; Giovanni Cavallo</strong> <span class="ver">v<span class="appver"></span></span>
   </footer>
@@ -487,7 +504,8 @@ li.ln:first-child{border-top:0}
 </dialog>
 <dialog id="dlgSet"><div style="padding:20px">
   <h1>Opzioni & Sicurezza</h1>
-  
+  <button type="button" class="btn feat-btn" id="bFeatSet" style="margin-top:12px">✨ Tutto quello che sa fare la Cassaforte</button>
+
   <h3>Aspetto</h3>
   <div class="stat-box">
     <div style="font-weight:600;margin-bottom:8px">Tema</div>
@@ -932,6 +950,78 @@ li.ln:first-child{border-top:0}
   </form>
 </dialog>
 <div id="printSheet"></div>
+<dialog id="dlgFeat" aria-labelledby="featT">
+  <div class="feat">
+    <div class="feat-head">
+      <div class="logo"><img src="icon-192.png" alt=""></div>
+      <h1 id="featT">Tutto quello che sa fare<br>la tua Cassaforte</h1>
+      <p class="mute">Versione <span class="appver"></span> · una cassaforte digitale per password, carte, Wi-Fi e segreti, che vive solo sul tuo telefono.</p>
+    </div>
+
+    <section class="feat-g"><h2>🔐 Sicurezza al massimo</h2><ul>
+      <li><b>Cifratura militare AES-256</b>: tutto è chiuso con la tua password principale; senza, i dati sono illeggibili.</li>
+      <li><b>Solo tu puoi leggerle</b>: le password restano sul tuo telefono e nessuno, nemmeno chi ha creato l'app, può leggerle. Anche la copia sul Cloud è cifrata.</li>
+      <li><b>👆 Sblocco con impronta o viso</b>, con la password principale sempre valida come riserva.</li>
+      <li><b>Blocco automatico</b> dopo un po' di inattività o quando cambi app, regolabile in Opzioni.</li>
+      <li><b>🔓 Lucchetto "Resta aperta"</b> per sospendere il blocco quando ti serve.</li>
+      <li><b>Appunti che si svuotano da soli</b> 30 secondi dopo aver copiato una password.</li>
+      <li><b>Se sbagli la password</b> la schermata trema e non si apre.</li>
+    </ul></section>
+
+    <section class="feat-g"><h2>🗂️ Tutto in ordine</h2><ul>
+      <li><b>4 tipi di scheda</b>: 🔑 Account, 💳 Carta di credito, 📶 Wi-Fi e 📝 Nota segreta.</li>
+      <li><b>💳 Carte disegnate come quelle vere</b>, con circuito (VISA, Mastercard…), numero nascosto, CVV e PIN.</li>
+      <li><b>📶 Codice QR del Wi-Fi</b>: gli ospiti lo inquadrano e si collegano senza scrivere la password.</li>
+      <li><b>👥 Più account per lo stesso servizio</b> (es. due Amazon) nella stessa scheda, con "+ Altro account".</li>
+      <li><b>Categorie con simbolo e colore</b>: ✉️ Email, 👥 Social, 🏦 Banca, 💼 Lavoro, 🛒 Shopping, 🎬 Svago, 💡 Utenze, ✈️ Viaggi, 🏛️ Pubblica Amm., 📶 Wi-Fi, 📝 Note… e quelle che crei tu.</li>
+      <li><b>⭐ Preferiti</b>, <b>ricerca istantanea</b> e ordine <b>A→Z, Recenti o Categoria</b>.</li>
+      <li><b>📋 Vista a schede o a elenco compatto</b>, a tua scelta.</li>
+    </ul></section>
+
+    <section class="feat-g"><h2>✨ Ti aiuta mentre scrivi</h2><ul>
+      <li><b>Riconoscimento automatico</b>: scrivi "Amazon", "Intesa", "Netflix", "SPID", "Enel"… e l'app propone da sola <b>categoria e sito</b> (oltre 150 servizi italiani).</li>
+      <li><b>💳 Controllo del numero della carta</b>: ti avvisa se hai sbagliato una cifra e riconosce il circuito.</li>
+      <li><b>Scadenza della carta formattata da sola</b> (scrivi 0829, diventa 08/29).</li>
+      <li><b>Misuratore di robustezza</b> che ti dice subito se una password è debole, discreta o forte.</li>
+      <li><b>🎰 Generatore "slot machine"</b>: crea password fortissime o <b>passphrase in italiano</b> facili da ricordare.</li>
+      <li><b>⏪ Cronologia</b>: ricorda le ultime 5 password di ogni account.</li>
+    </ul></section>
+
+    <section class="feat-g"><h2>💯 Controlla la tua sicurezza</h2><ul>
+      <li><b>Pannello Salute Password</b> con punteggio da 0 a 100.</li>
+      <li>Segnala password <b>deboli</b>, <b>riutilizzate</b> su più siti o <b>vecchie</b> di oltre un anno.</li>
+      <li>Filtro <b>⚠️ Da controllare</b> per sistemarle in un attimo.</li>
+    </ul></section>
+
+    <section class="feat-g"><h2>⚡ Veloce da usare</h2><ul>
+      <li><b>Copia utente / Copia password / Copia numero / Copia CVV</b> con un tocco: il pulsante diventa verde ✓ e il telefono vibra.</li>
+      <li><b>Pulsante Sito</b> per aprire subito la pagina di accesso.</li>
+      <li><b>Funziona anche senza internet</b> e si apre in un attimo anche con segnale debole.</li>
+      <li><b>Si installa come un'app</b> sulla schermata del telefono.</li>
+    </ul></section>
+
+    <section class="feat-g"><h2>💾 Non perdi mai niente</h2><ul>
+      <li><b>☁️ Cloud Sync cifrato</b>: copia automatica a ogni modifica, che nemmeno il server può leggere.</li>
+      <li><b>Telefono nuovo o rotto?</b> Ripristini tutto con il Codice Cloud o dal file di backup.</li>
+      <li><b>Backup in un tocco</b> su Drive, WhatsApp o email, e auto-salvataggio su file dal PC.</li>
+      <li><b>Importa le password</b> da Chrome, Edge, Firefox, Safari e Bitwarden (file CSV).</li>
+      <li><b>🖨️ Archivio cartaceo</b> da stampare come copia d'emergenza.</li>
+      <li><b>Promemoria</b> quando è ora di fare un backup.</li>
+    </ul></section>
+
+    <section class="feat-g"><h2>🎨 Bella da vedere</h2><ul>
+      <li><b>🌙 Tema giorno / notte</b> con un tocco (o automatico).</li>
+      <li><b>5 colori a scelta</b>: 🥇 Oro, 💚 Smeraldo, ❤️ Rubino, 💙 Zaffiro, 💜 Ametista.</li>
+      <li><b>Riflesso di luce</b> che attraversa la scritta "Cassaforte" e <b>anello di luce</b> che gira intorno allo scudo.</li>
+      <li><b>Animazione della cassaforte che si apre</b> quando la sblocchi, schede che compaiono morbide.</li>
+      <li><b>🎵 Musica di sottofondo originale</b> in 3 stili (🌊 Ambient, 🎹 Lounge jazz, 🛸 Cyber), composta dall'app mentre suona; si spegne con un tocco.</li>
+    </ul></section>
+
+    <p class="feat-foot"><span class="code-sym">&lt;/&gt;</span> Ideata e realizzata da <b>GC CodeLab · Giovanni Cavallo</b></p>
+    <button type="button" class="btn p" id="featClose" style="width:100%">Chiudi</button>
+  </div>
+</dialog>
+
 <dialog id="dlgQr" aria-labelledby="qrT">
   <div style="padding:20px;text-align:center">
     <h1 id="qrT" style="font-size:1.2rem">📶 Collegati al Wi-Fi</h1>

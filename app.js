@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.14.0';
+const APP_VERSION='1.14.1';
 const CHANGELOG=[
+  ['1.14.1',[
+    'Nuova sezione “✨ Tutto quello che sa fare la Cassaforte” con l’elenco di tutte le funzioni'
+  ]],
   ['1.14.0',[
     'Nuove schede: 💳 Carta (disegnata come una carta vera), 📶 Wi-Fi con codice QR per gli ospiti, 📝 Nota segreta',
     'Riconoscimento automatico di oltre 150 servizi: categoria e sito si compilano da soli',
@@ -156,7 +159,7 @@ function lock(){
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
   slotStop?.(); window.Music?.stop(); updMusicUI();
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
@@ -1230,6 +1233,11 @@ $('#pwForm').addEventListener('submit',async e=>{
     $('#pwForm').reset(); $('#dlgSet').close(); toast(hadBio?'Password cambiata: riattiva l’impronta in Opzioni e fai un backup':'Password principale cambiata: fai un nuovo backup');
   }finally{if(btn)btn.disabled=false}
 });
+
+/* "Tutto quello che sa fare": vetrina di tutte le funzioni, separata dalla Guida */
+const openFeat=()=>{if($('#dlgSet').open)$('#dlgSet').close();$('#dlgFeat').showModal();$('#dlgFeat').scrollTop=0};
+['#bFeat','#bFeatLock','#bFeatSet'].forEach(s=>$(s).onclick=openFeat);
+$('#featClose').onclick=()=>$('#dlgFeat').close();
 
 /* Manuale e Guida Sicurezza */
 const openHelp=()=>$('#dlgHelp').showModal();
