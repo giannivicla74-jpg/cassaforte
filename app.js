@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.9.2';
+const APP_VERSION='1.9.3';
 const CHANGELOG=[
+  ['1.9.3',[
+    'Più account per lo stesso servizio (es. due account Amazon) nella stessa scheda, con il pulsante “+ Altro account”'
+  ]],
   ['1.9.2',[
     'Pulsante Giorno/Notte (sole e luna) nella barra in alto',
     'La password si cambia solo da “Modifica”: tolto il pulsante “Cambia” dalla scheda'
@@ -236,29 +239,38 @@ function render(){
     return `<button class="${cls}" data-c="${esc(c)}">${lbl}</button>`;
   }).join(''):'';
   const rows=filterItems(items,cat,q,$('#sortBy').value,audit.warnIds);
-  $('#list').innerHTML=rows.length?rows.map(i=>{
-    const href=safeUrl(i.url);
-    const tags=[
-      `<span class="tag">${esc(i.cat||'Altro')}</span>`,
-      audit.weakIds.has(i.id)?'<span class="tag w">Password debole</span>':'',
-      audit.dupIds.has(i.id)?'<span class="tag w">Password riutilizzata</span>':'',
-      audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':''
-    ].join('');
-    return`
-    <li class="it" data-id="${esc(i.id)}">
-      <div class="top">
-        <div class="av" style="--h:${hue(i.name)}">${esc(i.name.trim().charAt(0).toUpperCase())}</div>
-        <div class="meta"><h2>${esc(i.name)}${tags}</h2><div class="u">${esc(i.user)}</div></div>
-        <button class="star${i.fav?' on':''}" data-a="fv" aria-label="${i.fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${star(i.fav)}</button>
-      </div>
+  // Account con lo stesso nome di servizio (es. due account Amazon) stanno nella stessa scheda
+  const groups=new Map();
+  for(const i of rows){const k=i.name.trim().toLowerCase();if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i)}
+  const warnTags=i=>[
+    audit.weakIds.has(i.id)?'<span class="tag w">Password debole</span>':'',
+    audit.dupIds.has(i.id)?'<span class="tag w">Password riutilizzata</span>':'',
+    audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':''
+  ].join('');
+  const accBody=i=>`
       ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span></div>`}
       ${i.note?`<div class="note">${esc(i.note)}</div>`:''}
       <div class="acts">
         <button class="btn s" data-a="cu">${IC.user}Utente</button>
         <button class="btn s" data-a="cp">${IC.key}Password</button>
         <button class="btn s" data-a="sh">${shown.has(i.id)?IC.eyeoff+'Nascondi':IC.eye+'Mostra'}</button>
-        ${href?`<a class="btn s" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${IC.link}Sito</a>`:''}
         <button class="btn s" data-a="ed">${IC.edit}Modifica</button>
+      </div>`;
+  $('#list').innerHTML=rows.length?[...groups.values()].map(g=>{
+    const i=g[0], multi=g.length>1, fav=g.some(x=>x.fav);
+    const href=safeUrl(g.find(x=>safeUrl(x.url))?.url||'');
+    const head=`<span class="tag">${esc(i.cat||'Altro')}</span>${multi?`<span class="tag">${g.length} account</span>`:warnTags(i)}`;
+    return`
+    <li class="it" data-id="${esc(i.id)}" data-ids="${esc(g.map(x=>x.id).join(','))}">
+      <div class="top">
+        <div class="av" style="--h:${hue(i.name)}">${esc(i.name.trim().charAt(0).toUpperCase())}</div>
+        <div class="meta"><h2>${esc(i.name)}${head}</h2>${multi?'':`<div class="u">${esc(i.user)}</div>`}</div>
+        <button class="star${fav?' on':''}" data-a="fv" aria-label="${fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${star(fav)}</button>
+      </div>
+      ${multi?g.map(x=>`<div class="acc" data-id="${esc(x.id)}"><div class="u acc-u">${IC.user}<span>${esc(x.user)||'<i>senza utente</i>'}</span>${warnTags(x)}</div>${accBody(x)}</div>`).join(''):`<div data-id="${esc(i.id)}">${accBody(i)}</div>`}
+      <div class="acts grp">
+        <button class="btn s" data-a="ad">+ Altro account</button>
+        ${href?`<a class="btn s" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${IC.link}Sito</a>`:''}
       </div>
     </li>`}).join(''):`<li class="empty mute"><div class="mark" style="width:56px;height:56px;border-radius:18px"><img src="icon-192.png" alt="Cassaforte"></div>${items.length?'Nessun account corrisponde.':'Non hai ancora salvato nulla.<br>Premi <b>+ Aggiungi</b> per inserire il primo account.'}</li>`;
 }
@@ -280,8 +292,14 @@ addEventListener('focus',()=>clearClip());
 
 $('#list').addEventListener('click',e=>{
   const b=e.target.closest('button[data-a]'); if(!b)return;
-  const id=b.closest('li').dataset.id, it=items.find(x=>x.id===id); if(!it)return;
-  const a=b.dataset.a;
+  const li=b.closest('li'), a=b.dataset.a;
+  const id=(b.closest('[data-id]')||li).dataset.id, it=items.find(x=>x.id===id); if(!it)return;
+  if(a==='fv'||a==='ad'){
+    const ids=new Set((li.dataset.ids||id).split(',')), g=items.filter(x=>ids.has(x.id));
+    if(a==='fv'){const on=!g.some(x=>x.fav);commit(()=>{g.forEach(x=>{x.fav=on})})}
+    else openForm(null,{name:it.name,url:it.url,cat:it.cat});
+    return;
+  }
   if(a==='cu')copy(it.user,'Utente copiato');
   if(a==='cp')copy(it.pass,'Password copiata (si cancella tra 30 s)');
   if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
@@ -308,12 +326,12 @@ $('#histList').addEventListener('click',e=>{
   const b=e.target.closest('button[data-hp]');
   if(b)copy(b.dataset.hp,'Vecchia password copiata (si cancella tra 30 s)');
 });
-function openForm(it){
+function openForm(it,pre){
   editId=it?it.id:null;
-  $('#dlgT').textContent=it?'Modifica account':'Nuovo account';
-  $('#fName').value=it?.name||'';$('#fUser').value=it?.user||'';$('#fPass').value=it?.pass||'';
-  $('#fUrl').value=it?.url||'';$('#fNote').value=it?.note||'';$('#fFav').checked=!!it?.fav;
-  populateCatSelect(it?.cat||'Altro');
+  $('#dlgT').textContent=it?'Modifica account':pre?'Altro account per '+pre.name:'Nuovo account';
+  $('#fName').value=it?.name||pre?.name||'';$('#fUser').value=it?.user||'';$('#fPass').value=it?.pass||'';
+  $('#fUrl').value=it?.url||pre?.url||'';$('#fNote').value=it?.note||'';$('#fFav').checked=!!it?.fav;
+  populateCatSelect(it?.cat||pre?.cat||'Altro');
   const hist=Array.isArray(it?.history)?it.history:[];
   if(hist.length){
     $('#histSum').textContent=`Cronologia password precedenti (${hist.length})`;

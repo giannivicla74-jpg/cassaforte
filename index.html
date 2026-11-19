@@ -70,6 +70,10 @@ li.it h2{font-size:1.05rem;margin:0;overflow-wrap:anywhere}
 .pwbox.none{font-family:inherit;letter-spacing:0;color:var(--mute);font-style:italic}
 .note{margin-top:8px;font-size:.88rem;color:var(--mute);white-space:pre-wrap}
 .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.acc{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.acc-u{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--ink,inherit);font-weight:600}
+.acc-u svg{flex:none;color:var(--mute)}
+.acts.grp{padding-top:10px;border-top:1px solid var(--line)}
 .empty{text-align:center;padding:56px 16px}
 .empty .mark{margin:0 auto 14px;width:56px;height:56px;border-radius:18px}.empty .mark svg{width:28px;height:28px}
 dialog{border:1px solid var(--line);border-radius:18px;background:var(--bg);color:var(--ink);width:min(560px,94vw);padding:0;box-shadow:var(--sh)}
@@ -571,6 +575,8 @@ dialog#dlgPrint{width:min(820px,96vw);max-height:92vh;overflow-y:auto}
     <div class="guide-sec">
       <h4>🧰 5. Funzioni Intelligenti: Salute Password, Cronologia, Passphrase e CSV</h4>
       <ul>
+        <li><b>👥 Più account per lo stesso servizio</b>: se hai per esempio due account Amazon, tocca <b>+ Altro account</b> sulla scheda Amazon. Il modulo si apre con nome, sito e categoria già compilati, e devi scrivere solo utente e password. Gli account con lo stesso nome compaiono insieme nella stessa scheda, ognuno con i suoi pulsanti <b>Utente</b>, <b>Password</b>, <b>Mostra</b> e <b>Modifica</b>.</li>
+        <li><b>🌙 Giorno / Notte</b>: il pulsante con la luna o il sole nella barra in alto passa dal tema chiaro a quello scuro.</li>
         <li><b>🛡️ Controllo Salute Password</b>: l'app segnala automaticamente con un badge rosso le <b>password deboli</b>, <b>riutilizzate su più siti</b> o <b>più vecchie di 1 anno</b>, e aggiunge il filtro rapido <b>⚠️ Da controllare</b> in cima alla lista.</li>
         <li><b>⏪ Cronologia vecchie password</b>: quando cambi la password di un account, le <b>ultime 5 password precedenti</b> vengono conservate con la data (visibili aprendo <b>Modifica → Cronologia password precedenti</b>).</li>
         <li><b>🎲 Generatore Caratteri &amp; Passphrase</b>: dentro <b>Opzioni generatore</b> puoi scegliere tra password a caratteri casuali oppure <b>Parole (Passphrase)</b> in italiano facili da digitare ma fortissime (es. <i>Bussola-castello-limone-veliero-42</i>).</li>
