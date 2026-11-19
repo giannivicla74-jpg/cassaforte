@@ -59,7 +59,12 @@ header.bar{position:sticky;top:0;z-index:2;margin:0 -16px;padding:16px 16px 12px
 /* Telefono: nome dell'app sulla prima riga, pulsanti sotto su tutta la larghezza (altrimenti la scritta sparisce) */
 header.bar .row:first-child{flex-wrap:wrap;row-gap:10px}header.bar .row:first-child>.brand{flex:1 1 100%}
 header.bar .row:first-child>.btn{flex:1 1 auto;justify-content:center;min-width:0;white-space:nowrap}
-#bTheme .lbl{display:none}
+#bTheme .lbl,#bMusic .lbl{display:none}
+#bMusic.on{color:var(--brass);border-color:var(--brass)}
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:14px}
+.eq i{width:3px;background:currentColor;border-radius:2px;animation:eq .9s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:3px}50%{height:14px}}
 /* Telefono piccolo: la ricerca su tutta la riga, ordinamento e "+ Aggiungi" sotto */
 @media(max-width:400px){header.bar .row:nth-child(2){flex-wrap:wrap;row-gap:10px}header.bar .row:nth-child(2)>.search{flex:1 1 100%}header.bar .row:nth-child(2)>select,header.bar .row:nth-child(2)>.btn{flex:1 1 0}}
 .search{position:relative}
@@ -344,6 +349,7 @@ li.ln:first-child{border-top:0}
     <div class="row">
       <div class="brand grow"><span class="mark"><img src="icon-192.png" alt="Cassaforte"></span><div><h1>Cassaforte</h1><div class="mute small" id="count"></div></div></div>
       <button class="btn s" id="bTheme" title="Tema giorno / notte" aria-label="Tema giorno / notte"></button>
+      <button class="btn s" id="bMusic" title="Musica" aria-label="Musica"></button>
       <button class="btn s" id="bHelp" title="Manuale e sicurezza"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span class="lbl"> Guida</span></button>
       <button class="btn s" id="bSet" title="Opzioni" aria-label="Opzioni"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl"> Opzioni</span></button>
       <button class="btn s" id="bKeep" title="Mantieni sbloccata (sospende il blocco automatico)" aria-label="Mantieni sbloccata" aria-pressed="false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.9-1"/></svg><span class="lbl"> Resta aperta</span></button>
@@ -442,6 +448,14 @@ li.ln:first-child{border-top:0}
       <button type="button" class="chip" data-t="dark"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg> Scuro</button>
     </div>
     <p class="mute small" style="margin:8px 0 0">Automatico segue l'impostazione del telefono o del computer.</p>
+    <div style="font-weight:600;margin:14px 0 8px">🎵 Musica di sottofondo</div>
+    <div class="seg" id="musicSel" role="group" aria-label="Musica">
+      <button type="button" class="chip" data-m="off">🔇 Spenta</button>
+      <button type="button" class="chip" data-m="ambient">🌊 Ambient</button>
+      <button type="button" class="chip" data-m="lounge">🎹 Lounge jazz</button>
+      <button type="button" class="chip" data-m="cyber">🛸 Cyber</button>
+    </div>
+    <p class="mute small" style="margin:8px 0 0">Musica originale composta dall'app mentre suona: funziona anche senza internet. Si ferma quando la cassaforte si blocca o cambi app.</p>
     <div style="font-weight:600;margin:14px 0 8px">Colore della cassaforte</div>
     <div class="swatches" id="accentSel" role="group" aria-label="Colore">
       <button type="button" class="sw" data-ac="oro" style="--c:#c9952f" aria-label="Oro"><span></span>Oro</button>
@@ -740,6 +754,7 @@ li.ln:first-child{border-top:0}
         <li><b>👥 Più account per lo stesso servizio</b>: se hai per esempio due account Amazon, tocca <b>+ Altro account</b> sulla scheda Amazon. Il modulo si apre con nome, sito e categoria già compilati, e devi scrivere solo utente e password. Gli account con lo stesso nome compaiono insieme nella stessa scheda, ognuno con i suoi pulsanti <b>Copia utente</b>, <b>Copia password</b>, <b>Mostra</b> e <b>Modifica</b>.</li>
         <li><b>📋 Copia e incolla</b>: tocca <b>Copia password</b> (o <b>Copia utente</b>): il pulsante diventa verde con ✓. Poi incolla nel sito. Per sicurezza gli appunti vengono svuotati dopo 30 secondi.</li>
         <li><b>👆 Sblocco con impronta o viso</b>: in <b>Opzioni → Sblocco con impronta o viso</b> scrivi la password principale e tocca <b>Attiva</b>, poi conferma con l'impronta o il viso. Da quel momento nella schermata iniziale basta toccare <b>Sblocca con impronta o viso</b>. La password principale resta sempre valida; se la cambi, l'impronta si disattiva e va riattivata. Vale solo per il dispositivo su cui la attivi.</li>
+        <li><b>🎵 Musica di sottofondo</b>: parte da sola quando apri la Cassaforte. Il pulsante con la nota in alto la spegne o la riaccende (l'app ricorda la scelta). In <b>Opzioni → Aspetto</b> scegli lo stile: 🌊 Ambient, 🎹 Lounge jazz o 🛸 Cyber. La musica è composta dall'app mentre suona: è originale e funziona anche senza internet. Si ferma da sola quando la cassaforte si blocca o passi a un'altra app.</li>
         <li><b>🎨 Colore della cassaforte</b>: in <b>Opzioni → Aspetto</b> scegli tra Oro, Smeraldo, Rubino, Zaffiro e Ametista.</li>
         <li><b>📋 Schede o Elenco</b>: il pulsante accanto a <b>+ Aggiungi</b> cambia la vista. A <b>schede</b> vedi tutto di ogni account; a <b>elenco</b> vedi una riga compatta per account con i pulsanti rapidi per copiare utente e password e per modificare. L'app ricorda la tua scelta.</li>
         <li><b>💯 Pannello Salute Password</b>: in cima alla lista un cerchio colorato dà un punteggio da 0 a 100 (verde = ottimo, giallo = da migliorare, rosso = a rischio). Tocca <b>Vedi quali →</b> per vedere subito le password deboli, riutilizzate o vecchie.</li>
@@ -866,6 +881,7 @@ li.ln:first-child{border-top:0}
 <div id="toast" role="status"></div>
 
 <script src="core.js"></script>
+<script src="music.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

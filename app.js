@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.12.3';
+const APP_VERSION='1.13.0';
 const CHANGELOG=[
+  ['1.13.0',[
+    'Musica di sottofondo originale in 3 stili (Ambient, Lounge jazz, Cyber), con pulsante 🎵 per spegnerla'
+  ]],
   ['1.12.3',[
     'Anello di luce che gira intorno allo scudo, nel colore scelto'
   ]],
@@ -147,7 +150,7 @@ function lock(){
   sess++; key=null; salt=null; iter=0; items=[]; shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
-  slotStop?.();
+  slotStop?.(); window.Music?.stop(); updMusicUI();
   ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
@@ -179,6 +182,7 @@ function bump(){clearTimeout(lockT);if(key&&!keepOpen)lockT=setTimeout(lock,lock
 ['click','keydown','touchstart'].forEach(e=>addEventListener(e,bump,{passive:true}));
 const allowExternal=(ms=120000)=>{extUntil=Date.now()+ms};
 document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)window.Music?.pause(); else if(key)window.Music?.resume(); // niente musica con l'app in sottofondo
   if(document.hidden){
     if(!key||keepOpen)return;
     hiddenAt=Date.now();
@@ -206,6 +210,7 @@ addEventListener('storage',e=>{
 
 $('#lockForm').addEventListener('submit',async e=>{
   e.preventDefault();
+  if(musicCfg().on)window.Music?.prime(); // l'audio va acceso subito, dentro il tocco
   const pw=$('#mp').value, v=getVault(), btn=$('#lockBtn'); $('#err').textContent='';
   btn.disabled=true;
   try{
@@ -228,7 +233,7 @@ $('#lockForm').addEventListener('submit',async e=>{
       salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
     }
     const s0=sess; await openAnim(); if(s0!==sess||!key)return;
-    $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync();
+    $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync(); musicPlay();
     upgradeKdf(pw);
   }finally{btn.disabled=false;bioTry=false}
 });
@@ -927,6 +932,7 @@ $('#fileLock').addEventListener('change',async e=>{
 });
 $('#cloudForm').addEventListener('submit',async e=>{
   e.preventDefault();
+  if(musicCfg().on)window.Music?.prime();
   const pw=$('#cPw').value, err=$('#cErr'), btn=$('#cOk');
   err.textContent=''; btn.disabled=true;
   try{
@@ -953,7 +959,7 @@ $('#cloudForm').addEventListener('submit',async e=>{
       salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
       $('#dlgCloud').close();
       $('#lock').classList.add('hide'); $('#app').classList.remove('hide');
-      render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync();
+      render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync(); musicPlay();
       upgradeKdf(pw);
       toast(`Cassaforte ripristinata: ${items.length} account`);
     }else{
@@ -1030,6 +1036,7 @@ async function updBioUI(){
 }
 function updBioLock(){$('#bBio').classList.toggle('hide',!(bioGet()&&getVault()))}
 $('#bBio').onclick=async()=>{
+  if(musicCfg().on)window.Music?.prime();
   const b=$('#bBio'); b.disabled=true; $('#err').textContent='';
   try{
     const pw=await bioPassword();
@@ -1165,6 +1172,37 @@ function setTheme(t){
   updThemeUI();
 }
 $('#themeSel').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)setTheme(b.dataset.t)});
+/* Musica di sottofondo (music.js): parte da sola allo sblocco; si spegne con il pulsante in alto o da Opzioni */
+const MUSIC_STYLES=['ambient','lounge','cyber'];
+const musicCfg=()=>{let on=true,st='ambient';try{on=localStorage.getItem('music')!=='off';const s=localStorage.getItem('musicStyle');if(MUSIC_STYLES.includes(s))st=s}catch{}return{on,st}};
+const NOTE_P='<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>';
+const MUSIC_ON=ic(NOTE_P), MUSIC_OFF=ic(NOTE_P+'<path d="M2 2l20 20"/>');
+function updMusicUI(){
+  const c=musicCfg(), playing=!!window.Music?.playing, b=$('#bMusic');
+  b.classList.toggle('on',c.on);
+  b.innerHTML=(c.on&&playing?'<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>':c.on?MUSIC_ON:MUSIC_OFF)+'<span class="lbl"> Musica</span>';
+  b.title=c.on?'Spegni la musica':'Accendi la musica'; b.setAttribute('aria-label',b.title); b.setAttribute('aria-pressed',c.on);
+  document.querySelectorAll('#musicSel [data-m]').forEach(x=>{const on=c.on?x.dataset.m===c.st:x.dataset.m==='off';x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});
+}
+function musicPlay(){
+  const c=musicCfg(); if(!c.on||!key||document.hidden||!window.Music)return;
+  Music.start(c.st).then(updMusicUI).catch(e=>console.warn('Musica',e));
+}
+function musicStop(){window.Music?.stop();updMusicUI()}
+$('#bMusic').onclick=()=>{
+  const on=!musicCfg().on; try{localStorage.setItem('music',on?'on':'off')}catch{}
+  if(on){window.Music?.prime();musicPlay();toast('Musica accesa',true)}else{musicStop();toast('Musica spenta')}
+  updMusicUI();
+};
+$('#musicSel').addEventListener('click',e=>{
+  const b=e.target.closest('[data-m]'); if(!b)return; const m=b.dataset.m;
+  if(m==='off'){try{localStorage.setItem('music','off')}catch{};musicStop();return}
+  if(!MUSIC_STYLES.includes(m))return;
+  try{localStorage.setItem('music','on');localStorage.setItem('musicStyle',m)}catch{}
+  window.Music?.prime();musicPlay();updMusicUI();
+});
+updMusicUI();
+
 /* Colore della cassaforte (applicato in anticipo da theme.js) */
 const ACCENTS=['oro','smeraldo','rubino','zaffiro','ametista'];
 const curAccent=()=>document.documentElement.getAttribute('data-accent')||'oro';
