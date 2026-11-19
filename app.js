@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.12.1';
+const APP_VERSION='1.12.2';
 const CHANGELOG=[
+  ['1.12.2',[
+    'Guida: nuova sezione passo passo “Sblocco con impronta o viso”'
+  ]],
   ['1.12.1',[
     'Riflesso di luce animato sulla scritta “Cassaforte”, nel colore scelto'
   ]],
@@ -1018,8 +1021,8 @@ async function updBioUI(){
   $('#bBioOff').classList.toggle('hide',!on);
   $('#bioInfo').innerHTML=on
     ?'<span class="badge-ok">Attivo</span>: nella schermata iniziale tocca “Sblocca con impronta o viso”. La password principale funziona sempre.'
-    :ok?'Apri la Cassaforte con l’impronta digitale o il viso invece di scrivere la password. Funziona solo su questo dispositivo.'
-    :'Non disponibile su questo dispositivo o browser (serve un telefono o computer con impronta, viso o PIN di sistema).';
+    :ok?'Apri la Cassaforte con l’impronta digitale o il viso invece di scrivere la password. Funziona solo su questo dispositivo. Su molti Android il telefono propone solo impronta o PIN: è normale.'
+    :'Non disponibile: imposta nel telefono un blocco schermo con impronta, viso o PIN, poi riapri la Cassaforte. Istruzioni complete nella Guida, punto 7.';
 }
 function updBioLock(){$('#bBio').classList.toggle('hide',!(bioGet()&&getVault()))}
 $('#bBio').onclick=async()=>{
