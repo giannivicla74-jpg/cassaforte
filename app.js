@@ -6,8 +6,12 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.9.1';
+const APP_VERSION='1.9.2';
 const CHANGELOG=[
+  ['1.9.2',[
+    'Pulsante Giorno/Notte (sole e luna) nella barra in alto',
+    'La password si cambia solo da “Modifica”: tolto il pulsante “Cambia” dalla scheda'
+  ]],
   ['1.9.1',[
     'Avvio e salvataggio veloci anche con segnale internet debole',
     'Conferma prima di sostituire la cassaforte del dispositivo con un backup'
@@ -247,7 +251,7 @@ function render(){
         <div class="meta"><h2>${esc(i.name)}${tags}</h2><div class="u">${esc(i.user)}</div></div>
         <button class="star${i.fav?' on':''}" data-a="fv" aria-label="${i.fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${star(i.fav)}</button>
       </div>
-      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span><button class="btn s" data-a="qp">Cambia</button></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span><button class="btn s" data-a="qp">Imposta</button></div>`}
+      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span></div>`}
       ${i.note?`<div class="note">${esc(i.note)}</div>`:''}
       <div class="acts">
         <button class="btn s" data-a="cu">${IC.user}Utente</button>
@@ -890,7 +894,19 @@ addEventListener('afterprint',()=>{$('#printSheet').innerHTML=''});
 
 /* Tema: automatico (segue il sistema), chiaro o scuro. Applicato in anticipo da theme.js */
 const curTheme=()=>document.documentElement.getAttribute('data-theme')||'auto';
-function updThemeUI(){document.querySelectorAll('#themeSel [data-t]').forEach(b=>{const on=b.dataset.t===curTheme();b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)})}
+const darkMq=matchMedia('(prefers-color-scheme: dark)');
+const isDark=()=>curTheme()==='dark'||(curTheme()==='auto'&&darkMq.matches);
+const SUN=ic('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>');
+const MOON=ic('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>');
+function updThemeUI(){
+  document.querySelectorAll('#themeSel [data-t]').forEach(b=>{const on=b.dataset.t===curTheme();b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
+  // Di notte mostra il sole (per passare al giorno), di giorno la luna (per passare alla notte)
+  const d=isDark();
+  $('#bTheme').innerHTML=(d?SUN:MOON)+`<span class="lbl"> ${d?'Giorno':'Notte'}</span>`;
+  $('#bTheme').title=d?'Passa al tema giorno':'Passa al tema notte';
+}
+$('#bTheme').onclick=()=>{setTheme(isDark()?'light':'dark');toast(isDark()?'Tema notte':'Tema giorno')};
+darkMq.addEventListener?.('change',updThemeUI);
 function setTheme(t){
   if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
   else{t='auto';document.documentElement.removeAttribute('data-theme')}
