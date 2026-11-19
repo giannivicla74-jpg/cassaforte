@@ -289,6 +289,29 @@ li.it{transition:transform .15s,box-shadow .15s}
 @keyframes slotGlow{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brass) 60%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
 input.slotting{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;border-color:var(--brass)}
 input.slot-done{animation:slotGlow .6s ease-out}
+/* Schede speciali: carta, Wi-Fi, nota */
+.seg.types{margin-top:12px}
+.seg.types{flex-wrap:nowrap;gap:5px}
+.seg.types .chip{flex:1 1 0;min-width:0;justify-content:center;padding:8px 4px;font-size:.82rem;white-space:nowrap;gap:4px}
+.rec{margin-top:6px;color:var(--brass);font-weight:600}
+.ccard{position:relative;margin-top:12px;border-radius:16px;padding:16px 18px;color:#fff;aspect-ratio:1.586;max-width:340px;
+  background:radial-gradient(120% 90% at 0% 0%,rgba(255,255,255,.22),transparent 55%),linear-gradient(135deg,hsl(var(--cc,215) 55% 32%),hsl(calc(var(--cc,215) + 35) 60% 18%));
+  box-shadow:0 10px 26px rgba(0,0,0,.22);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;font-family:ui-monospace,Menlo,Consolas,monospace}
+.ccard::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.18) 50%,transparent 65%);background-size:300% 100%;animation:shine 4.4s ease-in-out infinite;pointer-events:none}
+.ccard .cc-top{display:flex;justify-content:space-between;align-items:center;font-family:system-ui,sans-serif}
+.ccard .chip-ic{width:38px;height:28px;border-radius:6px;background:linear-gradient(135deg,#f3d27a,#b98b2c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.ccard .brand-t{font-weight:800;letter-spacing:.08em;font-style:italic;font-size:.95rem;opacity:.95}
+.ccard .cc-num{font-size:clamp(1rem,4.6vw,1.25rem);letter-spacing:.08em;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.ccard .cc-bot{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;text-transform:uppercase}
+.ccard .cc-bot small{display:block;font-size:.58rem;opacity:.7;font-family:system-ui,sans-serif;letter-spacing:.05em}
+.cardprev .ccard{margin:12px auto 0}
+.secrets{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.secrets .sv{background:var(--soft);border-radius:10px;padding:7px 11px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88rem}
+.secrets .sv small{display:block;font-family:system-ui,sans-serif;font-size:.68rem;color:var(--mute)}
+.wifi-ic{display:inline-grid;place-items:center}
+.secretbox{margin-top:12px;background:var(--soft);border-radius:10px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem}
+.qrbox{background:#fff;border-radius:16px;padding:14px;display:inline-block;box-shadow:var(--sh)}
+.qrbox svg{display:block;width:min(260px,70vw);height:auto}
 /* Vista a elenco */
 #bView,header.bar .row:nth-child(2)>#bView{padding:11px 12px;flex:none}
 #bView svg{width:18px;height:18px}
@@ -390,9 +413,34 @@ li.ln:first-child{border-top:0}
 <dialog id="dlg">
   <form id="form" method="dialog" autocomplete="off">
     <h1 id="dlgT">Nuovo account</h1>
-    <label for="fName">Servizio</label><input id="fName" required placeholder="es. Netflix">
-    <label for="fUser">Utente o email</label><input id="fUser" autocapitalize="off">
-    <label for="fPass">Password</label>
+    <div class="seg types" id="fTypeSel" role="group" aria-label="Tipo di scheda">
+      <button type="button" class="chip" data-ty="login">🔑 Account</button>
+      <button type="button" class="chip" data-ty="card">💳 Carta</button>
+      <button type="button" class="chip" data-ty="wifi">📶 Wi-Fi</button>
+      <button type="button" class="chip" data-ty="note">📝 Nota</button>
+    </div>
+    <label for="fName" id="fNameL">Servizio</label><input id="fName" required placeholder="es. Netflix">
+    <div class="small rec hide" id="fHint" role="status"></div>
+    <div data-for="login"><label for="fUser">Utente o email</label><input id="fUser" autocapitalize="off"></div>
+    <div data-for="card">
+      <div class="cardprev" id="cPrev" aria-hidden="true"></div>
+      <label for="fHolder">Intestatario</label><input id="fHolder" autocapitalize="characters" placeholder="es. MARIO ROSSI">
+      <label for="fNumber">Numero della carta</label><input id="fNumber" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="1234 5678 9012 3456" maxlength="23">
+      <div class="small" id="fNumInfo" style="min-height:1.2em;margin-top:4px"></div>
+      <div class="row" style="gap:10px">
+        <div class="grow"><label for="fExp">Scadenza</label><input id="fExp" inputmode="numeric" placeholder="MM/AA" maxlength="5"></div>
+        <div class="grow"><label for="fCvv">CVV</label><input id="fCvv" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="123"></div>
+        <div class="grow"><label for="fPin">PIN</label><input id="fPin" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="facoltativo"></div>
+      </div>
+    </div>
+    <div data-for="wifi">
+      <label for="fWsec">Protezione</label>
+      <select id="fWsec"><option value="WPA">WPA / WPA2 / WPA3 (la più comune)</option><option value="WEP">WEP (vecchi router)</option><option value="nopass">Nessuna password (rete aperta)</option></select>
+      <label class="chk"><input type="checkbox" id="fWhidden"> Rete nascosta</label>
+    </div>
+    <div data-for="note"><label for="fSecret">Testo segreto</label><textarea id="fSecret" rows="5" spellcheck="false" placeholder="es. PIN del cancello, combinazione della cassaforte, codici di recupero…"></textarea></div>
+    <div data-for="login wifi">
+    <label for="fPass" id="fPassL">Password</label>
     <div class="row"><input id="fPass" class="grow" type="text" spellcheck="false"><button type="button" class="btn" id="bGen">Genera</button></div>
     <div class="meter"><i id="mBar"></i></div><div class="small mute" id="mTxt" style="margin-top:4px;min-height:1.2em"></div>
     <details id="gOpts"><summary>Opzioni generatore</summary>
@@ -422,11 +470,12 @@ li.ln:first-child{border-top:0}
       </div>
     </details>
     <details id="histBox" class="hide"><summary id="histSum">Cronologia password precedenti</summary><ul id="histList" class="hist-list"></ul></details>
+    </div>
     <label for="fCat">Categoria</label>
     <select id="fCat"><option>Email</option><option>Social</option><option>Banca</option><option>Lavoro</option><option>Shopping</option><option>Altro</option></select>
     <input id="fCatNew" class="hide" style="margin-top:8px" placeholder="Nome nuova categoria (es. Casa, Streaming)" maxlength="32">
     <label class="chk"><input type="checkbox" id="fFav"> Segna come preferito</label>
-    <label for="fUrl">Indirizzo sito</label><input id="fUrl" type="text" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="es. netflix.com">
+    <div data-for="login"><label for="fUrl">Indirizzo sito</label><input id="fUrl" type="text" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="es. netflix.com"></div>
     <label for="fNote">Note</label><textarea id="fNote" rows="3"></textarea>
     <div class="row" style="margin-top:16px">
       <button type="button" class="btn d" id="bDel">Elimina</button>
@@ -753,6 +802,11 @@ li.ln:first-child{border-top:0}
       <ul>
         <li><b>👥 Più account per lo stesso servizio</b>: se hai per esempio due account Amazon, tocca <b>+ Altro account</b> sulla scheda Amazon. Il modulo si apre con nome, sito e categoria già compilati, e devi scrivere solo utente e password. Gli account con lo stesso nome compaiono insieme nella stessa scheda, ognuno con i suoi pulsanti <b>Copia utente</b>, <b>Copia password</b>, <b>Mostra</b> e <b>Modifica</b>.</li>
         <li><b>📋 Copia e incolla</b>: tocca <b>Copia password</b> (o <b>Copia utente</b>): il pulsante diventa verde con ✓. Poi incolla nel sito. Per sicurezza gli appunti vengono svuotati dopo 30 secondi.</li>
+        <li><b>💳 📶 📝 Carte, Wi-Fi e Note</b>: premendo <b>+ Aggiungi</b>, in alto scegli il tipo di scheda.
+          <b>Carta</b>: intestatario, numero, scadenza, CVV e PIN; la carta appare disegnata e il numero resta nascosto finché non tocchi <b>Mostra</b>; l'app controlla anche che il numero sia scritto giusto.
+          <b>Wi-Fi</b>: nome della rete e password; il pulsante <b>▦ Codice QR</b> mostra un codice che gli ospiti inquadrano con la fotocamera per collegarsi senza scrivere la password.
+          <b>Nota</b>: un testo segreto (PIN, combinazioni, codici di recupero) nascosto finché non tocchi <b>Mostra</b>.</li>
+        <li><b>✨ Riconoscimento automatico</b>: scrivendo il nome di un servizio conosciuto (Amazon, Netflix, Intesa, Poste, SPID, Enel, Trenitalia…) l'app sceglie da sola la categoria e compila l'indirizzo del sito. Puoi sempre cambiarli a mano.</li>
         <li><b>👆 Sblocco con impronta o viso</b>: in <b>Opzioni → Sblocco con impronta o viso</b> scrivi la password principale e tocca <b>Attiva</b>, poi conferma con l'impronta o il viso. Da quel momento nella schermata iniziale basta toccare <b>Sblocca con impronta o viso</b>. La password principale resta sempre valida; se la cambi, l'impronta si disattiva e va riattivata. Vale solo per il dispositivo su cui la attivi.</li>
         <li><b>🎵 Musica di sottofondo</b>: parte da sola quando apri la Cassaforte. Il pulsante con la nota in alto la spegne o la riaccende (l'app ricorda la scelta). In <b>Opzioni → Aspetto</b> scegli lo stile: 🌊 Ambient, 🎹 Lounge jazz o 🛸 Cyber. La musica è composta dall'app mentre suona: è originale e funziona anche senza internet. Si ferma da sola quando la cassaforte si blocca o passi a un'altra app.</li>
         <li><b>🎨 Colore della cassaforte</b>: in <b>Opzioni → Aspetto</b> scegli tra Oro, Smeraldo, Rubino, Zaffiro e Ametista.</li>
@@ -878,10 +932,22 @@ li.ln:first-child{border-top:0}
   </form>
 </dialog>
 <div id="printSheet"></div>
+<dialog id="dlgQr" aria-labelledby="qrT">
+  <div style="padding:20px;text-align:center">
+    <h1 id="qrT" style="font-size:1.2rem">📶 Collegati al Wi-Fi</h1>
+    <p class="mute small" style="margin:6px 0 14px">Fai inquadrare questo codice alla fotocamera del telefono dell'ospite: si collega senza scrivere la password.</p>
+    <div class="qrbox" id="qrBox"></div>
+    <div style="margin-top:12px;font-weight:700" id="qrSsid"></div>
+    <div class="mute small" id="qrPass" style="font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:2px"></div>
+    <button type="button" class="btn p" id="qrClose" style="width:100%;margin-top:16px">Chiudi</button>
+  </div>
+</dialog>
+
 <div id="toast" role="status"></div>
 
 <script src="core.js"></script>
 <script src="music.js"></script>
+<script src="qrcode.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -187,3 +187,54 @@ test('generateCloudCode e cloudDocId generano un ID SHA-256 deterministico', asy
 
   await assert.rejects(() => cloudDocId('corto'));
 });
+
+/* ---- v1.14: schede speciali e riconoscimento automatico ---- */
+test('clean conserva carte, Wi-Fi e note e ripulisce gli account normali', () => {
+  const c = core.clean({ id: 'a', name: 'Visa', type: 'card', holder: 'MARIO', number: '4111 1111 1111 1111', exp: '12/29', cvv: 123, pin: '' });
+  assert.equal(c.type, 'card');
+  assert.equal(c.cvv, '123');
+  assert.equal(c.number, '4111 1111 1111 1111');
+  const w = core.clean({ id: 'b', name: 'Casa', type: 'wifi', pass: 'segreta', wsec: 'WPA', whidden: 1 });
+  assert.equal(w.type, 'wifi'); assert.equal(w.whidden, true);
+  const l = core.clean({ id: 'c', name: 'Gmail', type: 'login', number: 'x' });
+  assert.equal(l.type, undefined); assert.equal(l.number, undefined);
+  const strano = core.clean({ id: 'd', name: 'X', type: 'hacker' });
+  assert.equal(strano.type, undefined);
+});
+
+test('sameItem distingue due carte con lo stesso nome ma numero diverso', () => {
+  const a = core.clean({ id: '1', name: 'Visa', type: 'card', number: '4111' });
+  const b = core.clean({ id: '2', name: 'Visa', type: 'card', number: '4222' });
+  assert.equal(core.sameItem(a, b), false);
+  assert.equal(core.sameItem(a, { ...a, id: '3' }), true);
+  // un vecchio account senza campi extra resta uguale a se stesso
+  const old = { name: 'A', user: 'u', pass: 'p', url: '', note: '', cat: 'Altro' };
+  assert.equal(core.sameItem(old, core.clean({ ...old, id: 'z' })), true);
+});
+
+test('carte: circuito, formattazione e controllo del numero', () => {
+  assert.equal(core.cardBrand('4111 1111 1111 1111'), 'VISA');
+  assert.equal(core.cardBrand('5500000000000004'), 'MASTERCARD');
+  assert.equal(core.cardBrand('378282246310005'), 'AMEX');
+  assert.equal(core.fmtCard('4111111111111111'), '4111 1111 1111 1111');
+  assert.equal(core.fmtCard('378282246310005'), '3782 822463 10005');
+  assert.equal(core.luhnOk('4111 1111 1111 1111'), true);
+  assert.equal(core.luhnOk('4111 1111 1111 1112'), false);
+});
+
+test('wifiQr crea il testo standard con i caratteri speciali protetti', () => {
+  assert.equal(core.wifiQr('Casa Rossi', 'pa;ss', 'WPA', false), String.raw`WIFI:T:WPA;S:Casa Rossi;P:pa\;ss;;`);
+  assert.equal(core.wifiQr('Ospiti', '', 'nopass', true), 'WIFI:T:nopass;S:Ospiti;H:true;;');
+});
+
+test('recognize riconosce i servizi più comuni senza falsi positivi', () => {
+  assert.deepEqual(core.recognize('Amazon'), { cat: 'Shopping', url: 'amazon.it', key: 'amazon' });
+  assert.equal(core.recognize('Intesa Sanpaolo').cat, 'Banca');
+  assert.equal(core.recognize('PostePay Evolution').url, 'postepay.it');
+  assert.equal(core.recognize('Netflix famiglia').cat, 'Svago');
+  assert.equal(core.recognize('Disney+').cat, 'Svago');
+  assert.equal(core.recognize('SPID Poste').cat, 'Pubblica Amm.');
+  assert.equal(core.recognize('Booking').cat, 'Viaggi');   // non deve diventare "ING" (Banca)
+  assert.equal(core.recognize('Palestra Fitness'), null);
+  assert.equal(core.recognize('a'), null);
+});

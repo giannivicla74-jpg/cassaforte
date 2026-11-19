@@ -4,6 +4,9 @@ const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const CATS=['Email','Social','Banca','Lavoro','Shopping','Altro'];
+const TYPES=['login','card','wifi','note'];
+const EXTRA_FIELDS=['holder','number','exp','cvv','pin','wsec','secret'];
+const typeOf=i=>TYPES.includes(i?.type)?i.type:'login';
 const ITER=600000, ITER_OLD=310000;
 const DAY_MS=864e5, OLD_DAYS=365, MAX_HISTORY=5;
 const iterOf=v=>Number.isInteger(v?.iter)&&v.iter>=100000&&v.iter<=5000000?v.iter:ITER_OLD;
@@ -32,6 +35,14 @@ function clean(i){
   const rawCat=s(i.cat).trim();
   const cat=rawCat&&rawCat!=='Tutti'&&rawCat!=='★'&&rawCat!=='!warn'?rawCat.slice(0,32):'Altro';
   const out={...i,id:s(i.id),name:s(i.name).trim()||'Senza nome',user:s(i.user),pass:s(i.pass),url:s(i.url),note:s(i.note),cat,fav:!!i.fav};
+  // Tipi di scheda: account (predefinito), carta, Wi-Fi, nota segreta
+  if(TYPES.includes(i.type)&&i.type!=='login'){
+    out.type=i.type;
+    EXTRA_FIELDS.forEach(k=>{out[k]=s(i[k])});
+    out.whidden=!!i.whidden;
+  }else{
+    delete out.type; EXTRA_FIELDS.forEach(k=>delete out[k]); delete out.whidden;
+  }
   if(Number.isFinite(i.updatedAt)&&i.updatedAt>0)out.updatedAt=Math.floor(i.updatedAt);
   if(Array.isArray(i.history)){
     const h=i.history
@@ -68,7 +79,58 @@ function parseItems(txt){
 function normUrl(u){u=u.trim();if(!u)return'';if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)&&!/^[a-z][a-z0-9+.-]*:(?!\d)/i.test(u))u='https://'+u;return u}
 function safeUrl(u){try{const x=new URL(u);return x.protocol==='https:'||x.protocol==='http:'?x.href:''}catch{return''}}
 
-const sameItem=(a,b)=>['name','user','pass','url','note','cat'].every(k=>a[k]===b[k]);
+const sameItem=(a,b)=>typeOf(a)===typeOf(b)&&!!a.whidden===!!b.whidden
+  &&['name','user','pass','url','note','cat',...EXTRA_FIELDS].every(k=>(a[k]||'')===(b[k]||''));
+
+/* Carte: circuito, formattazione, controllo del numero (algoritmo di Luhn) */
+const digits=s=>String(s??'').replace(/\D/g,'');
+function cardBrand(n){
+  const d=digits(n);
+  if(/^4/.test(d))return 'VISA';
+  if(/^(5[1-5]|2[2-7])/.test(d))return 'MASTERCARD';
+  if(/^3[47]/.test(d))return 'AMEX';
+  if(/^(5018|5020|5038|56|57|58|6304|67)/.test(d))return 'MAESTRO';
+  return '';
+}
+function fmtCard(n){const d=digits(n);return cardBrand(d)==='AMEX'?d.replace(/^(\d{0,4})(\d{0,6})(\d{0,5}).*/,(m,a,b,c)=>[a,b,c].filter(Boolean).join(' ')):d.replace(/(\d{4})(?=\d)/g,'$1 ')}
+function luhnOk(n){
+  const d=digits(n); if(d.length<12)return false;
+  let sum=0;for(let i=0;i<d.length;i++){let x=+d[d.length-1-i];if(i%2){x*=2;if(x>9)x-=9}sum+=x}
+  return sum%10===0;
+}
+/* Wi-Fi: testo del codice QR standard (lo leggono le fotocamere di Android e iPhone) */
+function wifiQr(ssid,pass,sec,hidden){
+  const e=v=>String(v??'').replace(/([\\;,:"])/g,'\\$1');
+  const t=sec==='WEP'?'WEP':sec==='nopass'?'nopass':'WPA';
+  return `WIFI:T:${t};S:${e(ssid)};${t==='nopass'?'':`P:${e(pass)};`}${hidden?'H:true;':''};`;
+}
+
+/* Riconoscimento automatico dei servizi più usati in Italia: categoria e sito */
+const SERVICES=[
+  ['Shopping',[['amazon','amazon.it'],['ebay','ebay.it'],['zalando','zalando.it'],['shein','shein.com'],['aliexpress','aliexpress.com'],['temu','temu.com'],['subito','subito.it'],['vinted','vinted.it'],['ikea','ikea.com'],['mediaworld','mediaworld.it'],['unieuro','unieuro.it'],['decathlon','decathlon.it'],['esselunga','esselunga.it'],['coop','e-coop.it'],['conad','conad.it'],['carrefour','carrefour.it'],['lidl','lidl.it'],['leroy merlin','leroymerlin.it'],['euronics','euronics.it'],['just eat','justeat.it'],['glovo','glovoapp.com'],['deliveroo','deliveroo.it']]],
+  ['Email',[['gmail','mail.google.com'],['google','accounts.google.com'],['outlook','outlook.com'],['hotmail','outlook.com'],['libero','libero.it'],['virgilio','virgilio.it'],['yahoo','mail.yahoo.com'],['icloud','icloud.com'],['apple','appleid.apple.com'],['tiscali','tiscali.it'],['aruba','webmail.aruba.it'],['pec','webmail.pec.it'],['proton','proton.me']]],
+  ['Social',[['facebook','facebook.com'],['instagram','instagram.com'],['tiktok','tiktok.com'],['twitter','x.com'],['whatsapp','web.whatsapp.com'],['telegram','web.telegram.org'],['snapchat','snapchat.com'],['pinterest','pinterest.it'],['reddit','reddit.com'],['threads','threads.net'],['discord','discord.com'],['x.com','x.com']]],
+  ['Banca',[['intesa','intesasanpaolo.com'],['sanpaolo','intesasanpaolo.com'],['unicredit','unicredit.it'],['bancoposta','poste.it'],['postepay','postepay.it'],['poste','poste.it'],['bper','bper.it'],['banco bpm','bancobpm.it'],['bpm','bancobpm.it'],['fineco','finecobank.com'],['mediolanum','bancamediolanum.it'],['bnl','bnl.it'],['credit agricole','credit-agricole.it'],['crédit agricole','credit-agricole.it'],['monte dei paschi','mps.it'],['mps','mps.it'],['hype','hype.it'],['n26','n26.com'],['revolut','revolut.com'],['paypal','paypal.com'],['satispay','satispay.com'],['nexi','nexi.it'],['ing','ing.it'],['widiba','widiba.it'],['banca sella','sella.it'],['bcc','bcc.it'],['che banca','chebanca.it'],['chebanca','chebanca.it'],['isybank','isybank.com'],['buddybank','buddybank.com'],['american express','americanexpress.com'],['amex','americanexpress.com']]],
+  ['Svago',[['netflix','netflix.com'],['spotify','spotify.com'],['disney','disneyplus.com'],['prime video','primevideo.com'],['dazn','dazn.com'],['sky','sky.it'],['now tv','nowtv.it'],['youtube','youtube.com'],['twitch','twitch.tv'],['playstation','playstation.com'],['psn','playstation.com'],['xbox','xbox.com'],['steam','store.steampowered.com'],['nintendo','nintendo.com'],['paramount','paramountplus.com'],['infinity','infinitytv.it'],['raiplay','raiplay.it'],['mediaset','mediasetinfinity.mediaset.it'],['audible','audible.it'],['apple music','music.apple.com'],['tidal','tidal.com'],['deezer','deezer.com']]],
+  ['Lavoro',[['linkedin','linkedin.com'],['microsoft','login.microsoftonline.com'],['office','office.com'],['teams','teams.microsoft.com'],['zoom','zoom.us'],['slack','slack.com'],['fatture in cloud','fattureincloud.it'],['dropbox','dropbox.com'],['onedrive','onedrive.live.com'],['github','github.com'],['canva','canva.com'],['indeed','indeed.com'],['notion','notion.so'],['trello','trello.com']]],
+  ['Utenze',[['enel','enel.it'],['eni','eniplenitude.com'],['plenitude','eniplenitude.com'],['a2a','a2a.it'],['hera','gruppohera.it'],['iren','irenlucegas.it'],['edison','edisonenergia.it'],['acea','acea.it'],['tim','tim.it'],['vodafone','vodafone.it'],['windtre','windtre.it'],['wind','windtre.it'],['iliad','iliad.it'],['fastweb','fastweb.it'],['ho mobile','ho-mobile.it'],['kena','kenamobile.it'],['very mobile','verymobile.it'],['tiscali','tiscali.it'],['sorgenia','sorgenia.it']]],
+  ['Viaggi',[['trenitalia','trenitalia.com'],['italo','italotreno.it'],['ryanair','ryanair.com'],['easyjet','easyjet.com'],['ita airways','ita-airways.com'],['booking','booking.com'],['airbnb','airbnb.it'],['expedia','expedia.it'],['flixbus','flixbus.it'],['uber','uber.com'],['telepass','telepass.com'],['autostrade','autostrade.it'],['vueling','vueling.com'],['wizz','wizzair.com']]],
+  ['Pubblica Amm.',[['spid','spid.gov.it'],['inps','inps.it'],['agenzia entrate','agenziaentrate.gov.it'],['agenzia delle entrate','agenziaentrate.gov.it'],['cie','idserver.servizicie.interno.gov.it'],['fascicolo sanitario','fascicolosanitario.gov.it'],['inail','inail.it'],['app io','io.italia.it'],['pagopa','pagopa.gov.it']]]
+];
+function recognize(name){
+  const q=' '+String(name??'').toLowerCase().replace(/[^a-z0-9àèéìòù.+ ]/g,' ').replace(/\s+/g,' ').trim()+' ';
+  if(q.trim().length<2)return null;
+  let best=null;
+  for(const [cat,list] of SERVICES)for(const [key,url] of list){
+    // parola intera (evita che "ing" riconosca "booking"); vince la parola che compare prima nel nome
+    // (es. "SPID Poste" = SPID), a parità la più lunga ("PostePay" batte "Poste")
+    let at=q.indexOf(' '+key+' ');
+    if(at<0&&key.length>=4&&q.startsWith(' '+key))at=0;
+    if(at<0)continue;
+    if(!best||at<best.at||(at===best.at&&key.length>best.key.length))best={key,cat,url,at};
+  }
+  return best?{cat:best.cat,url:best.url,key:best.key}:null;
+}
 
 function mergeItems(current,imported){
   const next=[...current], byId=new Map(next.map(i=>[i.id,i]));
@@ -130,7 +192,7 @@ function filterItems(list,cat,q,sortBy='az',warnIds=null){
   const byName=(a,b)=>a.name.localeCompare(b.name,'it',{numeric:true});
   const ordCat=c=>{const k=CATS.indexOf(c);return k<0?50:k};
   return list
-    .filter(i=>inCat(i)&&(!query||[i.name,i.user,i.url,i.note,i.cat].join(' ').toLowerCase().includes(query)))
+    .filter(i=>inCat(i)&&(!query||[i.name,i.user,i.url,i.note,i.cat,i.holder||''].join(' ').toLowerCase().includes(query)))
     .sort((a,b)=>{
       if(sortBy==='recent')return (b.updatedAt||0)-(a.updatedAt||0)||(b.fav?1:0)-(a.fav?1:0)||byName(a,b);
       if(sortBy==='cat'){
@@ -257,6 +319,7 @@ if(typeof module!=='undefined'&&module.exports){
     CATS,ITER,ITER_OLD,DAY_MS,OLD_DAYS,MAX_HISTORY,iterOf,b64,unb64,esc,derive,encryptVault,decryptVault,
     clean,recordPasswordChange,parseItems,normUrl,safeUrl,sameItem,mergeItems,auditItems,filterItems,
     strength,SETS,WORDS_IT,rnd,generatePassword,parseCsvRows,parseCsvItems,
-    generateCloudCode,normalizeCloudCode,cloudDocId
+    generateCloudCode,normalizeCloudCode,cloudDocId,
+    TYPES,EXTRA_FIELDS,typeOf,cardBrand,fmtCard,luhnOk,wifiQr,SERVICES,recognize
   };
 }

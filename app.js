@@ -6,8 +6,13 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.13.0';
+const APP_VERSION='1.14.0';
 const CHANGELOG=[
+  ['1.14.0',[
+    'Nuove schede: 💳 Carta (disegnata come una carta vera), 📶 Wi-Fi con codice QR per gli ospiti, 📝 Nota segreta',
+    'Riconoscimento automatico di oltre 150 servizi: categoria e sito si compilano da soli',
+    'Nuove categorie: Svago, Utenze, Viaggi, Pubblica Amm., Wi-Fi, Note'
+  ]],
   ['1.13.0',[
     'Musica di sottofondo originale in 3 stili (Ambient, Lounge jazz, Cyber), con pulsante 🎵 per spegnerla'
   ]],
@@ -151,7 +156,8 @@ function lock(){
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
   slotStop?.(); window.Music?.stop(); updMusicUI();
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
   // Nessun dato in chiaro deve restare nella pagina mentre è bloccata
@@ -259,7 +265,29 @@ try{const sb=localStorage.getItem('sortBy');if(['az','recent','cat'].includes(sb
 $('#sortBy').addEventListener('change',()=>{try{localStorage.setItem('sortBy',$('#sortBy').value)}catch{};render()});
 
 /* Simbolo e colore di ogni categoria (le categorie personalizzate prendono un colore dal nome) */
-const CAT_INFO={Email:['✉️',210],Social:['👥',275],Banca:['🏦',150],Lavoro:['💼',28],Shopping:['🛒',340],Altro:['📁',195]};
+const CAT_INFO={Email:['✉️',210],Social:['👥',275],Banca:['🏦',150],Lavoro:['💼',28],Shopping:['🛒',340],Altro:['📁',195],
+  Svago:['🎬',300],Utenze:['💡',45],Viaggi:['✈️',190],'Pubblica Amm.':['🏛️',225],'Wi-Fi':['📶',170],Note:['📝',60]};
+/* Tipi di scheda: nome, simbolo e categoria proposta */
+const TYPE_INFO={login:{t:'account',e:'🔑',cat:'Altro'},card:{t:'carta',e:'💳',cat:'Banca'},wifi:{t:'Wi-Fi',e:'📶',cat:'Wi-Fi'},note:{t:'nota',e:'📝',cat:'Note'}};
+const last4=n=>digits(n).slice(-4);
+const maskCard=n=>{const d=digits(n);return d?'•••• •••• •••• '+d.slice(-4):'•••• •••• •••• ••••'};
+/* Carta disegnata come una carta vera; numero completo solo se "Mostra" è attivo */
+function cardHtml(i,reveal){
+  const b=cardBrand(i.number), hueC={VISA:222,MASTERCARD:20,AMEX:190,MAESTRO:260}[b]??catInfo(i.cat).h;
+  return `<div class="ccard" style="--cc:${hueC}">
+    <div class="cc-top"><span class="chip-ic"></span><span class="brand-t">${esc(b||i.name)}</span></div>
+    <div class="cc-num">${esc(reveal?(fmtCard(i.number)||'—'):maskCard(i.number))}</div>
+    <div class="cc-bot"><div><small>Intestatario</small>${esc(i.holder||'—')}</div><div><small>Scade</small>${esc(i.exp||'--/--')}</div></div>
+  </div>`;
+}
+/* Sottotitolo sotto il nome, secondo il tipo */
+function subOf(i){
+  const t=typeOf(i);
+  if(t==='card')return [cardBrand(i.number),i.number?'•••• '+last4(i.number):''].filter(Boolean).join(' ')||'Carta';
+  if(t==='wifi')return 'Rete Wi-Fi'+(i.wsec==='nopass'?' aperta':'');
+  if(t==='note')return 'Nota segreta';
+  return i.user;
+}
 const catInfo=c=>CAT_INFO[c]?{e:CAT_INFO[c][0],h:CAT_INFO[c][1]}:{e:'🏷️',h:hue(c||'Altro')};
 const catTag=c=>{const k=catInfo(c);return `<span class="tag cat" style="--ch:${k.h}">${k.e} ${esc(c||'Altro')}</span>`};
 
@@ -341,55 +369,77 @@ function render(){
   const rows=filterItems(items,cat,q,$('#sortBy').value,audit.warnIds);
   // Account con lo stesso nome di servizio (es. due account Amazon) stanno nella stessa scheda
   const groups=new Map();
-  for(const i of rows){const k=i.name.trim().toLowerCase();if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i)}
+  for(const i of rows){const k=typeOf(i)+'|'+i.name.trim().toLowerCase();if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i)}
   const warnTags=i=>[
     audit.weakIds.has(i.id)?'<span class="tag w">Password debole</span>':'',
     audit.dupIds.has(i.id)?'<span class="tag w">Password riutilizzata</span>':'',
     audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':''
   ].join('');
-  const accBody=i=>`
-      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span></div>`}
-      ${i.note?`<div class="note">${esc(i.note)}</div>`:''}
+  const showBtn=i=>`<button class="btn s" data-a="sh">${shown.has(i.id)?IC.eyeoff+'Nascondi':IC.eye+'Mostra'}</button>`;
+  const editBtn=`<button class="btn s" data-a="ed">${IC.edit}Modifica</button>`;
+  const noteHtml=i=>i.note?`<div class="note">${esc(i.note)}</div>`:'';
+  const accBody=i=>{
+    const t=typeOf(i), open=shown.has(i.id);
+    if(t==='card')return `${cardHtml(i,open)}
+      ${open&&(i.cvv||i.pin)?`<div class="secrets">${i.cvv?`<div class="sv"><small>CVV</small>${esc(i.cvv)}</div>`:''}${i.pin?`<div class="sv"><small>PIN</small>${esc(i.pin)}</div>`:''}</div>`:''}
+      ${noteHtml(i)}
       <div class="acts">
-        <button class="btn s" data-a="cu">${IC.user}Copia utente</button>
-        <button class="btn s" data-a="cp"${i.pass?'':' disabled'}>${IC.key}Copia password</button>
-        <button class="btn s" data-a="sh">${shown.has(i.id)?IC.eyeoff+'Nascondi':IC.eye+'Mostra'}</button>
-        <button class="btn s" data-a="ed">${IC.edit}Modifica</button>
+        <button class="btn s" data-a="cn"${digits(i.number)?'':' disabled'}>${IC.copy}Copia numero</button>
+        ${i.cvv?`<button class="btn s" data-a="cv">${IC.key}Copia CVV</button>`:''}
+        ${showBtn(i)}${editBtn}
       </div>`;
+    if(t==='note')return `<div class="secretbox">${i.secret?(open?esc(i.secret):'•••••••• testo nascosto ••••••••'):'<i>vuota</i>'}</div>
+      ${noteHtml(i)}
+      <div class="acts">
+        <button class="btn s" data-a="cs"${i.secret?'':' disabled'}>${IC.copy}Copia testo</button>
+        ${showBtn(i)}${editBtn}
+      </div>`;
+    return `
+      ${i.pass?`<div class="pwbox"><span>${open?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>${t==='wifi'?'Rete senza password':'Nessuna password salvata'}</span></div>`}
+      ${noteHtml(i)}
+      <div class="acts">
+        ${t==='wifi'
+          ?`<button class="btn s" data-a="qr">▦ Codice QR</button>`
+          :`<button class="btn s" data-a="cu">${IC.user}Copia utente</button>`}
+        <button class="btn s" data-a="cp"${i.pass?'':' disabled'}>${IC.key}Copia password</button>
+        ${showBtn(i)}${editBtn}
+      </div>`;
+  };
   const asList=getView()==='list';
   $('#list').classList.toggle('lines',asList);
   // Vista a elenco: una riga compatta per account, con i pulsanti rapidi
   if(asList&&rows.length){
     $('#list').innerHTML=[...groups.values()].flat().map(x=>{
-      const ci=catInfo(x.cat), warn=audit.warnIds.has(x.id);
+      const ci=catInfo(x.cat), warn=audit.warnIds.has(x.id), t=typeOf(x), nm=esc(x.name);
+      const ib=(a,title,icon,dis)=>`<button class="btn s ic" data-a="${a}" title="${title}" aria-label="${title}: ${nm}"${dis?' disabled':''}>${icon}</button>`;
+      const btns=t==='card'?ib('cn','Copia numero',IC.copy,!digits(x.number))+(x.cvv?ib('cv','Copia CVV',IC.key):'')
+        :t==='note'?ib('cs','Copia testo',IC.copy,!x.secret)
+        :t==='wifi'?ib('qr','Codice QR','▦')+ib('cp','Copia password',IC.key,!x.pass)
+        :ib('cu','Copia utente',IC.user)+ib('cp','Copia password',IC.key,!x.pass);
       return`
     <li class="ln" data-id="${esc(x.id)}" data-ids="${esc(x.id)}">
-      <div class="av sm" style="--h:${ci.h}">${esc(x.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${ci.e}</span></div>
-      <div class="ln-t"><div class="ln-n">${x.fav?'<span class="ln-f" aria-label="Preferito">★</span>':''}${esc(x.name)}${warn?' <span class="ln-w" title="Password da controllare">⚠️</span>':''}</div><div class="u">${esc(x.user)||'<i>senza utente</i>'}</div></div>
-      <div class="ln-a">
-        <button class="btn s ic" data-a="cu" title="Copia utente" aria-label="Copia utente di ${esc(x.name)}">${IC.user}</button>
-        <button class="btn s ic" data-a="cp" title="Copia password" aria-label="Copia password di ${esc(x.name)}"${x.pass?'':' disabled'}>${IC.key}</button>
-        <button class="btn s ic" data-a="ed" title="Modifica" aria-label="Modifica ${esc(x.name)}">${IC.edit}</button>
-      </div>
+      <div class="av sm" style="--h:${ci.h}">${esc(x.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${t==='login'?ci.e:TYPE_INFO[t].e}</span></div>
+      <div class="ln-t"><div class="ln-n">${x.fav?'<span class="ln-f" aria-label="Preferito">★</span>':''}${nm}${warn?' <span class="ln-w" title="Password da controllare">⚠️</span>':''}</div><div class="u">${esc(subOf(x))||'<i>senza utente</i>'}</div></div>
+      <div class="ln-a">${btns}${ib('ed','Modifica',IC.edit)}</div>
     </li>`}).join('');
     return;
   }
   $('#list').innerHTML=rows.length?[...groups.values()].map(g=>{
-    const i=g[0], multi=g.length>1, fav=g.some(x=>x.fav);
-    const href=safeUrl(g.find(x=>safeUrl(x.url))?.url||'');
-    const head=`${catTag(i.cat)}${multi?`<span class="tag">${g.length} account</span>`:warnTags(i)}`, ci=catInfo(i.cat);
+    const i=g[0], multi=g.length>1, fav=g.some(x=>x.fav), t=typeOf(i);
+    const href=t==='login'?safeUrl(g.find(x=>safeUrl(x.url))?.url||''):'';
+    const head=`${catTag(i.cat)}${multi?`<span class="tag">${g.length} ${t==='login'?'account':'schede'}</span>`:warnTags(i)}`, ci=catInfo(i.cat);
     return`
     <li class="it" data-id="${esc(i.id)}" data-ids="${esc(g.map(x=>x.id).join(','))}">
       <div class="top">
-        <div class="av" style="--h:${ci.h}">${esc(i.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${ci.e}</span></div>
-        <div class="meta"><h2>${esc(i.name)}${head}</h2>${multi?'':`<div class="u">${esc(i.user)}</div>`}</div>
+        <div class="av" style="--h:${ci.h}">${esc(i.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${t==='login'?ci.e:TYPE_INFO[t].e}</span></div>
+        <div class="meta"><h2>${esc(i.name)}${head}</h2>${multi?'':`<div class="u">${esc(subOf(i))}</div>`}</div>
         <button class="star${fav?' on':''}" data-a="fv" aria-label="${fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${star(fav)}</button>
       </div>
-      ${multi?g.map(x=>`<div class="acc" data-id="${esc(x.id)}"><div class="u acc-u">${IC.user}<span>${esc(x.user)||'<i>senza utente</i>'}</span>${warnTags(x)}</div>${accBody(x)}</div>`).join(''):`<div data-id="${esc(i.id)}">${accBody(i)}</div>`}
-      <div class="acts grp">
+      ${multi?g.map(x=>`<div class="acc" data-id="${esc(x.id)}"><div class="u acc-u">${t==='login'?IC.user:TYPE_INFO[t].e}<span>${esc(subOf(x))||'<i>senza utente</i>'}</span>${warnTags(x)}</div>${accBody(x)}</div>`).join(''):`<div data-id="${esc(i.id)}">${accBody(i)}</div>`}
+      ${t==='login'?`<div class="acts grp">
         <button class="btn s" data-a="ad">+ Altro account</button>
         ${href?`<a class="btn s" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${IC.link}Sito</a>`:''}
-      </div>
+      </div>`:''}
     </li>`}).join(''):`<li class="empty mute"><div class="mark" style="width:56px;height:56px;border-radius:18px"><img src="icon-192.png" alt="Cassaforte"></div>${items.length?'Nessun account corrisponde.':'Non hai ancora salvato nulla.<br>Premi <b>+ Aggiungi</b> per inserire il primo account.'}</li>`;
 }
 $('#q').addEventListener('input',render);
@@ -426,7 +476,11 @@ $('#list').addEventListener('click',e=>{
     return;
   }
   if(a==='cu')copy(it.user,'Utente copiato').then(ok=>{if(ok)copiedFx(b)});
-  if(a==='cp')copy(it.pass,'Password copiata: incollala nel sito').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='cp')copy(it.pass,typeOf(it)==='wifi'?'Password del Wi-Fi copiata':'Password copiata: incollala nel sito').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='cn')copy(digits(it.number),'Numero della carta copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='cv')copy(it.cvv,'CVV copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='cs')copy(it.secret,'Testo copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='qr')openQr(it);
   if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
   if(a==='ed')openForm(it);
   if(a==='fv')commit(()=>{it.fav=!it.fav});
@@ -451,12 +505,84 @@ $('#histList').addEventListener('click',e=>{
   const b=e.target.closest('button[data-hp]');
   if(b)copy(b.dataset.hp,'Vecchia password copiata (si cancella tra 30 s)');
 });
+/* Codice QR del Wi-Fi: lo inquadra la fotocamera dell'ospite e si collega senza scrivere la password */
+if(window.qrcode&&qrcode.stringToBytesFuncs?.['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
+function openQr(it){
+  if(!window.qrcode){toast('Codice QR non disponibile');return}
+  try{
+    const q=qrcode(0,'M'); q.addData(wifiQr(it.name,it.pass,it.wsec,it.whidden)); q.make();
+    $('#qrBox').innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true});
+  }catch(e){console.warn('QR',e);toast('Impossibile creare il codice QR');return}
+  $('#qrSsid').textContent='📶 '+it.name;
+  $('#qrPass').textContent=it.wsec==='nopass'?'Rete aperta, senza password':'Password: '+it.pass;
+  $('#dlgQr').showModal();
+}
+const closeQr=()=>{$('#qrBox').innerHTML='';$('#qrPass').textContent='';if($('#dlgQr').open)$('#dlgQr').close()};
+$('#qrClose').onclick=closeQr;
+$('#dlgQr').addEventListener('close',()=>{$('#qrBox').innerHTML='';$('#qrPass').textContent=''});
+
+/* Tipo della scheda nel modulo: mostra solo i campi giusti */
+let fType='login', catAuto=true, urlAuto=false;
+const NAME_L={login:['Servizio','es. Netflix'],card:['Nome della carta','es. Visa Intesa'],wifi:['Nome della rete (SSID)','es. Casa Rossi'],note:['Titolo','es. Codici antifurto']};
+function setFormType(t,isNew){
+  fType=TYPES.includes(t)?t:'login';
+  document.querySelectorAll('#fTypeSel [data-ty]').forEach(b=>{const on=b.dataset.ty===fType;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
+  document.querySelectorAll('#form [data-for]').forEach(el=>el.classList.toggle('hide',!el.dataset.for.split(' ').includes(fType)));
+  $('#fNameL').textContent=NAME_L[fType][0]; $('#fName').placeholder=NAME_L[fType][1];
+  $('#fPassL').textContent=fType==='wifi'?'Password del Wi-Fi':'Password';
+  if(!editId)$('#dlgT').textContent={login:'Nuovo account',card:'Nuova carta',wifi:'Nuova rete Wi-Fi',note:'Nuova nota segreta'}[fType];
+  if(isNew&&catAuto)populateCatSelect(TYPE_INFO[fType].cat);
+  $('#fHint').classList.add('hide');
+  if(fType==='login'&&!editId)recognizeName();
+  updCardPrev();
+}
+$('#fTypeSel').addEventListener('click',e=>{const b=e.target.closest('[data-ty]');if(b)setFormType(b.dataset.ty,!editId)});
+/* Anteprima della carta mentre la scrivi, con circuito e controllo del numero */
+function updCardPrev(){
+  if(fType!=='card')return;
+  const n=$('#fNumber').value, d=digits(n), b=cardBrand(d);
+  $('#cPrev').innerHTML=cardHtml({name:$('#fName').value||'Carta',number:n,holder:$('#fHolder').value.toUpperCase(),exp:$('#fExp').value,cat:'Banca'},true);
+  const info=$('#fNumInfo');
+  if(d.length<12){info.textContent=b?b:'';info.style.color='var(--mute)'}
+  else if(luhnOk(d)){info.textContent=(b?b+' · ':'')+'numero valido ✓';info.style.color='#2f9e6b'}
+  else{info.textContent='⚠️ Controlla il numero: una cifra potrebbe essere sbagliata';info.style.color='var(--bad)'}
+}
+$('#fNumber').addEventListener('input',e=>{const el=e.target,end=el.selectionStart===el.value.length;el.value=fmtCard(el.value);if(end)el.selectionStart=el.selectionEnd=el.value.length;updCardPrev()});
+$('#fExp').addEventListener('input',e=>{let d=digits(e.target.value).slice(0,4);if(d.length>=3)d=d.slice(0,2)+'/'+d.slice(2);e.target.value=d;updCardPrev()});
+['#fHolder','#fName'].forEach(s=>$(s).addEventListener('input',updCardPrev));
+['#fCvv','#fPin'].forEach(s=>$(s).addEventListener('input',e=>{e.target.value=digits(e.target.value)}));
+/* Riconoscimento automatico: scrivendo "Amazon" propone categoria Shopping e sito amazon.it */
+function recognizeName(){
+  const h=$('#fHint');
+  if(fType!=='login'||editId){h.classList.add('hide');return}
+  const r=recognize($('#fName').value);
+  if(r){
+    if(catAuto)populateCatSelect(r.cat);
+    if(!$('#fUrl').value||urlAuto){$('#fUrl').value=r.url;urlAuto=true}
+    h.textContent=`✨ Riconosciuto: ${catInfo(r.cat).e} ${r.cat} · ${r.url}`; h.classList.remove('hide');
+  }else{
+    if(urlAuto){$('#fUrl').value='';urlAuto=false}
+    if(catAuto)populateCatSelect('Altro');
+    h.classList.add('hide');
+  }
+}
+$('#fName').addEventListener('input',recognizeName);
+$('#fUrl').addEventListener('input',()=>{urlAuto=false});
+$('#fCat').addEventListener('change',()=>{catAuto=false});
+
 function openForm(it,pre){
-  editId=it?it.id:null;
-  $('#dlgT').textContent=it?'Modifica account':pre?'Altro account per '+pre.name:'Nuovo account';
+  editId=it?it.id:null; catAuto=!it&&!pre?.cat; urlAuto=false;
+  const ty=it?typeOf(it):pre?.type||'login';
+  $('#dlgT').textContent=it?'Modifica '+TYPE_INFO[ty].t:pre?'Altro account per '+pre.name:'Nuovo account';
   $('#fName').value=it?.name||pre?.name||'';$('#fUser').value=it?.user||'';$('#fPass').value=it?.pass||'';
   $('#fUrl').value=it?.url||pre?.url||'';$('#fNote').value=it?.note||'';$('#fFav').checked=!!it?.fav;
+  $('#fHolder').value=it?.holder||'';$('#fNumber').value=fmtCard(it?.number||'');$('#fExp').value=it?.exp||'';
+  $('#fCvv').value=it?.cvv||'';$('#fPin').value=it?.pin||'';$('#fWsec').value=it?.wsec||'WPA';$('#fWhidden').checked=!!it?.whidden;
+  $('#fSecret').value=it?.secret||'';
   populateCatSelect(it?.cat||pre?.cat||'Altro');
+  setFormType(ty,!it&&!pre?.cat);
+  // con una scheda già esistente si può cambiare tipo, ma solo i campi visibili vengono salvati
+  $('#fTypeSel').classList.toggle('hide',!!pre);
   const hist=Array.isArray(it?.history)?it.history:[];
   if(hist.length){
     $('#histSum').textContent=`Cronologia password precedenti (${hist.length})`;
@@ -503,17 +629,28 @@ $('#form').addEventListener('submit',async e=>{
     chosenCat=$('#fCatNew').value.trim();
     if(!chosenCat){toast('Inserisci il nome della nuova categoria');$('#fCatNew').focus();return}
   }
-  const d=clean({name:$('#fName').value.trim(),user:$('#fUser').value.trim(),pass:$('#fPass').value,url:normUrl($('#fUrl').value),note:$('#fNote').value.trim(),cat:chosenCat,fav:$('#fFav').checked});
+  // si salvano solo i campi del tipo scelto (es. una carta non ha utente né password)
+  const t=fType, has=f=>t===f;
+  const d=clean({type:t,name:$('#fName').value.trim(),note:$('#fNote').value.trim(),cat:chosenCat,fav:$('#fFav').checked,
+    user:has('login')?$('#fUser').value.trim():'',
+    pass:has('login')||has('wifi')?$('#fPass').value:'',
+    url:has('login')?normUrl($('#fUrl').value):'',
+    holder:has('card')?$('#fHolder').value.trim().toUpperCase():'',number:has('card')?fmtCard($('#fNumber').value):'',
+    exp:has('card')?$('#fExp').value.trim():'',cvv:has('card')?$('#fCvv').value:'',pin:has('card')?$('#fPin').value:'',
+    wsec:has('wifi')?$('#fWsec').value:'',whidden:has('wifi')&&$('#fWhidden').checked,secret:has('note')?$('#fSecret').value:''});
   if(!$('#fName').value.trim())return;
   if(d.url&&!safeUrl(d.url)){toast('Indirizzo del sito non valido (usa http:// o https://)');$('#fUrl').focus();return}
+  if(t==='card'&&d.exp&&!/^(0[1-9]|1[0-2])\/\d{2}$/.test(d.exp)){toast('Scadenza non valida: usa MM/AA (es. 08/29)');$('#fExp').focus();return}
   const id=editId, btn=$('#bSave'); btn.disabled=true;
   try{
     const ok=await commit(()=>{
       if(id){
-        const it=items.find(x=>x.id===id);
-        if(it){
-          const meta=recordPasswordChange(it,d.pass);
-          Object.assign(it,d,meta,{id});
+        const k=items.findIndex(x=>x.id===id);
+        if(k>=0){
+          const it=items[k];
+          const meta=t==='login'||t==='wifi'?recordPasswordChange(it,d.pass):{updatedAt:Date.now()};
+          // la scheda viene ricostruita: cambiando tipo non restano campi del tipo precedente
+          items[k]=clean({...d,...meta,id});
         }
       }else{
         items.push({...d,id:crypto.randomUUID(),updatedAt:Date.now()});
@@ -523,7 +660,7 @@ $('#form').addEventListener('submit',async e=>{
   }finally{btn.disabled=false}
 });
 $('#bDel').onclick=async()=>{
-  if(!confirm('Eliminare questo account? L’operazione non si può annullare.'))return;
+  if(!confirm('Eliminare questa scheda? L’operazione non si può annullare.'))return;
   const id=editId;
   if(await commit(()=>{items=items.filter(x=>x.id!==id)},'Eliminato'))$('#dlg').close();
 };
@@ -615,6 +752,8 @@ $('#fileCsv').addEventListener('change',async e=>{
   try{
     csvItems=parseCsvItems(await f.text());
     if(!csvItems.length)throw new Error('Nessun account trovato');
+    // riconoscimento automatico della categoria per gli account senza categoria
+    csvItems.forEach(i=>{if(i.cat==='Altro'){const r=recognize(i.name);if(r)i.cat=r.cat}});
   }catch{
     toast('File CSV non valido o vuoto');
     return;
@@ -1108,13 +1247,16 @@ function buildPrint(notes){
   const rows=[...items].sort((a,b)=>ord(a.cat)-ord(b.cat)||a.name.localeCompare(b.name,'it',{numeric:true}));
   const when=new Date().toLocaleString('it-IT',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const f=v=>v?esc(v):'<span class="pr-empty">—</span>';
-  let out=`<header class="pr-head"><h2>Cassaforte · Archivio password</h2><div class="pr-meta">Stampato il ${esc(when)} · ${rows.length} account</div><p class="pr-warn">DOCUMENTO RISERVATO: contiene password in chiaro. Conservalo in un luogo sicuro e distruggi le stampe precedenti.</p></header>`;
+  let out=`<header class="pr-head"><h2>Cassaforte · Archivio password</h2><div class="pr-meta">Stampato il ${esc(when)} · ${rows.length} schede</div><p class="pr-warn">DOCUMENTO RISERVATO: contiene password in chiaro. Conservalo in un luogo sicuro e distruggi le stampe precedenti.</p></header>`;
   let cur=null;
   for(const i of rows){
     if(i.cat!==cur){cur=i.cat;out+=`<h3 class="pr-cat">${esc(cur)}</h3>`}
-    out+=`<section class="pr-item"><div class="pr-name">${i.fav?'★ ':''}${esc(i.name)}</div><table>`
-      +`<tr><th>Utente</th><td>${f(i.user)}</td></tr>`
-      +`<tr><th>Password</th><td class="pr-pw">${f(i.pass)}</td></tr>`
+    const t=typeOf(i), tr=(k,v,cls='')=>`<tr><th>${k}</th><td${cls?` class="${cls}"`:''}>${f(v)}</td></tr>`;
+    out+=`<section class="pr-item"><div class="pr-name">${i.fav?'★ ':''}${t==='login'?'':TYPE_INFO[t].e+' '}${esc(i.name)}</div><table>`
+      +(t==='card'?tr('Intestatario',i.holder)+tr('Numero',fmtCard(i.number),'pr-pw')+tr('Scadenza',i.exp)+tr('CVV',i.cvv,'pr-pw')+(i.pin?tr('PIN',i.pin,'pr-pw'):'')
+        :t==='wifi'?tr('Rete (SSID)',i.name)+tr('Password',i.pass,'pr-pw')
+        :t==='note'?tr('Testo',i.secret,'pr-pw pr-note')
+        :tr('Utente',i.user)+tr('Password',i.pass,'pr-pw'))
       +(i.url?`<tr><th>Sito</th><td>${esc(i.url)}</td></tr>`:'')
       +(notes&&i.note?`<tr><th>Note</th><td class="pr-note">${esc(i.note)}</td></tr>`:'')
       +'</table></section>';

@@ -46,3 +46,9 @@ Nessun server: i dati stanno nel `localStorage` del dispositivo; i backup sono f
 - WebAuthn con estensione PRF: la password principale è cifrata con una chiave ricavata dal segreto del dispositivo (localStorage `bio`).
 - La passkey è legata al dominio (rpId = hostname): va attivata separatamente su ogni dispositivo e su ogni indirizzo.
 - Se la password principale cambia, `bio` viene cancellato (cambio password o sblocco fallito).
+
+## Tipi di scheda (dalla v1.14)
+- Campo `type`: assente = account; `card` (holder, number, exp, cvv, pin), `wifi` (pass, wsec, whidden), `note` (secret).
+- `clean()` in core.js tiene solo i campi del tipo; `sameItem` li confronta (import/unione).
+- QR Wi-Fi con `qrcode.js` (qrcode-generator 1.4.4, MIT, copiata in locale: niente CDN per la CSP).
+- Riconoscimento servizi: tabella `SERVICES` + `recognize()` in core.js (testata).
