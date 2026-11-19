@@ -9,7 +9,7 @@ let extUntil=0;        // finestra in cui la pagina può andare in background (c
 const APP_VERSION='1.11.1';
 const CHANGELOG=[
   ['1.11.1',[
-    'Pulsante “Copia” nel riquadro della password, per incollarla subito nel sito'
+    'Pulsanti più chiari: “Copia utente” e “Copia password”, che diventano verdi con ✓ dopo la copia'
   ]],
   ['1.11.0',[
     'Nuova vista a elenco compatto, oltre a quella a schede (pulsante accanto a “+ Aggiungi”)'
@@ -320,11 +320,11 @@ function render(){
     audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':''
   ].join('');
   const accBody=i=>`
-      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span><button class="btn s cpy" data-a="cp" aria-label="Copia la password di ${esc(i.name)}">${IC.copy}Copia</button></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span></div>`}
+      ${i.pass?`<div class="pwbox"><span>${shown.has(i.id)?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>Nessuna password salvata</span></div>`}
       ${i.note?`<div class="note">${esc(i.note)}</div>`:''}
       <div class="acts">
-        <button class="btn s" data-a="cu">${IC.user}Utente</button>
-        <button class="btn s" data-a="cp">${IC.key}Password</button>
+        <button class="btn s" data-a="cu">${IC.user}Copia utente</button>
+        <button class="btn s" data-a="cp"${i.pass?'':' disabled'}>${IC.key}Copia password</button>
         <button class="btn s" data-a="sh">${shown.has(i.id)?IC.eyeoff+'Nascondi':IC.eye+'Mostra'}</button>
         <button class="btn s" data-a="ed">${IC.edit}Modifica</button>
       </div>`;
@@ -372,10 +372,12 @@ async function copy(t,m){
   try{await navigator.clipboard.writeText(t);toast(m,true);buzz(25);clipAt=Date.now();clipClearPending=false;clearTimeout(clipT);clipT=setTimeout(()=>clearClip(),30000);return true}
   catch{toast('Copia non riuscita');return false}
 }
-/* Il pulsante "Copia" diventa verde per un attimo, così si vede che ha funzionato */
+/* Il pulsante di copia diventa verde con ✓ per un attimo, così si vede che ha funzionato */
 function copiedFx(b){
-  b.classList.add('done');b.innerHTML='✓ Copiata';
-  setTimeout(()=>{if(b.isConnected){b.classList.remove('done');b.innerHTML=IC.copy+'Copia'}},1600);
+  if(b.classList.contains('done'))return;
+  const old=b.innerHTML, small=b.classList.contains('ic');
+  b.classList.add('done');b.innerHTML=small?'✓':'✓ Copiato';
+  setTimeout(()=>{if(b.isConnected){b.classList.remove('done');b.innerHTML=old}},1600);
 }
 function clearClip(force){
   if(!clipAt)return;
@@ -395,8 +397,8 @@ $('#list').addEventListener('click',e=>{
     else openForm(null,{name:it.name,url:it.url,cat:it.cat});
     return;
   }
-  if(a==='cu')copy(it.user,'Utente copiato');
-  if(a==='cp')copy(it.pass,'Password copiata: incollala nel sito').then(ok=>{if(ok&&b.classList.contains('cpy'))copiedFx(b)});
+  if(a==='cu')copy(it.user,'Utente copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='cp')copy(it.pass,'Password copiata: incollala nel sito').then(ok=>{if(ok)copiedFx(b)});
   if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
   if(a==='ed')openForm(it);
   if(a==='fv')commit(()=>{it.fav=!it.fav});

@@ -218,9 +218,9 @@ li.it{transition:transform .15s,box-shadow .15s}
 #toast.on{transform:translate(-50%,0)}
 #toast .ti{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#2f9e6b;color:#fff;font-size:.75rem;font-weight:800}
 .btn.done{border-color:#2f9e6b;color:#2f9e6b}
-/* Pulsante Copia dentro il riquadro della password */
-.pwbox .btn.cpy{background:var(--acc);color:var(--on);border-color:var(--acc);font-weight:600;padding:6px 12px;min-width:92px}
-.pwbox .btn.cpy.done{background:#2f9e6b;border-color:#2f9e6b;color:#fff}
+/* Pulsanti di copia: verdi con ✓ subito dopo la copia */
+.btn.done{background:#2f9e6b;border-color:#2f9e6b;color:#fff;font-weight:600}
+.btn.s:disabled{opacity:.4;cursor:default}
 /* Vista a elenco */
 #bView,header.bar .row:nth-child(2)>#bView{padding:11px 12px;flex:none}
 #bView svg{width:18px;height:18px}
@@ -653,7 +653,8 @@ li.ln:first-child{border-top:0}
     <div class="guide-sec">
       <h4>🧰 5. Funzioni Intelligenti: Salute Password, Cronologia, Passphrase e CSV</h4>
       <ul>
-        <li><b>👥 Più account per lo stesso servizio</b>: se hai per esempio due account Amazon, tocca <b>+ Altro account</b> sulla scheda Amazon. Il modulo si apre con nome, sito e categoria già compilati, e devi scrivere solo utente e password. Gli account con lo stesso nome compaiono insieme nella stessa scheda, ognuno con i suoi pulsanti <b>Utente</b>, <b>Password</b>, <b>Mostra</b> e <b>Modifica</b>.</li>
+        <li><b>👥 Più account per lo stesso servizio</b>: se hai per esempio due account Amazon, tocca <b>+ Altro account</b> sulla scheda Amazon. Il modulo si apre con nome, sito e categoria già compilati, e devi scrivere solo utente e password. Gli account con lo stesso nome compaiono insieme nella stessa scheda, ognuno con i suoi pulsanti <b>Copia utente</b>, <b>Copia password</b>, <b>Mostra</b> e <b>Modifica</b>.</li>
+        <li><b>📋 Copia e incolla</b>: tocca <b>Copia password</b> (o <b>Copia utente</b>): il pulsante diventa verde con ✓. Poi incolla nel sito. Per sicurezza gli appunti vengono svuotati dopo 30 secondi.</li>
         <li><b>📋 Schede o Elenco</b>: il pulsante accanto a <b>+ Aggiungi</b> cambia la vista. A <b>schede</b> vedi tutto di ogni account; a <b>elenco</b> vedi una riga compatta per account con i pulsanti rapidi per copiare utente e password e per modificare. L'app ricorda la tua scelta.</li>
         <li><b>💯 Pannello Salute Password</b>: in cima alla lista un cerchio colorato dà un punteggio da 0 a 100 (verde = ottimo, giallo = da migliorare, rosso = a rischio). Tocca <b>Vedi quali →</b> per vedere subito le password deboli, riutilizzate o vecchie.</li>
         <li><b>🌙 Giorno / Notte</b>: il pulsante con la luna o il sole nella barra in alto passa dal tema chiaro a quello scuro.</li>
