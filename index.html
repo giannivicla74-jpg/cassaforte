@@ -243,19 +243,25 @@ li.it{transition:transform .15s,box-shadow .15s}
 @supports ((-webkit-background-clip:text) or (background-clip:text)){
   .brand h1,#lock h1{
     --shine:var(--brass);--core:color-mix(in srgb,var(--brass) 55%,#fff3c4);
-    background:linear-gradient(110deg,var(--ink) 0%,var(--ink) 40%,var(--shine) 47%,var(--core) 50%,var(--shine) 53%,var(--ink) 60%,var(--ink) 100%);
-    background-size:250% 100%;background-position:100% 0;
+    background:linear-gradient(110deg,var(--ink) 0%,var(--ink) 34%,var(--shine) 43%,var(--core) 50%,var(--shine) 57%,var(--ink) 66%,var(--ink) 100%);
+    background-size:300% 100%;background-position:100% 0;
     -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
-    animation:shine 5s ease-in-out infinite
+    animation:shine 2.2s ease-in-out infinite
   }
-  #lock h1{animation-delay:.8s}
+  #lock h1{animation-delay:.4s}
   /* di notte il riflesso è più chiaro, con il centro bianco */
   :root[data-theme="dark"] .brand h1,:root[data-theme="dark"] #lock h1{--shine:color-mix(in srgb,var(--brass) 65%,#fff);--core:#fff}
 }
 @media(prefers-color-scheme:dark){@supports ((-webkit-background-clip:text) or (background-clip:text)){
   :root:not([data-theme="light"]) .brand h1,:root:not([data-theme="light"]) #lock h1{--shine:color-mix(in srgb,var(--brass) 65%,#fff);--core:#fff}
 }}
-@keyframes shine{0%,55%{background-position:100% 0}85%,100%{background-position:0 0}}
+/* il riflesso attraversa la scritta in ~1,2 s, poi 1 s di pausa; a metà passaggio un leggero bagliore */
+@keyframes shine{
+  0%{background-position:100% 0;filter:none}
+  27%{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--brass) 70%,transparent))}
+  55%{background-position:0 0;filter:none}
+  100%{background-position:0 0;filter:none}
+}
 /* Sblocco con impronta */
 #lock .btn.bio{margin-top:10px;border:2px solid var(--brass);color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 8%,var(--card))}
 .bio-ic{font-size:1.15rem}

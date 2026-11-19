@@ -9,7 +9,8 @@ let extUntil=0;        // finestra in cui la pagina può andare in background (c
 const APP_VERSION='1.12.2';
 const CHANGELOG=[
   ['1.12.2',[
-    'Guida: nuova sezione passo passo “Sblocco con impronta o viso”'
+    'Guida: nuova sezione passo passo “Sblocco con impronta o viso”',
+    'Riflesso di luce sulla scritta più intenso e più frequente'
   ]],
   ['1.12.1',[
     'Riflesso di luce animato sulla scritta “Cassaforte”, nel colore scelto'
