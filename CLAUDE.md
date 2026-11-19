@@ -30,3 +30,8 @@ Nessun server: i dati stanno nel `localStorage` del dispositivo; i backup sono f
 - Il database Firestore è condiviso con altre app aziendali: **non** aggiungere regole Firestore a questo `firebase.json`.
   Un `firebase deploy` completo sovrascriverebbe le regole di tutto il progetto.
 - Non scrivere in questo repo (è pubblico) dettagli sulle regole di sicurezza del database.
+
+## Sblocco con impronta (dalla v1.12)
+- WebAuthn con estensione PRF: la password principale è cifrata con una chiave ricavata dal segreto del dispositivo (localStorage `bio`).
+- La passkey è legata al dominio (rpId = hostname): va attivata separatamente su ogni dispositivo e su ogni indirizzo.
+- Se la password principale cambia, `bio` viene cancellato (cambio password o sblocco fallito).

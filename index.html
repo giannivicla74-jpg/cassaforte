@@ -221,6 +221,33 @@ li.it{transition:transform .15s,box-shadow .15s}
 /* Pulsanti di copia: verdi con ✓ subito dopo la copia */
 .btn.done{background:#2f9e6b;border-color:#2f9e6b;color:#fff;font-weight:600}
 .btn.s:disabled{opacity:.4;cursor:default}
+/* Temi colore (oro = predefinito, nessuna regola) */
+:root[data-accent="smeraldo"]{--brass:#1f8a5b;--acc:#0f3d2c;--glow:rgba(31,138,91,.16)}
+:root[data-accent="rubino"]{--brass:#b8323f;--acc:#4a1219;--glow:rgba(184,50,63,.14)}
+:root[data-accent="zaffiro"]{--brass:#2563c9;--acc:#12264d;--glow:rgba(37,99,201,.15)}
+:root[data-accent="ametista"]{--brass:#7c4dcc;--acc:#2e1a52;--glow:rgba(124,77,204,.15)}
+:root[data-accent="smeraldo"][data-theme="dark"]{--brass:#3ccf8e;--acc:#3ccf8e;--glow:rgba(60,207,142,.12)}
+:root[data-accent="rubino"][data-theme="dark"]{--brass:#ff6b7a;--acc:#ff6b7a;--glow:rgba(255,107,122,.12)}
+:root[data-accent="zaffiro"][data-theme="dark"]{--brass:#6aa2ff;--acc:#6aa2ff;--glow:rgba(106,162,255,.12)}
+:root[data-accent="ametista"][data-theme="dark"]{--brass:#b48cff;--acc:#b48cff;--glow:rgba(180,140,255,.12)}
+@media(prefers-color-scheme:dark){
+:root[data-accent="smeraldo"]:not([data-theme="light"]){--brass:#3ccf8e;--acc:#3ccf8e;--glow:rgba(60,207,142,.12)}
+:root[data-accent="rubino"]:not([data-theme="light"]){--brass:#ff6b7a;--acc:#ff6b7a;--glow:rgba(255,107,122,.12)}
+:root[data-accent="zaffiro"]:not([data-theme="light"]){--brass:#6aa2ff;--acc:#6aa2ff;--glow:rgba(106,162,255,.12)}
+:root[data-accent="ametista"]:not([data-theme="light"]){--brass:#b48cff;--acc:#b48cff;--glow:rgba(180,140,255,.12)}}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px 6px 6px;font-size:.85rem;font-weight:600}
+.sw span{width:24px;height:24px;border-radius:50%;background:var(--c);display:grid;place-items:center;font-size:.7rem;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.sw.on{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent)}
+/* Sblocco con impronta */
+#lock .btn.bio{margin-top:10px;border:2px solid var(--brass);color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 8%,var(--card))}
+.bio-ic{font-size:1.15rem}
+@keyframes bioPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+#lock .btn.bio .bio-ic{display:inline-block;animation:bioPulse 1.8s ease-in-out infinite}
+/* Generatore "slot machine" */
+@keyframes slotGlow{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brass) 60%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+input.slotting{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;border-color:var(--brass)}
+input.slot-done{animation:slotGlow .6s ease-out}
 /* Vista a elenco */
 #bView,header.bar .row:nth-child(2)>#bView{padding:11px 12px;flex:none}
 #bView svg{width:18px;height:18px}
@@ -264,6 +291,7 @@ li.ln:first-child{border-top:0}
       </div>
       <div id="err" role="alert"></div>
       <button class="btn p" id="lockBtn">Sblocca</button>
+      <button type="button" class="btn bio hide" id="bBio"><span class="bio-ic" aria-hidden="true">👆</span> Sblocca con impronta o viso</button>
       <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;gap:6px">
         <button type="button" class="btn s" id="bRestoreLock" style="border:0;background:transparent;color:var(--brass);font-weight:600;text-decoration:underline;margin:0">☁️ Telefono nuovo o rotto? Ripristina da Cloud / Backup</button>
         <button type="button" class="btn s" id="bHelpLock" style="border:0;background:transparent;color:var(--mute);text-decoration:underline;margin:0">Come funziona &amp; Sicurezza</button>
@@ -378,6 +406,14 @@ li.ln:first-child{border-top:0}
       <button type="button" class="chip" data-t="dark"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg> Scuro</button>
     </div>
     <p class="mute small" style="margin:8px 0 0">Automatico segue l'impostazione del telefono o del computer.</p>
+    <div style="font-weight:600;margin:14px 0 8px">Colore della cassaforte</div>
+    <div class="swatches" id="accentSel" role="group" aria-label="Colore">
+      <button type="button" class="sw" data-ac="oro" style="--c:#c9952f" aria-label="Oro"><span></span>Oro</button>
+      <button type="button" class="sw" data-ac="smeraldo" style="--c:#22a06b" aria-label="Smeraldo"><span></span>Smeraldo</button>
+      <button type="button" class="sw" data-ac="rubino" style="--c:#d0384a" aria-label="Rubino"><span></span>Rubino</button>
+      <button type="button" class="sw" data-ac="zaffiro" style="--c:#2f6fe0" aria-label="Zaffiro"><span></span>Zaffiro</button>
+      <button type="button" class="sw" data-ac="ametista" style="--c:#8a5ad6" aria-label="Ametista"><span></span>Ametista</button>
+    </div>
   </div>
 
   <h3>Salvataggio & Backup</h3>
@@ -447,6 +483,18 @@ li.ln:first-child{border-top:0}
       <option value="300">Blocca dopo 5 minuti</option>
     </select>
     <p class="mute small" style="margin:8px 0 0">Tempi più lunghi sono più comodi (es. per incollare una password in un'altra app) ma meno sicuri se qualcuno prende in mano il dispositivo sbloccato.</p>
+  </div>
+
+  <h3>Sblocco con impronta o viso</h3>
+  <div class="stat-box" id="bioBox">
+    <p class="mute small" style="margin:0 0 8px" id="bioInfo"></p>
+    <div id="bioOnWrap">
+      <label for="bioPw" style="margin-top:0">Password principale (per attivarlo)</label>
+      <div class="pww"><input id="bioPw" type="password" autocomplete="current-password"><button type="button" class="pw-eye" data-eye="#bioPw" aria-label="Mostra password" title="Mostra / Nascondi password"></button></div>
+      <div class="badge-no small" id="bioErr" role="alert" style="min-height:1.2em;margin-top:6px"></div>
+      <button type="button" class="btn p" id="bBioOn" style="width:100%;margin-top:4px">👆 Attiva sblocco con impronta o viso</button>
+    </div>
+    <button type="button" class="btn d hide" id="bBioOff" style="width:100%">Disattiva sblocco con impronta</button>
   </div>
 
   <h3>Password principale</h3>
@@ -655,6 +703,8 @@ li.ln:first-child{border-top:0}
       <ul>
         <li><b>👥 Più account per lo stesso servizio</b>: se hai per esempio due account Amazon, tocca <b>+ Altro account</b> sulla scheda Amazon. Il modulo si apre con nome, sito e categoria già compilati, e devi scrivere solo utente e password. Gli account con lo stesso nome compaiono insieme nella stessa scheda, ognuno con i suoi pulsanti <b>Copia utente</b>, <b>Copia password</b>, <b>Mostra</b> e <b>Modifica</b>.</li>
         <li><b>📋 Copia e incolla</b>: tocca <b>Copia password</b> (o <b>Copia utente</b>): il pulsante diventa verde con ✓. Poi incolla nel sito. Per sicurezza gli appunti vengono svuotati dopo 30 secondi.</li>
+        <li><b>👆 Sblocco con impronta o viso</b>: in <b>Opzioni → Sblocco con impronta o viso</b> scrivi la password principale e tocca <b>Attiva</b>, poi conferma con l'impronta o il viso. Da quel momento nella schermata iniziale basta toccare <b>Sblocca con impronta o viso</b>. La password principale resta sempre valida; se la cambi, l'impronta si disattiva e va riattivata. Vale solo per il dispositivo su cui la attivi.</li>
+        <li><b>🎨 Colore della cassaforte</b>: in <b>Opzioni → Aspetto</b> scegli tra Oro, Smeraldo, Rubino, Zaffiro e Ametista.</li>
         <li><b>📋 Schede o Elenco</b>: il pulsante accanto a <b>+ Aggiungi</b> cambia la vista. A <b>schede</b> vedi tutto di ogni account; a <b>elenco</b> vedi una riga compatta per account con i pulsanti rapidi per copiare utente e password e per modificare. L'app ricorda la tua scelta.</li>
         <li><b>💯 Pannello Salute Password</b>: in cima alla lista un cerchio colorato dà un punteggio da 0 a 100 (verde = ottimo, giallo = da migliorare, rosso = a rischio). Tocca <b>Vedi quali →</b> per vedere subito le password deboli, riutilizzate o vecchie.</li>
         <li><b>🌙 Giorno / Notte</b>: il pulsante con la luna o il sole nella barra in alto passa dal tema chiaro a quello scuro.</li>

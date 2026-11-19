@@ -6,8 +6,13 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.11.1';
+const APP_VERSION='1.12.0';
 const CHANGELOG=[
+  ['1.12.0',[
+    'Sblocco con impronta digitale o riconoscimento del viso (da attivare in Opzioni)',
+    'Colore della cassaforte a scelta: Oro, Smeraldo, Rubino, Zaffiro, Ametista',
+    'Generatore “slot machine”: i caratteri girano e si fermano sulla nuova password'
+  ]],
   ['1.11.1',[
     'Pulsanti più chiari: “Copia utente” e “Copia password”, che diventano verdi con ✓ dopo la copia'
   ]],
@@ -125,16 +130,17 @@ function showLock(){
   $('#mp2w').classList.toggle('hide',!nuovo); $('#mp2').required=nuovo;
   $('#lockBtn').textContent=nuovo?'Crea cassaforte':'Sblocca';
   $('#mp').value=$('#mp2').value=''; $('#err').textContent='';
-  resetPwEyes();
+  resetPwEyes(); updBioLock();
   $('#lock').classList.remove('hide'); $('#app').classList.add('hide');
 }
 function lock(){
   sess++; key=null; salt=null; iter=0; items=[]; shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
+  slotStop?.();
   ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
-  $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent='';
+  $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
   // Nessun dato in chiaro deve restare nella pagina mentre è bloccata
   $('#list').innerHTML=''; $('#chips').innerHTML=''; $('#count').textContent=''; $('#q').value='';
   $('#bk').classList.add('hide'); $('#printArea').innerHTML=''; $('#printSheet').innerHTML=''; $('#prForm').reset();
@@ -201,13 +207,20 @@ $('#lockForm').addEventListener('submit',async e=>{
     }else{
       let decRes;
       try{decRes=await decryptVault(pw,v)}
-      catch{$('#err').textContent='Password errata.';shake($('.lockcard'));buzz([40,60,40]);return}
+      catch{
+        if(bioTry){
+          // la password principale è cambiata (es. ripristino da backup): l'impronta non è più valida
+          bioOff(); updBioLock(); $('#mp').value='';
+          $('#err').textContent='La password principale è cambiata: entra con la password e riattiva l’impronta in Opzioni.';
+        }else $('#err').textContent='Password errata.';
+        shake($('.lockcard'));buzz([40,60,40]);return
+      }
       salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
     }
     const s0=sess; await openAnim(); if(s0!==sess||!key)return;
     $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync();
     upgradeKdf(pw);
-  }finally{btn.disabled=false}
+  }finally{btn.disabled=false;bioTry=false}
 });
 $('#bLock').onclick=lock;
 $('#bKeep').onclick=()=>{
@@ -446,10 +459,30 @@ function openForm(it,pre){
   updMeter();$('#dlg').showModal();
 }
 $('#bAdd').onclick=()=>openForm(null);
-$('#bCancel').onclick=()=>$('#dlg').close();
-$('#bGen').onclick=()=>{const g=gen();if(g){$('#fPass').value=g;updMeter()}};
+$('#bCancel').onclick=()=>{slotStop?.();$('#dlg').close()};
+/* Generatore "slot machine": i caratteri girano come rulli e si fermano uno alla volta sulla password vera.
+   I caratteri che girano sono solo un effetto: la password finale è quella generata in modo sicuro. */
+let slotStop=null;
+function slotFill(inp,final,after){
+  slotStop?.();
+  if(calm()){inp.value=final;after();return}
+  const pool='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*?', t0=performance.now(), dur=650, per=Math.min(28,dur/final.length);
+  let raf=0;
+  const finish=()=>{cancelAnimationFrame(raf);slotStop=null;inp.value=final;inp.classList.remove('slotting');inp.classList.remove('slot-done');void inp.offsetWidth;inp.classList.add('slot-done');after()};
+  slotStop=finish;
+  inp.classList.add('slotting');buzz(15);
+  const step=now=>{
+    const fixed=Math.floor((now-t0-dur*.35)/per);
+    if(fixed>=final.length)return finish();
+    let s='';for(let k=0;k<final.length;k++)s+=k<fixed?final[k]:pool[Math.floor(Math.random()*pool.length)];
+    inp.value=s;raf=requestAnimationFrame(step);
+  };
+  raf=requestAnimationFrame(step);
+}
+$('#bGen').onclick=()=>{const g=gen();if(g)slotFill($('#fPass'),g,updMeter)};
 $('#form').addEventListener('submit',async e=>{
   e.preventDefault();
+  slotStop?.(); // se i rulli stanno ancora girando, fermali sulla password vera prima di salvare
   let chosenCat=$('#fCat').value;
   if(chosenCat==='__new__'){
     chosenCat=$('#fCatNew').value.trim();
@@ -623,10 +656,11 @@ $('#gOpts').addEventListener('input',()=>{$('#gLenV').textContent=$('#gLen').val
 function updQ(){const r=strength($('#qPass').value);$('#qBar').style.width=r.p+'%';$('#qBar').style.background=r.c;$('#qTxt').textContent=r.t?'Robustezza: '+r.t:''}
 function openQuick(it){qId=it.id;$('#qS').textContent=it.name+(it.user?' · '+it.user:'');$('#qPass').value='';updQ();$('#dlgQ').showModal()}
 $('#qPass').addEventListener('input',updQ);
-$('#qGen').onclick=()=>{const g=gen();if(g){$('#qPass').value=g;updQ()}};
+$('#qGen').onclick=()=>{const g=gen();if(g)slotFill($('#qPass'),g,updQ)};
 $('#qCancel').onclick=()=>$('#dlgQ').close();
 $('#fQ').addEventListener('submit',async e=>{
   e.preventDefault();
+  slotStop?.();
   const id=qId, p=$('#qPass').value, it=items.find(x=>x.id===id); if(!it||!p)return;
   if(await commit(()=>{Object.assign(it,recordPasswordChange(it,p),{pass:p})},'Password aggiornata'))$('#dlgQ').close();
 });
@@ -927,8 +961,99 @@ $('#cloudForm').addEventListener('submit',async e=>{
   }finally{btn.disabled=false}
 });
 
+/* Sblocco con impronta o viso (WebAuthn + estensione PRF).
+   Il dispositivo produce un segreto solo dopo impronta/viso; da quel segreto si ricava una chiave che
+   cifra la password principale. In localStorage resta solo la password cifrata: senza impronta non si apre. */
+let bioTry=false;
+const bioGet=()=>{try{const b=JSON.parse(localStorage.getItem('bio'));return b&&typeof b.id==='string'&&typeof b.iv==='string'&&typeof b.ct==='string'?b:null}catch{return null}};
+const bioOff=()=>{try{localStorage.removeItem('bio')}catch{}};
+async function bioAvailable(){
+  try{return !!(window.PublicKeyCredential&&navigator.credentials&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())}catch{return false}
+}
+const bioSalt=()=>crypto.subtle.digest('SHA-256',enc.encode('cassaforte-bio-prf-v1'));
+async function bioKey(out){
+  const base=await crypto.subtle.importKey('raw',out,'HKDF',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:new Uint8Array(32),info:enc.encode('cassaforte-bio-key-v1')},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function bioAssert(id){
+  const cred=await navigator.credentials.get({publicKey:{
+    challenge:crypto.getRandomValues(new Uint8Array(32)),rpId:location.hostname,
+    allowCredentials:[{type:'public-key',id:unb64(id)}],userVerification:'required',timeout:60000,
+    extensions:{prf:{eval:{first:await bioSalt()}}}
+  }});
+  const r=cred?.getClientExtensionResults?.()?.prf?.results?.first;
+  if(!r)throw new Error('noprf');
+  return new Uint8Array(r);
+}
+async function bioEnable(pw){
+  const cred=await navigator.credentials.create({publicKey:{
+    rp:{name:'Cassaforte',id:location.hostname},
+    user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'Cassaforte',displayName:'Cassaforte'},
+    challenge:crypto.getRandomValues(new Uint8Array(32)),
+    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+    authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
+    timeout:60000,extensions:{prf:{eval:{first:await bioSalt()}}}
+  }});
+  const ext=cred.getClientExtensionResults?.()?.prf;
+  if(!ext||ext.enabled===false)throw new Error('noprf');
+  const id=b64(cred.rawId);
+  // alcuni telefoni danno il segreto già alla creazione, altri chiedono l'impronta una seconda volta
+  const out=ext.results?.first?new Uint8Array(ext.results.first):await bioAssert(id);
+  const k=await bioKey(out), iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(pw));
+  localStorage.setItem('bio',JSON.stringify({v:1,id,iv:b64(iv),ct:b64(ct)}));
+}
+async function bioPassword(){
+  const b=bioGet(); if(!b)throw new Error('nobio');
+  const k=await bioKey(await bioAssert(b.id));
+  return dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(b.iv)},k,unb64(b.ct)));
+}
+async function updBioUI(){
+  const ok=await bioAvailable(), on=!!bioGet();
+  $('#bioErr').textContent='';
+  $('#bioOnWrap').classList.toggle('hide',!ok||on);
+  $('#bBioOff').classList.toggle('hide',!on);
+  $('#bioInfo').innerHTML=on
+    ?'<span class="badge-ok">Attivo</span>: nella schermata iniziale tocca “Sblocca con impronta o viso”. La password principale funziona sempre.'
+    :ok?'Apri la Cassaforte con l’impronta digitale o il viso invece di scrivere la password. Funziona solo su questo dispositivo.'
+    :'Non disponibile su questo dispositivo o browser (serve un telefono o computer con impronta, viso o PIN di sistema).';
+}
+function updBioLock(){$('#bBio').classList.toggle('hide',!(bioGet()&&getVault()))}
+$('#bBio').onclick=async()=>{
+  const b=$('#bBio'); b.disabled=true; $('#err').textContent='';
+  try{
+    const pw=await bioPassword();
+    bioTry=true; $('#mp').value=pw; $('#lockForm').requestSubmit();
+  }catch(e){
+    console.warn('Sblocco impronta',e);
+    if(e?.name!=='NotAllowedError'&&e?.name!=='AbortError'){
+      $('#err').textContent='Impronta non riuscita: entra con la password principale.';
+    }
+  }finally{b.disabled=false}
+};
+$('#bBioOn').onclick=async()=>{
+  const pw=$('#bioPw').value, err=$('#bioErr'), btn=$('#bBioOn'); err.textContent='';
+  if(!pw){err.textContent='Scrivi la password principale.';$('#bioPw').focus();return}
+  btn.disabled=true; allowExternal();
+  try{
+    try{await decryptVault(pw,getVault())}catch{err.textContent='Password principale non corretta.';return}
+    await bioEnable(pw);
+    $('#bioPw').value=''; await updBioUI(); toast('Sblocco con impronta attivato',true); buzz(30);
+  }catch(e){
+    console.warn('Attivazione impronta',e);
+    bioOff();
+    err.textContent=e?.message==='noprf'
+      ?'Questo dispositivo o browser non permette lo sblocco sicuro con impronta. Prova con Chrome aggiornato (Android) o Safari (iPhone).'
+      :e?.name==='NotAllowedError'?'Operazione annullata.':'Attivazione non riuscita. Riprova.';
+  }finally{btn.disabled=false;extUntil=0}
+};
+$('#bBioOff').onclick=async()=>{
+  if(!confirm('Disattivare lo sblocco con impronta o viso su questo dispositivo?'))return;
+  bioOff(); await updBioUI(); toast('Sblocco con impronta disattivato');
+};
+
 /* Opzioni e cambio password principale */
-$('#bSet').onclick=()=>{const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;updBkInfo();updCloudUI();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
+$('#bSet').onclick=()=>{updBioUI();const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;updBkInfo();updCloudUI();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
 $('#bSetClose').onclick=()=>$('#dlgSet').close();
 $('#pwForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=$('#pErr'); err.textContent='';
@@ -945,7 +1070,8 @@ $('#pwForm').addEventListener('submit',async e=>{
     const os=salt, ok=key, oi=iter; salt=ns; key=nk; iter=ITER;
     try{await persist()}
     catch(x){console.error(x);if(s===sess){salt=os;key=ok;iter=oi}err.textContent='Salvataggio non riuscito: la password principale NON è stata cambiata.';return}
-    $('#pwForm').reset(); $('#dlgSet').close(); toast('Password principale cambiata: fai un nuovo backup');
+    const hadBio=!!bioGet(); bioOff();
+    $('#pwForm').reset(); $('#dlgSet').close(); toast(hadBio?'Password cambiata: riattiva l’impronta in Opzioni e fai un backup':'Password principale cambiata: fai un nuovo backup');
   }finally{if(btn)btn.disabled=false}
 });
 
@@ -1029,6 +1155,18 @@ function setTheme(t){
   updThemeUI();
 }
 $('#themeSel').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)setTheme(b.dataset.t)});
+/* Colore della cassaforte (applicato in anticipo da theme.js) */
+const ACCENTS=['oro','smeraldo','rubino','zaffiro','ametista'];
+const curAccent=()=>document.documentElement.getAttribute('data-accent')||'oro';
+function updAccentUI(){document.querySelectorAll('#accentSel [data-ac]').forEach(b=>{const on=b.dataset.ac===curAccent();b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)})}
+$('#accentSel').addEventListener('click',e=>{
+  const b=e.target.closest('[data-ac]');if(!b||!ACCENTS.includes(b.dataset.ac))return;
+  const a=b.dataset.ac;
+  if(a==='oro')document.documentElement.removeAttribute('data-accent');else document.documentElement.setAttribute('data-accent',a);
+  try{a==='oro'?localStorage.removeItem('accent'):localStorage.setItem('accent',a)}catch{}
+  updAccentUI();toast('Colore: '+b.textContent.trim(),true);
+});
+updAccentUI();
 updThemeUI();
 
 /* Versione e novità */
