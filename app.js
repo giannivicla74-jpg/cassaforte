@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.10.0';
+const APP_VERSION='1.11.0';
 const CHANGELOG=[
+  ['1.11.0',[
+    'Nuova vista a elenco compatto, oltre a quella a schede (pulsante accanto a “+ Aggiungi”)'
+  ]],
   ['1.10.0',[
     'Pannello Salute Password con punteggio da 0 a 100',
     'Simbolo e colore per ogni categoria (✉️ Email, 🏦 Banca, 🛒 Shopping…)',
@@ -214,7 +217,7 @@ $('#bKeep').onclick=()=>{
 
 /* Elenco */
 const ic=p=>`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
-const IC={user:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),key:ic('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>'),eye:ic('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),eyeoff:ic('<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6A16 16 0 0 0 2 12s4 7 10 7a9.7 9.7 0 0 0 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),link:ic('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),edit:ic('<path d="M4 20h4L19 9l-4-4L4 16z"/>')};
+const IC={user:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),key:ic('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>'),eye:ic('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),eyeoff:ic('<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6A16 16 0 0 0 2 12s4 7 10 7a9.7 9.7 0 0 0 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),link:ic('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),edit:ic('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),cards:ic('<rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>'),lines:ic('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>')};
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 let cat='Tutti';
 const star=f=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`;
@@ -264,6 +267,22 @@ function enterAnim(){
 }
 function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');el.addEventListener('animationend',()=>el.classList.remove('shake'),{once:true})}
 
+/* Vista: schede (predefinita) oppure elenco compatto; la scelta resta salvata */
+const getView=()=>{try{return localStorage.getItem('view')==='list'?'list':'cards'}catch{return'cards'}};
+function updViewUI(){
+  const l=getView()==='list';
+  $('#bView').innerHTML=l?IC.cards:IC.lines;
+  $('#bView').title=l?'Mostra a schede':'Mostra a elenco';
+  $('#bView').setAttribute('aria-label',$('#bView').title);
+}
+$('#bView').onclick=()=>{
+  const next=getView()==='list'?'cards':'list';
+  try{localStorage.setItem('view',next)}catch{}
+  updViewUI();render();enterAnim();
+  toast(next==='list'?'Vista a elenco':'Vista a schede');
+};
+updViewUI();
+
 function allKnownCats(){
   return [...new Set([...CATS,...items.map(i=>i.cat||'Altro')])];
 }
@@ -306,6 +325,24 @@ function render(){
         <button class="btn s" data-a="sh">${shown.has(i.id)?IC.eyeoff+'Nascondi':IC.eye+'Mostra'}</button>
         <button class="btn s" data-a="ed">${IC.edit}Modifica</button>
       </div>`;
+  const asList=getView()==='list';
+  $('#list').classList.toggle('lines',asList);
+  // Vista a elenco: una riga compatta per account, con i pulsanti rapidi
+  if(asList&&rows.length){
+    $('#list').innerHTML=[...groups.values()].flat().map(x=>{
+      const ci=catInfo(x.cat), warn=audit.warnIds.has(x.id);
+      return`
+    <li class="ln" data-id="${esc(x.id)}" data-ids="${esc(x.id)}">
+      <div class="av sm" style="--h:${ci.h}">${esc(x.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${ci.e}</span></div>
+      <div class="ln-t"><div class="ln-n">${x.fav?'<span class="ln-f" aria-label="Preferito">★</span>':''}${esc(x.name)}${warn?' <span class="ln-w" title="Password da controllare">⚠️</span>':''}</div><div class="u">${esc(x.user)||'<i>senza utente</i>'}</div></div>
+      <div class="ln-a">
+        <button class="btn s ic" data-a="cu" title="Copia utente" aria-label="Copia utente di ${esc(x.name)}">${IC.user}</button>
+        <button class="btn s ic" data-a="cp" title="Copia password" aria-label="Copia password di ${esc(x.name)}"${x.pass?'':' disabled'}>${IC.key}</button>
+        <button class="btn s ic" data-a="ed" title="Modifica" aria-label="Modifica ${esc(x.name)}">${IC.edit}</button>
+      </div>
+    </li>`}).join('');
+    return;
+  }
   $('#list').innerHTML=rows.length?[...groups.values()].map(g=>{
     const i=g[0], multi=g.length>1, fav=g.some(x=>x.fav);
     const href=safeUrl(g.find(x=>safeUrl(x.url))?.url||'');

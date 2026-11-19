@@ -218,6 +218,23 @@ li.it{transition:transform .15s,box-shadow .15s}
 #toast.on{transform:translate(-50%,0)}
 #toast .ti{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#2f9e6b;color:#fff;font-size:.75rem;font-weight:800}
 .btn.done{border-color:#2f9e6b;color:#2f9e6b}
+/* Vista a elenco */
+#bView,header.bar .row:nth-child(2)>#bView{padding:11px 12px;flex:none}
+#bView svg{width:18px;height:18px}
+#list.lines{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden}
+li.ln{display:flex;align-items:center;gap:12px;padding:10px 12px;border-top:1px solid var(--line)}
+li.ln:first-child{border-top:0}
+#list.anim li.ln{animation:rise .3s ease both}
+.av.sm{width:36px;height:36px;border-radius:11px;font-size:.95rem}
+.av.sm .ae{width:18px;height:18px;font-size:.65rem;right:-4px;bottom:-4px}
+.ln-t{flex:1;min-width:0}
+.ln-n{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-t .u{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.82rem}
+.ln-f{color:#e9a820;margin-right:4px}
+.ln-w{font-size:.8rem}
+.ln-a{display:flex;gap:6px;flex:none}
+.btn.ic{width:36px;height:36px;padding:0}
+.btn.ic:disabled{opacity:.35;cursor:default}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 @media print{
   @page{margin:14mm}
@@ -268,6 +285,7 @@ li.it{transition:transform .15s,box-shadow .15s}
     <div class="row" style="margin-top:14px">
       <div class="search grow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cerca account" aria-label="Cerca account"></div>
       <select id="sortBy" aria-label="Ordina account" title="Ordina account" style="width:auto;padding:10px"><option value="az">A → Z</option><option value="recent">Recenti</option><option value="cat">Categoria</option></select>
+      <button class="btn" id="bView" type="button" title="Mostra a elenco" aria-label="Mostra a elenco"></button>
       <button class="btn p" id="bAdd">+ Aggiungi</button>
     </div>
   <div class="chips" id="chips"></div>
@@ -633,6 +651,7 @@ li.it{transition:transform .15s,box-shadow .15s}
       <h4>🧰 5. Funzioni Intelligenti: Salute Password, Cronologia, Passphrase e CSV</h4>
       <ul>
         <li><b>👥 Più account per lo stesso servizio</b>: se hai per esempio due account Amazon, tocca <b>+ Altro account</b> sulla scheda Amazon. Il modulo si apre con nome, sito e categoria già compilati, e devi scrivere solo utente e password. Gli account con lo stesso nome compaiono insieme nella stessa scheda, ognuno con i suoi pulsanti <b>Utente</b>, <b>Password</b>, <b>Mostra</b> e <b>Modifica</b>.</li>
+        <li><b>📋 Schede o Elenco</b>: il pulsante accanto a <b>+ Aggiungi</b> cambia la vista. A <b>schede</b> vedi tutto di ogni account; a <b>elenco</b> vedi una riga compatta per account con i pulsanti rapidi per copiare utente e password e per modificare. L'app ricorda la tua scelta.</li>
         <li><b>💯 Pannello Salute Password</b>: in cima alla lista un cerchio colorato dà un punteggio da 0 a 100 (verde = ottimo, giallo = da migliorare, rosso = a rischio). Tocca <b>Vedi quali →</b> per vedere subito le password deboli, riutilizzate o vecchie.</li>
         <li><b>🌙 Giorno / Notte</b>: il pulsante con la luna o il sole nella barra in alto passa dal tema chiaro a quello scuro.</li>
         <li><b>🛡️ Controllo Salute Password</b>: l'app segnala automaticamente con un badge rosso le <b>password deboli</b>, <b>riutilizzate su più siti</b> o <b>più vecchie di 1 anno</b>, e aggiunge il filtro rapido <b>⚠️ Da controllare</b> in cima alla lista.</li>
