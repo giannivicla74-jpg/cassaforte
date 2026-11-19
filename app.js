@@ -6,8 +6,14 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.9.3';
+const APP_VERSION='1.10.0';
 const CHANGELOG=[
+  ['1.10.0',[
+    'Pannello Salute Password con punteggio da 0 a 100',
+    'Simbolo e colore per ogni categoria (✉️ Email, 🏦 Banca, 🛒 Shopping…)',
+    'Nuova schermata di apertura con animazione della cassaforte che si apre',
+    'Animazioni più morbide, spunta verde e leggera vibrazione quando copi'
+  ]],
   ['1.9.3',[
     'Più account per lo stesso servizio (es. due account Amazon) nella stessa scheda, con il pulsante “+ Altro account”',
     'Sul telefono la scritta “Cassaforte” torna leggibile: i pulsanti vanno sulla riga sotto'
@@ -73,7 +79,7 @@ async function commit(fn,msg){
   const prev=structuredClone(items), prevChg=localStorage.getItem('lastChange'), s=sess;
   fn();
   localStorage.setItem('lastChange',Date.now());
-  try{await persist();render();if(msg)toast(msg);return true}
+  try{await persist();render();if(msg)toast(msg,true);return true}
   catch(e){
     console.error(e);
     if(s===sess){
@@ -85,7 +91,8 @@ async function commit(fn,msg){
     return false;
   }
 }
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
+function toast(t,ok){const e=$('#toast');e.innerHTML=(ok?'<span class="ti" aria-hidden="true">✓</span>':'')+esc(t);e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
+const buzz=ms=>{try{navigator.vibrate?.(ms)}catch{}};
 
 function resetPwEyes(){
   document.querySelectorAll('.pw-eye[data-eye]').forEach(b=>{
@@ -188,10 +195,11 @@ $('#lockForm').addEventListener('submit',async e=>{
     }else{
       let decRes;
       try{decRes=await decryptVault(pw,v)}
-      catch{$('#err').textContent='Password errata.';return}
+      catch{$('#err').textContent='Password errata.';shake($('.lockcard'));buzz([40,60,40]);return}
       salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
     }
-    $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); bump(); checkAndRequestPersistence(true); initSync();
+    const s0=sess; await openAnim(); if(s0!==sess||!key)return;
+    $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync();
     upgradeKdf(pw);
   }finally{btn.disabled=false}
 });
@@ -216,6 +224,46 @@ $('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if
 try{const sb=localStorage.getItem('sortBy');if(['az','recent','cat'].includes(sb))$('#sortBy').value=sb}catch{}
 $('#sortBy').addEventListener('change',()=>{try{localStorage.setItem('sortBy',$('#sortBy').value)}catch{};render()});
 
+/* Simbolo e colore di ogni categoria (le categorie personalizzate prendono un colore dal nome) */
+const CAT_INFO={Email:['✉️',210],Social:['👥',275],Banca:['🏦',150],Lavoro:['💼',28],Shopping:['🛒',340],Altro:['📁',195]};
+const catInfo=c=>CAT_INFO[c]?{e:CAT_INFO[c][0],h:CAT_INFO[c][1]}:{e:'🏷️',h:hue(c||'Altro')};
+const catTag=c=>{const k=catInfo(c);return `<span class="tag cat" style="--ch:${k.h}">${k.e} ${esc(c||'Altro')}</span>`};
+
+/* Pannello Salute Password: percentuale di password senza problemi */
+function updHealth(audit){
+  const box=$('#health'), withPass=items.filter(i=>i.pass).length;
+  if(!items.length||!withPass){box.classList.add('hide');return}
+  const bad=audit.warnIds.size, score=Math.round(100*(withPass-bad)/withPass);
+  const col=score>=80?'#2f9e6b':score>=50?'#d99a1a':'var(--bad)';
+  box.style.setProperty('--hc',col);
+  $('#hRing').style.strokeDashoffset=(169.6*(1-score/100)).toFixed(1);
+  $('#hScore').textContent=score;
+  $('#hStatus').textContent=score===100?'Ottima! 🎉':score>=80?'Buona':score>=50?'Da migliorare':'A rischio';
+  const parts=[[audit.weakIds.size,'debol','e','i'],[audit.dupIds.size,'riutilizzat','a','e'],[audit.oldIds.size,'vecchi','a','e']]
+    .filter(p=>p[0]).map(([n,s,one,many])=>`${n} ${s}${n===1?one:many}`);
+  $('#hDet').textContent=bad?`${bad===1?'1 password da migliorare':bad+' password da migliorare'}: ${parts.join(' · ')}`:`Tutte le ${withPass} password sono a posto`;
+  $('#hGo').classList.toggle('hide',!bad||cat==='!warn');
+  box.classList.remove('hide');
+}
+$('#hGo').onclick=()=>{cat='!warn';render();$('#chips').scrollIntoView({behavior:'smooth',block:'start'})};
+
+/* Animazioni: apertura della cassaforte e comparsa delle schede */
+const calm=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pause=ms=>new Promise(r=>setTimeout(r,ms));
+async function openAnim(){
+  if(calm())return;
+  $('#lock').classList.add('opening');
+  await pause(580);
+  $('#lock').classList.remove('opening');
+}
+function enterAnim(){
+  if(calm())return;
+  const l=$('#list'),a=$('#app');
+  l.classList.add('anim');a.classList.add('anim');
+  clearTimeout(enterAnim.t);enterAnim.t=setTimeout(()=>{l.classList.remove('anim');a.classList.remove('anim')},1000);
+}
+function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');el.addEventListener('animationend',()=>el.classList.remove('shake'),{once:true})}
+
 function allKnownCats(){
   return [...new Set([...CATS,...items.map(i=>i.cat||'Altro')])];
 }
@@ -235,10 +283,11 @@ function render(){
     ...usedCats
   ];
   $('#chips').innerHTML=items.length?chips.map(c=>{
-    const lbl=c==='★'?'★ Preferiti':c==='!warn'?`⚠️ Da controllare (${audit.warnIds.size})`:esc(c);
+    const lbl=c==='★'?'★ Preferiti':c==='!warn'?`⚠️ Da controllare (${audit.warnIds.size})`:c==='Tutti'?'Tutti':`<span class="ce">${catInfo(c).e}</span>${esc(c)}`;
     const cls=`chip${c==='!warn'?' warn-chip':''}${c===cat?' on':''}`;
     return `<button class="${cls}" data-c="${esc(c)}">${lbl}</button>`;
   }).join(''):'';
+  updHealth(audit);
   const rows=filterItems(items,cat,q,$('#sortBy').value,audit.warnIds);
   // Account con lo stesso nome di servizio (es. due account Amazon) stanno nella stessa scheda
   const groups=new Map();
@@ -260,11 +309,11 @@ function render(){
   $('#list').innerHTML=rows.length?[...groups.values()].map(g=>{
     const i=g[0], multi=g.length>1, fav=g.some(x=>x.fav);
     const href=safeUrl(g.find(x=>safeUrl(x.url))?.url||'');
-    const head=`<span class="tag">${esc(i.cat||'Altro')}</span>${multi?`<span class="tag">${g.length} account</span>`:warnTags(i)}`;
+    const head=`${catTag(i.cat)}${multi?`<span class="tag">${g.length} account</span>`:warnTags(i)}`, ci=catInfo(i.cat);
     return`
     <li class="it" data-id="${esc(i.id)}" data-ids="${esc(g.map(x=>x.id).join(','))}">
       <div class="top">
-        <div class="av" style="--h:${hue(i.name)}">${esc(i.name.trim().charAt(0).toUpperCase())}</div>
+        <div class="av" style="--h:${ci.h}">${esc(i.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${ci.e}</span></div>
         <div class="meta"><h2>${esc(i.name)}${head}</h2>${multi?'':`<div class="u">${esc(i.user)}</div>`}</div>
         <button class="star${fav?' on':''}" data-a="fv" aria-label="${fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${star(fav)}</button>
       </div>
@@ -280,7 +329,7 @@ $('#q').addEventListener('input',render);
 /* Appunti: svuotati dopo 30 s. Il browser permette di scrivere negli appunti solo con la pagina in primo piano,
    quindi se in quel momento sei in un'altra app li svuotiamo appena torni (o al blocco manuale). */
 async function copy(t,m){
-  try{await navigator.clipboard.writeText(t);toast(m);clipAt=Date.now();clipClearPending=false;clearTimeout(clipT);clipT=setTimeout(()=>clearClip(),30000)}
+  try{await navigator.clipboard.writeText(t);toast(m,true);buzz(25);clipAt=Date.now();clipClearPending=false;clearTimeout(clipT);clipT=setTimeout(()=>clearClip(),30000)}
   catch{toast('Copia non riuscita')}
 }
 function clearClip(force){
@@ -813,7 +862,7 @@ $('#cloudForm').addEventListener('submit',async e=>{
       salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
       $('#dlgCloud').close();
       $('#lock').classList.add('hide'); $('#app').classList.remove('hide');
-      render(); bump(); checkAndRequestPersistence(true); initSync();
+      render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync();
       upgradeKdf(pw);
       toast(`Cassaforte ripristinata: ${items.length} account`);
     }else{
