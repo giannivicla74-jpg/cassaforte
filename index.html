@@ -239,6 +239,23 @@ li.it{transition:transform .15s,box-shadow .15s}
 .sw{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px 6px 6px;font-size:.85rem;font-weight:600}
 .sw span{width:24px;height:24px;border-radius:50%;background:var(--c);display:grid;place-items:center;font-size:.7rem;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
 .sw.on{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent)}
+/* Riflesso di luce sulla scritta "Cassaforte": ogni 5 s una luce del colore scelto attraversa il nome */
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .brand h1,#lock h1{
+    --shine:var(--brass);--core:color-mix(in srgb,var(--brass) 55%,#fff3c4);
+    background:linear-gradient(110deg,var(--ink) 0%,var(--ink) 40%,var(--shine) 47%,var(--core) 50%,var(--shine) 53%,var(--ink) 60%,var(--ink) 100%);
+    background-size:250% 100%;background-position:100% 0;
+    -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+    animation:shine 5s ease-in-out infinite
+  }
+  #lock h1{animation-delay:.8s}
+  /* di notte il riflesso è più chiaro, con il centro bianco */
+  :root[data-theme="dark"] .brand h1,:root[data-theme="dark"] #lock h1{--shine:color-mix(in srgb,var(--brass) 65%,#fff);--core:#fff}
+}
+@media(prefers-color-scheme:dark){@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  :root:not([data-theme="light"]) .brand h1,:root:not([data-theme="light"]) #lock h1{--shine:color-mix(in srgb,var(--brass) 65%,#fff);--core:#fff}
+}}
+@keyframes shine{0%,55%{background-position:100% 0}85%,100%{background-position:0 0}}
 /* Sblocco con impronta */
 #lock .btn.bio{margin-top:10px;border:2px solid var(--brass);color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 8%,var(--card))}
 .bio-ic{font-size:1.15rem}

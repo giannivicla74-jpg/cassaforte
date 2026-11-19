@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.12.0';
+const APP_VERSION='1.12.1';
 const CHANGELOG=[
+  ['1.12.1',[
+    'Riflesso di luce animato sulla scritta “Cassaforte”, nel colore scelto'
+  ]],
   ['1.12.0',[
     'Sblocco con impronta digitale o riconoscimento del viso (da attivare in Opzioni)',
     'Colore della cassaforte a scelta: Oro, Smeraldo, Rubino, Zaffiro, Ametista',
