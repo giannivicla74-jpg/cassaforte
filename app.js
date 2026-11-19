@@ -9,7 +9,8 @@ let extUntil=0;        // finestra in cui la pagina può andare in background (c
 const APP_VERSION='1.9.3';
 const CHANGELOG=[
   ['1.9.3',[
-    'Più account per lo stesso servizio (es. due account Amazon) nella stessa scheda, con il pulsante “+ Altro account”'
+    'Più account per lo stesso servizio (es. due account Amazon) nella stessa scheda, con il pulsante “+ Altro account”',
+    'Sul telefono la scritta “Cassaforte” torna leggibile: i pulsanti vanno sulla riga sotto'
   ]],
   ['1.9.2',[
     'Pulsante Giorno/Notte (sole e luna) nella barra in alto',
