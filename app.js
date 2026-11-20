@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.14.3';
+const APP_VERSION='1.14.4';
 const CHANGELOG=[
+  ['1.14.4',[
+    'Sezione “Tutto quello che sa fare” aggiornata con eliminazione sicura e avvisi del Cloud'
+  ]],
   ['1.14.3',[
     'Conto alla rovescia sul pulsante “Annulla” dopo un’eliminazione'
   ]],
