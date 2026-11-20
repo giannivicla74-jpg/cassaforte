@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.14.4';
+const APP_VERSION='1.15.0';
 const CHANGELOG=[
+  ['1.15.0',[
+    'Nuovi suoni: 🎸 Chitarra e suoni della natura (🌧️ Pioggia, 🌊 Onde del mare, 🐦 Uccellini, 🌲 Foresta)'
+  ]],
   ['1.14.4',[
     'Sezione “Tutto quello che sa fare” aggiornata con eliminazione sicura e avvisi del Cloud'
   ]],
@@ -1406,7 +1409,7 @@ function setTheme(t){
 }
 $('#themeSel').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)setTheme(b.dataset.t)});
 /* Musica di sottofondo (music.js): parte da sola allo sblocco; si spegne con il pulsante in alto o da Opzioni */
-const MUSIC_STYLES=['ambient','lounge','cyber'];
+const MUSIC_STYLES=['ambient','lounge','cyber','guitar','rain','sea','birds','forest'];
 const musicCfg=()=>{let on=true,st='ambient';try{on=localStorage.getItem('music')!=='off';const s=localStorage.getItem('musicStyle');if(MUSIC_STYLES.includes(s))st=s}catch{}return{on,st}};
 const NOTE_P='<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>';
 const MUSIC_ON=ic(NOTE_P), MUSIC_OFF=ic(NOTE_P+'<path d="M2 2l20 20"/>');
@@ -1415,7 +1418,7 @@ function updMusicUI(){
   b.classList.toggle('on',c.on);
   b.innerHTML=(c.on&&playing?'<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>':c.on?MUSIC_ON:MUSIC_OFF)+'<span class="lbl"> Musica</span>';
   b.title=c.on?'Spegni la musica':'Accendi la musica'; b.setAttribute('aria-label',b.title); b.setAttribute('aria-pressed',c.on);
-  document.querySelectorAll('#musicSel [data-m]').forEach(x=>{const on=c.on?x.dataset.m===c.st:x.dataset.m==='off';x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});
+  document.querySelectorAll('#musicSel [data-m],#musicSel2 [data-m]').forEach(x=>{const on=c.on?x.dataset.m===c.st:x.dataset.m==='off';x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});
 }
 function musicPlay(){
   const c=musicCfg(); if(!c.on||!key||document.hidden||!window.Music)return;
@@ -1427,13 +1430,15 @@ $('#bMusic').onclick=()=>{
   if(on){window.Music?.prime();musicPlay();toast('Musica accesa',true)}else{musicStop();toast('Musica spenta')}
   updMusicUI();
 };
-$('#musicSel').addEventListener('click',e=>{
+const onMusicPick=e=>{
   const b=e.target.closest('[data-m]'); if(!b)return; const m=b.dataset.m;
   if(m==='off'){try{localStorage.setItem('music','off')}catch{};musicStop();return}
   if(!MUSIC_STYLES.includes(m))return;
   try{localStorage.setItem('music','on');localStorage.setItem('musicStyle',m)}catch{}
   window.Music?.prime();musicPlay();updMusicUI();
-});
+};
+$('#musicSel').addEventListener('click',onMusicPick);
+$('#musicSel2').addEventListener('click',onMusicPick);
 updMusicUI();
 
 /* Colore della cassaforte (applicato in anticipo da theme.js) */

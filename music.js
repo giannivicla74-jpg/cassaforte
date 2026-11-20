@@ -100,6 +100,121 @@
     }}
   };
 
+  // ---------- Suoni della natura e chitarra ----------
+  // Rumori di base (2 s, ripetuti): bianco, rosa (pioggia/foglie), marrone (mare/vento)
+  const noises={};
+  function noise(kind){
+    if(noises[kind])return noises[kind];
+    const len=ctx.sampleRate*2, b=ctx.createBuffer(2,len,ctx.sampleRate);
+    for(let c=0;c<2;c++){
+      const d=b.getChannelData(c); let b0=0,b1=0,b2=0,last=0;
+      for(let i=0;i<len;i++){
+        const w=Math.random()*2-1;
+        if(kind==='pink'){b0=.99765*b0+w*.099;b1=.963*b1+w*.2965;b2=.57*b2+w*1.0526;d[i]=(b0+b1+b2+w*.1848)*.11}
+        else if(kind==='brown'){last=(last+.02*w)/1.02;d[i]=last*3.5}
+        else d[i]=w;
+      }
+    }
+    return noises[kind]=b;
+  }
+  // Fondo continuo (fruscio): ogni stile lo crea all'avvio e lo spegne in dissolvenza all'uscita
+  let beds=[];
+  function bed(kind,{type='lowpass',freq=1000,q=.7,vol=.2,lfo=0,lfoDepth=0,lfoFreq=0,rev=.3}={}){
+    const src=ctx.createBufferSource(); src.buffer=noise(kind); src.loop=true;
+    const f=ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q;
+    const g=ctx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(vol,ctx.currentTime+2.5);
+    src.connect(f); f.connect(g); out(g,1,rev);
+    const nodes=[src];
+    if(lfo){ // onda lenta che muove volume e/o filtro (il mare che va e viene, il vento a raffiche)
+      const o=ctx.createOscillator(); o.frequency.value=lfo;
+      const og=ctx.createGain(); og.gain.value=lfoDepth; o.connect(og); og.connect(g.gain);
+      if(lfoFreq){const of=ctx.createGain(); of.gain.value=lfoFreq; o.connect(of); of.connect(f.frequency)}
+      o.start(); nodes.push(o);
+    }
+    src.start(); beds.push({g,nodes});
+  }
+  function bedsOff(fade){
+    const t=ctx.currentTime;
+    beds.forEach(({g,nodes})=>{g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+fade);nodes.forEach(n=>{try{n.stop(t+fade+.05)}catch(e){}})});
+    beds=[];
+  }
+  // goccia di pioggia: un piccolo "tic" filtrato, a volte più vicino
+  function drop(t,vol){
+    const s=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain();
+    s.buffer=noise('white'); f.type='bandpass'; f.frequency.value=1800+Math.random()*3500; f.Q.value=4;
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+.04+Math.random()*.05);
+    s.connect(f); f.connect(g); out(g,.7,.5); s.start(t,Math.random()*1.5); s.stop(t+.12);
+  }
+  // cinguettio: fischi rapidi che salgono e scendono, ripetuti 2-6 volte (uccelli diversi a caso)
+  function chirp(t,vol=.05){
+    const kind=Math.floor(Math.random()*3), base=2200+Math.random()*2200, n=2+Math.floor(Math.random()*5), gap=.07+Math.random()*.08;
+    const pan=ctx.createStereoPanner?ctx.createStereoPanner():null; if(pan)pan.pan.value=Math.random()*1.6-.8;
+    for(let k=0;k<n;k++){
+      const tt=t+k*gap, d=.05+Math.random()*.04, o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine';
+      if(kind===0){o.frequency.setValueAtTime(base,tt);o.frequency.exponentialRampToValueAtTime(base*1.6,tt+d)}
+      else if(kind===1){o.frequency.setValueAtTime(base*1.5,tt);o.frequency.exponentialRampToValueAtTime(base*.8,tt+d)}
+      else{o.frequency.setValueAtTime(base,tt);o.frequency.linearRampToValueAtTime(base*1.25,tt+d/2);o.frequency.linearRampToValueAtTime(base*.9,tt+d)}
+      g.gain.setValueAtTime(0,tt); g.gain.linearRampToValueAtTime(vol,tt+.008); g.gain.exponentialRampToValueAtTime(.0001,tt+d);
+      o.connect(g); if(pan){g.connect(pan)} else out(g,.8,.6); o.start(tt); o.stop(tt+d+.02);
+    }
+    if(pan)out(pan,.8,.6);
+  }
+  // chitarra acustica: corda pizzicata calcolata con l'algoritmo di Karplus-Strong
+  const strings={};
+  function guitarBuf(n){
+    if(strings[n])return strings[n];
+    const sr=ctx.sampleRate, len=Math.floor(sr*2.6), b=ctx.createBuffer(1,len,sr), d=b.getChannelData(0);
+    const P=Math.max(2,Math.round(sr/N(n))), decay=n<52?.9965:.994;
+    let prev=0; for(let i=0;i<P;i++){const w=Math.random()*2-1;d[i]=(w+prev)*.5;prev=w} // eccitazione morbida (plettro/dito)
+    for(let i=P;i<len;i++)d[i]=decay*.5*(d[i-P]+d[i-P-1]);
+    return strings[n]=b;
+  }
+  function gnote(n,t,vol=.32){
+    const s=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain();
+    s.buffer=guitarBuf(n); f.type='lowpass'; f.frequency.value=3200; g.gain.value=vol;
+    s.connect(f); f.connect(g); out(g,.9,.45); s.start(t); s.stop(t+2.6);
+  }
+  Object.assign(STYLES,{
+    // Pioggia: fruscio continuo + gocce vicine e lontane
+    rain:{beat:.05, begin(){
+      bed('pink',{type:'bandpass',freq:1400,q:.5,vol:.55,rev:.25});
+      bed('pink',{type:'highpass',freq:4500,vol:.16,lfo:.07,lfoDepth:.05,rev:.1});
+      bed('brown',{type:'lowpass',freq:300,vol:.25,rev:0});
+    }, run(t){
+      if(Math.random()<.35)drop(t+Math.random()*.05,.025+Math.random()*.05);
+    }},
+    // Onde del mare: rumore profondo che sale e scende ogni ~9 secondi, con la schiuma che frigge
+    sea:{beat:.5, begin(){
+      bed('brown',{type:'lowpass',freq:650,q:.4,vol:.5,lfo:.11,lfoDepth:.38,lfoFreq:420,rev:.4});
+      bed('pink',{type:'highpass',freq:2800,vol:.07,lfo:.11,lfoDepth:.065,rev:.5});
+    }, run(t){
+      if(Math.random()<.04)chirp(t,.012); // qualche gabbiano lontano
+    }},
+    // Uccellini: cinguettii sparsi da più direzioni, con un filo di vento
+    birds:{beat:.3, begin(){
+      bed('brown',{type:'lowpass',freq:500,vol:.14,lfo:.05,lfoDepth:.08,rev:.2});
+    }, run(t){
+      if(Math.random()<.32)chirp(t+Math.random()*.2,.035+Math.random()*.03);
+    }},
+    // Foresta: vento tra gli alberi a raffiche, fruscio di foglie, uccelli lontani e un cuculo ogni tanto
+    forest:{beat:.4, begin(){
+      bed('brown',{type:'lowpass',freq:420,vol:.4,lfo:.06,lfoDepth:.28,lfoFreq:220,rev:.3});
+      bed('pink',{type:'bandpass',freq:2600,q:.8,vol:.06,lfo:.09,lfoDepth:.05,rev:.4});
+    }, run(t,s){
+      if(Math.random()<.12)chirp(t,.018+Math.random()*.015);
+      if(s%60===30){[0,.38].forEach((d,k)=>{bell(k?72:76,t+d,.03)})} // "cu-cù"
+    }},
+    // Chitarra: arpeggio pizzicato con le dita, giro di accordi caldo (Am - F - C - G)
+    guitar:{beat:60/72/2, run(t,s){
+      const prog=[[45,52,57,60,64],[41,48,53,57,60],[48,52,55,60,64],[43,47,50,55,59]];
+      const c=prog[Math.floor(s/16)%4], i=s%16, pat=[0,2,3,4,2,3,4,3];
+      const n=i%8===0?c[0]:c[pat[i%8]];
+      gnote(n,t+(Math.random()*.012),i%8===0?.36:.24);
+      if(i===12&&Math.random()<.5)gnote(c[4]+12,t+.02,.12); // piccola nota acuta di abbellimento
+    }}
+  });
+
   function loop(my){
     if(my!==gen||!cur)return;
     const st=STYLES[cur];
@@ -110,12 +225,14 @@
     async start(style){
       setup(); if(ctx.state==='suspended')await ctx.resume();
       if(cur===style)return; this.stop(true);
+      if(!STYLES[style])style='ambient';
       cur=style; this.style=style; step=0; nextT=ctx.currentTime+.1; const my=++gen;
       master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(master.gain.value,ctx.currentTime); master.gain.linearRampToValueAtTime(.55,ctx.currentTime+2);
+      STYLES[style].begin?.();
       timer=setInterval(()=>loop(my),100); loop(my);
     },
     stop(quick){
-      if(!ctx)return; clearInterval(timer); timer=null; gen++; cur=null;
+      if(!ctx)return; clearInterval(timer); timer=null; gen++; cur=null; bedsOff(quick?.15:1.2);
       const t=ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value,t); master.gain.linearRampToValueAtTime(0,t+(quick?.15:1.2));
     },
     // da chiamare subito dentro un tocco/click: iPhone e alcuni browser accendono l'audio solo così
