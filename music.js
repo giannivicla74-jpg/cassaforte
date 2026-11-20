@@ -226,7 +226,9 @@
     const sr=ctx.sampleRate, len=Math.floor(sr*2.6), b=ctx.createBuffer(1,len,sr), d=b.getChannelData(0);
     const P=Math.max(2,Math.round(sr/N(n))), decay=n<52?.9965:.994;
     let prev=0; for(let i=0;i<P;i++){const w=Math.random()*2-1;d[i]=(w+prev)*.5;prev=w} // eccitazione morbida (plettro/dito)
-    for(let i=P;i<len;i++)d[i]=decay*.5*(d[i-P]+d[i-P-1]);
+    // (prima mancava il controllo su d[-1]: usciva un valore non valido che ammutoliva tutto l'audio)
+    d[P]=decay*.5*d[0];
+    for(let i=P+1;i<len;i++)d[i]=decay*.5*(d[i-P]+d[i-P-1]);
     return strings[n]=b;
   }
   function gnote(n,t,vol=.32){
