@@ -145,6 +145,65 @@
     g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+.04+Math.random()*.05);
     s.connect(f); f.connect(g); out(g,.7,.5); s.start(t,Math.random()*1.5); s.stop(t+.12);
   }
+  // Tappeto di pioggia: 8 secondi con migliaia di gocce vere (ognuna un piccolo colpo che si spegne),
+  // calcolato una volta sola e poi ripetuto. È il picchiettio a far capire che piove, non il fruscio.
+  // Calcolato a piccoli pezzi (per non bloccare l'app sui telefoni), poi chiama done(buffer)
+  function rainBuild(done){
+    if(noises.rain)return done(noises.rain);
+    // un solo canale calcolato (il secondo è lo stesso spostato di 4 s),
+    // spegnimento e oscillazione con moltiplicazioni invece di exp/sin a ogni campione
+    const sr=ctx.sampleRate, len=sr*8, b=ctx.createBuffer(2,len,sr), TAU=Math.PI*2;
+    const d=b.getChannelData(0), nz=new Float32Array(4096); for(let i=0;i<4096;i++)nz[i]=Math.random()*2-1;
+    const TOTAL=8*380; let k=0;
+    const chunk=()=>{
+    for(const end=Math.min(TOTAL,k+250);k<end;k++){ // gocce piccole su foglie e tetto
+      const st=Math.floor(Math.random()*len), f=1400+Math.pow(Math.random(),2)*6500, tau=sr*(.0012+Math.random()*.005);
+      const L=Math.floor(tau*5), dec=Math.exp(-1/tau), c2=2*Math.cos(TAU*f/sr);
+      let env=.03+Math.pow(Math.random(),3)*.45, s1=Math.sin(TAU*f/sr), s0=0, ni=Math.floor(Math.random()*4096);
+      for(let i=0;i<L;i++){
+        const j=st+i<len?st+i:st+i-len;
+        d[j]+=env*(.65*s0+.35*nz[(ni+i)&4095]);
+        const s2=c2*s1-s0; s0=s1; s1=s2; env*=dec;
+      }
+    }
+    if(k<TOTAL)return setTimeout(chunk,0);
+    for(let k=0;k<8*14;k++){ // "plic" nelle pozzanghere: goccia che cade sull'acqua (nota che sale)
+      const st=Math.floor(Math.random()*len), f0=700+Math.random()*1500, tau=sr*(.012+Math.random()*.03), L=Math.floor(tau*4), dec=Math.exp(-1/tau);
+      let env=.08+Math.random()*.16, ph=0;
+      for(let i=0;i<L;i++){ph+=TAU*f0*(1+.9*i/L)/sr;const j=st+i<len?st+i:st+i-len;d[j]+=env*Math.sin(ph);env*=dec}
+    }
+    let mx=0; for(let i=0;i<len;i++){const a=d[i]<0?-d[i]:d[i];if(a>mx)mx=a}
+    const s=.85/(mx||1), r=b.getChannelData(1), half=len>>1;
+    for(let i=0;i<len;i++){d[i]*=s}
+    for(let i=0;i<len;i++){r[i]=d[i+half<len?i+half:i+half-len]}
+    done(noises.rain=b);
+    };
+    setTimeout(chunk,0);
+  }
+  function rainBed(vol){
+    const my=gen;
+    rainBuild(buf=>{
+      if(my!==gen||cur!=='rain')return; // nel frattempo la musica è cambiata o spenta
+      const src=ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+      const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=350;
+      const g=ctx.createGain(), t=ctx.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+2);
+      src.connect(hp); hp.connect(g); out(g,1,.3); src.start(0,Math.random()*8); beds.push({g,nodes:[src]});
+    });
+  }
+  // goccia grossa vicina che cade nell'acqua
+  function plop(t,vol=.06){
+    const o=ctx.createOscillator(), g=ctx.createGain(), f=500+Math.random()*900;
+    o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(f*2.2,t+.06);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.004); g.gain.exponentialRampToValueAtTime(.0001,t+.09);
+    o.connect(g); out(g,.8,.5); o.start(t); o.stop(t+.1);
+  }
+  // tuono lontano: brontolio cupo che cresce e si spegne in qualche secondo
+  function thunder(t){
+    const s=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain(), dur=5+Math.random()*4;
+    s.buffer=noise('brown'); s.loop=true; f.type='lowpass'; f.frequency.setValueAtTime(260,t); f.frequency.linearRampToValueAtTime(90,t+dur);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.55,t+.6+Math.random()); g.gain.linearRampToValueAtTime(.3,t+2); g.gain.linearRampToValueAtTime(.45,t+2.6); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    s.connect(f); f.connect(g); out(g,1,.6); s.start(t,Math.random()); s.stop(t+dur+.1);
+  }
   // cinguettio: fischi rapidi che salgono e scendono, ripetuti 2-6 volte (uccelli diversi a caso)
   function chirp(t,vol=.05){
     const kind=Math.floor(Math.random()*3), base=2200+Math.random()*2200, n=2+Math.floor(Math.random()*5), gap=.07+Math.random()*.08;
@@ -176,13 +235,16 @@
     s.connect(f); f.connect(g); out(g,.9,.45); s.start(t); s.stop(t+2.6);
   }
   Object.assign(STYLES,{
-    // Pioggia: fruscio continuo + gocce vicine e lontane
+    // Pioggia: migliaia di gocce che picchiettano + pozzanghere + fruscio leggero + tuono lontano ogni tanto
     rain:{beat:.05, begin(){
-      bed('pink',{type:'bandpass',freq:1400,q:.5,vol:.55,rev:.25});
-      bed('pink',{type:'highpass',freq:4500,vol:.16,lfo:.07,lfoDepth:.05,rev:.1});
-      bed('brown',{type:'lowpass',freq:300,vol:.25,rev:0});
+      rainBed(.9);
+      bed('pink',{type:'bandpass',freq:1800,q:.6,vol:.14,lfo:.05,lfoDepth:.05,rev:.2});
+      bed('brown',{type:'lowpass',freq:250,vol:.12,rev:0});
+      this.nextThunder=ctx.currentTime+12+Math.random()*15;
     }, run(t){
-      if(Math.random()<.35)drop(t+Math.random()*.05,.025+Math.random()*.05);
+      if(Math.random()<.22)drop(t+Math.random()*.05,.03+Math.random()*.07);
+      if(Math.random()<.025)plop(t+Math.random()*.05,.04+Math.random()*.05);
+      if(t>=this.nextThunder){thunder(t);this.nextThunder=t+40+Math.random()*50}
     }},
     // Onde del mare: rumore profondo che sale e scende ogni ~9 secondi, con la schiuma che frigge
     sea:{beat:.5, begin(){
