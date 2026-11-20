@@ -297,6 +297,11 @@ dialog#dlgDel{width:min(400px,92vw)}
 .undo{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:12px;background:var(--acc);color:var(--on);padding:8px 8px 8px 16px;border-radius:999px;box-shadow:var(--sh);font-size:.9rem;font-weight:600;max-width:92vw}
 .undo .btn{background:var(--card);color:var(--ink);border-color:transparent;font-weight:700;white-space:nowrap;flex:none}
 .undo span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.undo{overflow:hidden}
+.undo-sec{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:var(--bad);color:#fff;font-size:.78rem;margin-left:4px}
+.undo-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--brass);transform-origin:left}
+.undo.run .undo-bar{animation:undoShrink 8s linear forwards}
+@keyframes undoShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 /* "Tutto quello che sa fare" */
 .feat-btn{width:100%;margin-top:14px;padding:13px;font-weight:700;border:2px solid var(--brass);color:var(--brass);background:linear-gradient(135deg,color-mix(in srgb,var(--brass) 14%,var(--card)),var(--card))}
 dialog#dlgFeat{max-height:90vh;overflow-y:auto}
@@ -970,7 +975,7 @@ li.ln:first-child{border-top:0}
     </div>
   </div>
 </dialog>
-<div class="undo hide" id="undoBar" role="status"><span id="undoTxt"></span><button type="button" class="btn s" id="undoBtn">↩️ Annulla</button></div>
+<div class="undo hide" id="undoBar" role="status"><span id="undoTxt"></span><button type="button" class="btn s" id="undoBtn">↩️ Annulla <b class="undo-sec" id="undoSec">8</b></button><i class="undo-bar" id="undoProg" aria-hidden="true"></i></div>
 
 <dialog id="dlgFeat" aria-labelledby="featT">
   <div class="feat">

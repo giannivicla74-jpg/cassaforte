@@ -6,8 +6,11 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.14.2';
+const APP_VERSION='1.14.3';
 const CHANGELOG=[
+  ['1.14.3',[
+    'Conto alla rovescia sul pulsante “Annulla” dopo un’eliminazione'
+  ]],
   ['1.14.2',[
     'Cloud Sync: messaggi chiari se manca la connessione, se il limite giornaliero è esaurito o se il Cloud è pieno',
     'Indicatore dello spazio usato sul Cloud quando supera il 50%',
@@ -680,8 +683,19 @@ function askDelete(name){
     d.showModal(); $('#delNo').focus();
   });
 }
-let undoT=null, undoData=null;
-function hideUndo(){clearTimeout(undoT);undoData=null;$('#undoBar').classList.add('hide')}
+let undoT=null, undoTick=null, undoData=null;
+const UNDO_SEC=8;
+function hideUndo(){clearTimeout(undoT);clearInterval(undoTick);undoData=null;$('#undoBar').classList.add('hide');$('#undoBar').classList.remove('run')}
+function showUndo(name){
+  clearTimeout(undoT);clearInterval(undoTick);
+  const bar=$('#undoBar'), end=Date.now()+UNDO_SEC*1000;
+  $('#undoTxt').textContent=`“${name}” eliminata`;
+  $('#undoSec').textContent=UNDO_SEC;
+  bar.classList.remove('hide','run'); void bar.offsetWidth; bar.classList.add('run'); // riparte la linea che si accorcia
+  // conto alla rovescia: 8, 7, 6… (calcolato sull'orario, così resta giusto anche se il telefono rallenta)
+  undoTick=setInterval(()=>{$('#undoSec').textContent=Math.max(1,Math.ceil((end-Date.now())/1000))},250);
+  undoT=setTimeout(hideUndo,UNDO_SEC*1000);
+}
 $('#undoBtn').onclick=async()=>{
   const u=undoData; if(!u||!key)return hideUndo();
   hideUndo();
@@ -693,10 +707,7 @@ $('#bDel').onclick=async()=>{
   if(!await askDelete(item.name))return;
   if(await commit(()=>{items=items.filter(x=>x.id!==id)})){
     $('#dlg').close(); buzz(30);
-    clearTimeout(undoT); undoData={item,at};
-    $('#undoTxt').textContent=`“${item.name}” eliminata`;
-    $('#undoBar').classList.remove('hide');
-    undoT=setTimeout(hideUndo,8000);
+    showUndo(item.name); undoData={item,at};
   }
 };
 
