@@ -6,8 +6,13 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.14.1';
+const APP_VERSION='1.14.2';
 const CHANGELOG=[
+  ['1.14.2',[
+    'Cloud Sync: messaggi chiari se manca la connessione, se il limite giornaliero è esaurito o se il Cloud è pieno',
+    'Indicatore dello spazio usato sul Cloud quando supera il 50%',
+    'Eliminazione più sicura: finestra di avviso con il nome della scheda e 8 secondi per annullare'
+  ]],
   ['1.14.1',[
     'Nuova sezione “✨ Tutto quello che sa fare la Cassaforte” con l’elenco di tutte le funzioni'
   ]],
@@ -159,7 +164,8 @@ function lock(){
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
   slotStop?.(); window.Music?.stop(); updMusicUI();
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  hideUndo(); // la copia della scheda eliminata non resta in memoria a cassaforte chiusa
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
@@ -662,10 +668,36 @@ $('#form').addEventListener('submit',async e=>{
     if(ok)$('#dlg').close();
   }finally{btn.disabled=false}
 });
+/* Eliminazione sicura: finestra di avviso con il nome della scheda, poi 8 secondi per annullare */
+function askDelete(name){
+  return new Promise(res=>{
+    const d=$('#dlgDel'); $('#delName').textContent=name;
+    const done=v=>{d.removeEventListener('close',onClose);if(d.open)d.close();res(v)};
+    const onClose=()=>done(false); // tasto Indietro / Esc = annulla
+    $('#delNo').onclick=()=>done(false);
+    $('#delYes').onclick=()=>done(true);
+    d.addEventListener('close',onClose);
+    d.showModal(); $('#delNo').focus();
+  });
+}
+let undoT=null, undoData=null;
+function hideUndo(){clearTimeout(undoT);undoData=null;$('#undoBar').classList.add('hide')}
+$('#undoBtn').onclick=async()=>{
+  const u=undoData; if(!u||!key)return hideUndo();
+  hideUndo();
+  if(await commit(()=>{if(!items.some(x=>x.id===u.item.id))items.splice(Math.min(u.at,items.length),0,u.item)},'Scheda ripristinata'))buzz(20);
+};
 $('#bDel').onclick=async()=>{
-  if(!confirm('Eliminare questa scheda? L’operazione non si può annullare.'))return;
-  const id=editId;
-  if(await commit(()=>{items=items.filter(x=>x.id!==id)},'Eliminato'))$('#dlg').close();
+  const id=editId, at=items.findIndex(x=>x.id===id); if(at<0)return;
+  const item=structuredClone(items[at]);
+  if(!await askDelete(item.name))return;
+  if(await commit(()=>{items=items.filter(x=>x.id!==id)})){
+    $('#dlg').close(); buzz(30);
+    clearTimeout(undoT); undoData={item,at};
+    $('#undoTxt').textContent=`“${item.name}” eliminata`;
+    $('#undoBar').classList.remove('hide');
+    undoT=setTimeout(hideUndo,8000);
+  }
 };
 
 /* Backup: il file resta cifrato con la password principale */
@@ -947,7 +979,7 @@ if(!window.showSaveFilePicker){
 /* Cloud Sync Cifrato Zero-Knowledge (Firebase Firestore REST API) */
 const CLOUD_URL='https://firestore.googleapis.com/v1/projects/gestionale-flotta-d6448/databases/(default)/documents/cassaforte_vaults/';
 const getCloudCode=()=>localStorage.getItem('cloudCode')||'';
-function updCloudUI(state=''){
+function updCloudUI(){
   const code=getCloudCode(), active=!!code;
   $('#cloudCodeWrap').classList.toggle('hide',!active);
   $('#cloudCodeTxt').textContent=code;
@@ -955,37 +987,74 @@ function updCloudUI(state=''){
   $('#bCloudLink').textContent=active?'Cambia Codice Cloud':'Ho già un Codice Cloud';
   $('#bCloudPull').classList.toggle('hide',!active);
   $('#bCloudDisable').classList.toggle('hide',!active);
+  const err=active?cloudErrGet():null;
   if(!active){
     $('#cloudInfo').textContent='Salva automaticamente una copia cifrata sul Cloud a ogni modifica. Nemmeno il server può leggerla senza la tua Password Principale.';
-  }else if(state==='error'){
-    $('#cloudInfo').innerHTML='<span class="badge-no">Errore di rete:</span> ultimo salvataggio Cloud non riuscito (riproverà al prossimo salvataggio).';
+  }else if(err&&CLOUD_ERR[err.k]){
+    const [title,txt]=CLOUD_ERR[err.k];
+    $('#cloudInfo').innerHTML=`<span class="badge-no">${esc(title)}</span> ${esc(txt)}${err.c?` <span class="mute">(codice ${esc(err.c)})</span>`:''}`;
   }else{
     const t=+localStorage.getItem('lastCloudSync');
     const when=t?new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'attivo';
-    $('#cloudInfo').innerHTML=`<span class="badge-ok">Cloud Sync attivo</span> (${esc(when)}): ogni modifica viene salvata cifrata sul Cloud.`;
+    const used=Math.round(100*(localStorage.getItem('vault')||'').length/CLOUD_MAX);
+    $('#cloudInfo').innerHTML=`<span class="badge-ok">Cloud Sync attivo</span> (${esc(when)}): ogni modifica viene salvata cifrata sul Cloud.`
+      +(used>=80?` <span class="badge-no">Spazio usato: ${used}%.</span> Quando arriva al 100% il backup online si ferma: tieni anche un backup su file.`:used>=50?` Spazio usato: ${used}%.`:'');
   }
+}
+/* Errori del Cloud: tipo salvato fino al prossimo salvataggio riuscito, con un messaggio chiaro per ogni caso */
+const CLOUD_MAX=1000000; // limite del documento nel database (circa 1 MB)
+const CLOUD_ERR={
+  net:['📶 Nessuna connessione:','il salvataggio sul Cloud non è riuscito per segnale assente o troppo debole. Riproverà da solo alla prossima modifica. I dati sul telefono sono al sicuro.'],
+  quota:['⏳ Limite giornaliero del Cloud raggiunto:','oggi il servizio gratuito ha esaurito i salvataggi disponibili. Riprende da solo domani mattina. I dati sul telefono sono al sicuro; se hai fatto modifiche importanti, fai anche un backup su file.'],
+  full:['📦 Cloud pieno:','la cassaforte è diventata troppo grande per il backup online (circa 1 MB). Usa il backup su file (Invia / Condividi o Scarica JSON) per non perdere le modifiche.'],
+  denied:['🚫 Salvataggio rifiutato dal Cloud:','il server non ha accettato la copia. Riprova più tardi; se continua, fai un backup su file e chiedi assistenza.'],
+  other:['⚠️ Cloud non disponibile:','il server non ha risposto correttamente. Riproverà da solo alla prossima modifica.']
+};
+const cloudErrGet=()=>{try{return JSON.parse(localStorage.getItem('cloudErr'))}catch{return null}};
+function cloudErrSet(k,c){
+  const prev=cloudErrGet()?.k;
+  try{k?localStorage.setItem('cloudErr',JSON.stringify({k,c:c||'',at:Date.now()})):localStorage.removeItem('cloudErr')}catch{}
+  // avviso a comparsa solo per i problemi seri e solo la prima volta (il segnale debole non deve dare fastidio)
+  if(k&&k!==prev&&(k==='quota'||k==='full'))toast(k==='quota'?'Limite Cloud di oggi raggiunto: riprende domani':'Cloud pieno: fai un backup su file');
+}
+/* Capisce dalla risposta del server che tipo di problema c'è */
+async function cloudErrKind(res){
+  let msg='';try{msg=JSON.stringify(await res.json())}catch{}
+  if(res.status===429||/RESOURCE_EXHAUSTED|quota/i.test(msg))return 'quota';
+  if(/exceeds the maximum|too large|maximum allowed size|longer than/i.test(msg))return 'full';
+  if(res.status===403||res.status===401)return 'denied';
+  if(res.status===400&&/size|bytes/i.test(msg))return 'full';
+  return 'other';
 }
 async function cloudWrite(vStr){
   const code=getCloudCode();
   if(!code||!vStr)return false;
+  // troppo grande: inutile provare, il server la rifiuterebbe
+  if(vStr.length>=CLOUD_MAX){cloudErrSet('full');updCloudUI();return false}
+  let res;
   try{
     const docId=await cloudDocId(code);
-    const res=await fetch(CLOUD_URL+docId,{
+    res=await fetch(CLOUD_URL+docId,{
       method:'PATCH',
       signal:AbortSignal.timeout?AbortSignal.timeout(20000):undefined,
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({fields:{vault:{stringValue:vStr},updatedAt:{integerValue:String(Date.now())}}})
     });
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    localStorage.setItem('lastCloudSync',Date.now());
-    markBackup();
-    updCloudUI('ok');
-    return true;
   }catch(e){
-    console.warn('Cloud sync write error',e);
-    updCloudUI('error');
-    return false;
+    // nessuna risposta: rete assente, segnale debole o attesa oltre 20 secondi
+    console.warn('Cloud sync: rete',e);
+    cloudErrSet('net');updCloudUI();return false;
   }
+  if(!res.ok){
+    const k=await cloudErrKind(res);
+    console.warn('Cloud sync: errore',res.status,k);
+    cloudErrSet(k,res.status);updCloudUI();return false;
+  }
+  localStorage.setItem('lastCloudSync',Date.now());
+  cloudErrSet(null);
+  markBackup();
+  updCloudUI();
+  return true;
 }
 async function cloudRead(code){
   const docId=await cloudDocId(code);
@@ -1016,7 +1085,7 @@ $('#bCloudEnable').onclick=async()=>{
 $('#bCopyCloud').onclick=()=>{const c=getCloudCode();if(c)copy(c,'Codice Cloud copiato')};
 $('#bCloudDisable').onclick=()=>{
   if(!confirm('Disattivare il Cloud Sync automatico su questo dispositivo?'))return;
-  localStorage.removeItem('cloudCode');
+  localStorage.removeItem('cloudCode'); localStorage.removeItem('cloudErr');
   updCloudUI();
   toast('Cloud Sync disattivato');
 };
@@ -1096,7 +1165,7 @@ $('#cloudForm').addEventListener('submit',async e=>{
       const cur=localStorage.getItem('vault');
       if(cur&&cur!==vStr&&!confirm('Su questo dispositivo c’è già una cassaforte. Sostituirla con quella del backup? Gli account presenti solo qui andranno persi.'))return;
       localStorage.setItem('vault',vStr);
-      if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now())}
+      if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now());localStorage.removeItem('cloudErr')}
       markBackup();
       salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
       $('#dlgCloud').close();
@@ -1105,7 +1174,7 @@ $('#cloudForm').addEventListener('submit',async e=>{
       upgradeKdf(pw);
       toast(`Cassaforte ripristinata: ${items.length} account`);
     }else{
-      if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now())}
+      if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now());localStorage.removeItem('cloudErr')}
       let added=0, same=0;
       const ok=await commit(()=>{
         const res=mergeItems(items,decRes.items);
