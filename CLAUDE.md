@@ -31,6 +31,8 @@ Nessun server: i dati stanno nel `localStorage` del dispositivo; i backup sono f
 - Colori della cassaforte: attributo `data-accent` su `<html>`, applicato in anticipo da `theme.js`.
 - Musica: `music.js` la genera con Web Audio (niente file audio, niente diritti). Parte allo sblocco se `music`≠`off`;
   `Music.prime()` va chiamato dentro il tocco dell'utente (iPhone), si ferma al blocco e va in pausa con l'app in background.
+- La mia musica (v1.18): playlist di max 5 brani in IndexedDB `cassaforte-musica`, oggetto `My` in app.js; usare sempre `Snd`
+  (stop/pause/resume/prime) invece di `window.Music`, così comanda entrambe. CSP con `media-src 'self' blob:`.
 
 ## GitHub
 - `origin` = repo `cassaforte` (copia di riferimento). C'è anche il remote `dominio` = repo `cassaforte-app`.

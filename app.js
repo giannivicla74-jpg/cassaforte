@@ -13,7 +13,8 @@ const CHANGELOG=[
   ['1.18.0',[
     '🔢 Codici 2FA a 6 cifre dentro la scheda dell’account, come Google Authenticator, con conto alla rovescia e “Copia codice”',
     '🗑️ Cestino: le schede eliminate restano 30 giorni e si possono ripristinare da Opzioni → Cestino',
-    '⬆️ Avviso “Nuova versione · Aggiorna” quando esce un aggiornamento, e riquadro con le novità'
+    '⬆️ Avviso “Nuova versione · Aggiorna” quando esce un aggiornamento, e riquadro con le novità',
+    '🎧 La mia musica: scegli fino a 5 canzoni dal telefono come musica di sottofondo'
   ]],
   ['1.17.0',[
     '🪪 Nuova scheda Documento (Carta d’Identità, Tessera Sanitaria, Patente, Passaporto) con codice a barre del Codice Fiscale da mostrare in farmacia',
@@ -215,7 +216,7 @@ function lock(){
   sess++; key=null; salt=null; iter=0; items=[]; trash=[]; trashK=null; trashDirty=false; totpNow.clear(); totpCache.clear(); shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
-  slotStop?.(); window.Music?.stop(); updMusicUI();
+  slotStop?.(); Snd.stop(); updMusicUI();
   hideUndo(); // la copia della scheda eliminata non resta in memoria a cassaforte chiusa
   ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto','dlgBarcode','dlgTrash'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
@@ -254,7 +255,7 @@ function bump(){clearTimeout(lockT);if(key&&!keepOpen)lockT=setTimeout(lock,lock
 ['click','keydown','touchstart'].forEach(e=>addEventListener(e,bump,{passive:true}));
 const allowExternal=(ms=120000)=>{extUntil=Date.now()+ms};
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden)window.Music?.pause(); else if(key)window.Music?.resume(); // niente musica con l'app in sottofondo
+  if(document.hidden)Snd.pause(); else if(key)Snd.resume(); // niente musica con l'app in sottofondo
   if(document.hidden){
     if(!key||keepOpen)return;
     hiddenAt=Date.now();
@@ -315,7 +316,7 @@ addEventListener('storage',e=>{
 
 $('#lockForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  if(musicCfg().on)window.Music?.prime(); // l'audio va acceso subito, dentro il tocco
+  if(musicCfg().on)Snd.prime(); // l'audio va acceso subito, dentro il tocco
   const pw=$('#mp').value, v=getVault(), btn=$('#lockBtn'); $('#err').textContent='';
   btn.disabled=true;
   try{
@@ -1602,7 +1603,7 @@ $('#fileLock').addEventListener('change',async e=>{
 });
 $('#cloudForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  if(musicCfg().on)window.Music?.prime();
+  if(musicCfg().on)Snd.prime();
   const pw=$('#cPw').value, err=$('#cErr'), btn=$('#cOk');
   err.textContent=''; btn.disabled=true;
   try{
@@ -1706,7 +1707,7 @@ async function updBioUI(){
 }
 function updBioLock(){$('#bBio').classList.toggle('hide',!(bioGet()&&getVault()))}
 $('#bBio').onclick=async()=>{
-  if(musicCfg().on)window.Music?.prime();
+  if(musicCfg().on)Snd.prime();
   const b=$('#bBio'); b.disabled=true; $('#err').textContent='';
   try{
     const pw=await bioPassword();
@@ -1896,37 +1897,162 @@ function setTheme(t){
   updThemeUI();
 }
 $('#themeSel').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)setTheme(b.dataset.t)});
+/* 🎧 La mia musica: fino a 5 brani scelti dal telefono, salvati in IndexedDB SOLO su questo dispositivo
+   (non nella cassaforte: pesano troppo per il backup e il Cloud). Suonano in fila e poi ricominciano. */
+const MY_MAX=5, MY_SIZE=25*1024*1024;
+function myDb(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('cassaforte-musica',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('songs',{keyPath:'id'});
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+async function myTx(mode,fn){
+  const db=await myDb();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('songs',mode), req=fn(tx.objectStore('songs'));
+    tx.oncomplete=()=>{db.close();res(req?.result)};
+    tx.onerror=tx.onabort=()=>{db.close();rej(tx.error||new Error('IndexedDB'))};
+  });
+}
+const My={
+  el:new Audio(), list:[], i:0, on:false,
+  get playing(){return this.on&&!this.el.paused},
+  async load(){
+    try{
+      const rows=(await myTx('readonly',st=>st.getAll()))||[];
+      this.list.forEach(s=>URL.revokeObjectURL(s.url));
+      this.list=rows.sort((a,b)=>a.at-b.at).map(s=>({id:s.id,name:s.name,url:URL.createObjectURL(s.blob)}));
+    }catch(e){console.warn('La mia musica',e);this.list=[]}
+    if(this.i>=this.list.length)this.i=0;
+  },
+  track(i){
+    if(!this.list.length)return false;
+    this.i=((i%this.list.length)+this.list.length)%this.list.length;
+    this.el.src=this.list[this.i].url; this.el.loop=this.list.length===1;
+    return true;
+  },
+  start(i){
+    if(!this.list.length)return false;
+    this.on=true;
+    if(i!=null||!this.el.src||!this.list.some(s=>s.url===this.el.src))this.track(i??this.i);
+    this.el.muted=false; this.el.volume=.6;
+    this.el.play().catch(e=>console.warn('La mia musica',e));
+    return true;
+  },
+  stop(){this.on=false;this.el.pause()},
+  pause(){this.el.pause()},
+  resume(){if(this.on&&this.list.length)this.el.play().catch(()=>{})},
+  // dentro il tocco dell'utente: su iPhone "sblocca" il lettore, senza far sentire nulla
+  prime(){
+    if(!this.list.length)return;
+    if(!this.el.src)this.track(this.i);
+    if(!this.el.paused)return;
+    this.el.muted=true;
+    this.el.play().then(()=>{if(!this.on)this.el.pause();this.el.muted=false}).catch(()=>{this.el.muted=false});
+  }
+};
+My.el.preload='auto';
+My.el.addEventListener('ended',()=>{if(My.on&&My.list.length>1){My.track(My.i+1);My.el.play().catch(()=>{})}});
+['play','pause'].forEach(ev=>My.el.addEventListener(ev,()=>{updMusicUI();renderMy()}));
+My.el.addEventListener('error',()=>{if(My.on&&My.el.src){console.warn('Brano non leggibile');if(My.list.length>1){My.track(My.i+1);My.el.play().catch(()=>{})}else{My.stop();toast('Questo brano non si può riprodurre su questo dispositivo')}}});
+/* Un solo punto di comando per la musica generata (music.js) e per la propria playlist */
+const Snd={
+  get playing(){return !!window.Music?.playing||My.playing},
+  mine(){return musicCfg().st==='mine'},
+  stop(){window.Music?.stop();My.stop()},
+  pause(){window.Music?.pause();My.pause()},
+  resume(){if(this.mine())My.resume();else window.Music?.resume()},
+  prime(){if(this.mine())My.prime();else window.Music?.prime()}
+};
+function renderMy(){
+  const ul=$('#myList'); if(!ul)return;
+  $('#bMyAdd').disabled=My.list.length>=MY_MAX;
+  $('#myCount').textContent=`${My.list.length}/${MY_MAX}`;
+  ul.innerHTML=My.list.length?My.list.map((s,k)=>{
+    const cur=My.playing&&k===My.i;
+    return `<li class="${cur?'on':''}" data-k="${k}"><span class="my-n">${cur?'<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>':(k+1)+'.'}</span><span class="my-t">${esc(s.name)}</span>
+      <button type="button" class="btn s ic" data-y="p" title="Ascolta" aria-label="Ascolta ${esc(s.name)}">▶</button>
+      <button type="button" class="btn s ic" data-y="x" title="Togli" aria-label="Togli ${esc(s.name)}">✕</button></li>`;
+  }).join(''):'<li class="my-none">Nessuna canzone: tocca “Aggiungi canzoni dal telefono”.</li>';
+}
+
 /* Musica di sottofondo (music.js): parte da sola allo sblocco; si spegne con il pulsante in alto o da Opzioni */
-const MUSIC_STYLES=['ambient','lounge','cyber','guitar','rain','sea','birds','forest'];
+const MUSIC_STYLES=['ambient','lounge','cyber','guitar','rain','sea','birds','forest','mine'];
 const musicCfg=()=>{let on=true,st='ambient';try{on=localStorage.getItem('music')!=='off';const s=localStorage.getItem('musicStyle');if(MUSIC_STYLES.includes(s))st=s}catch{}return{on,st}};
 const NOTE_P='<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>';
 const MUSIC_ON=ic(NOTE_P), MUSIC_OFF=ic(NOTE_P+'<path d="M2 2l20 20"/>');
 function updMusicUI(){
-  const c=musicCfg(), playing=!!window.Music?.playing, b=$('#bMusic');
+  const c=musicCfg(), playing=Snd.playing, b=$('#bMusic');
   b.classList.toggle('on',c.on);
   b.innerHTML=(c.on&&playing?'<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>':c.on?MUSIC_ON:MUSIC_OFF)+'<span class="lbl"> Musica</span>';
   b.title=c.on?'Spegni la musica':'Accendi la musica'; b.setAttribute('aria-label',b.title); b.setAttribute('aria-pressed',c.on);
-  document.querySelectorAll('#musicSel [data-m],#musicSel2 [data-m]').forEach(x=>{const on=c.on?x.dataset.m===c.st:x.dataset.m==='off';x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});
+  document.querySelectorAll('#musicSel [data-m],#musicSel2 [data-m],#musicSel3 [data-m]').forEach(x=>{const on=c.on?x.dataset.m===c.st:x.dataset.m==='off';x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});
 }
 function musicPlay(){
-  const c=musicCfg(); if(!c.on||!key||document.hidden||!window.Music)return;
+  const c=musicCfg(); if(!c.on||!key||document.hidden)return;
+  if(c.st==='mine'){window.Music?.stop();if(My.start())updMusicUI();return}
+  My.stop(); if(!window.Music)return;
   Music.start(c.st).then(updMusicUI).catch(e=>console.warn('Musica',e));
 }
-function musicStop(){window.Music?.stop();updMusicUI()}
+function musicStop(){Snd.stop();updMusicUI();renderMy()}
 $('#bMusic').onclick=()=>{
   const on=!musicCfg().on; try{localStorage.setItem('music',on?'on':'off')}catch{}
-  if(on){window.Music?.prime();musicPlay();toast('Musica accesa',true)}else{musicStop();toast('Musica spenta')}
+  if(on){Snd.prime();musicPlay();toast('Musica accesa',true)}else{musicStop();toast('Musica spenta')}
   updMusicUI();
 };
 const onMusicPick=e=>{
   const b=e.target.closest('[data-m]'); if(!b)return; const m=b.dataset.m;
   if(m==='off'){try{localStorage.setItem('music','off')}catch{};musicStop();return}
   if(!MUSIC_STYLES.includes(m))return;
+  if(m==='mine'&&!My.list.length){toast('Aggiungi prima almeno una canzone dal telefono');$('#bMyAdd').focus();return}
   try{localStorage.setItem('music','on');localStorage.setItem('musicStyle',m)}catch{}
-  window.Music?.prime();musicPlay();updMusicUI();
+  Snd.prime();musicPlay();updMusicUI();
 };
 $('#musicSel').addEventListener('click',onMusicPick);
 $('#musicSel2').addEventListener('click',onMusicPick);
+$('#musicSel3').addEventListener('click',onMusicPick);
+$('#bMyAdd').onclick=()=>{allowExternal();$('#myInp').value='';$('#myInp').click()};
+$('#myInp').addEventListener('change',async e=>{
+  const files=[...(e.target.files||[])]; e.target.value=''; if(!files.length)return;
+  let added=0; const skip=[];
+  for(const f of files){
+    if(My.list.length+added>=MY_MAX){skip.push(`${f.name}: massimo ${MY_MAX} canzoni`);continue}
+    if(!/^audio\//.test(f.type)&&!/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|webm)$/i.test(f.name)){skip.push(`${f.name}: non è un file audio`);continue}
+    if(f.size>MY_SIZE){skip.push(`${f.name}: troppo grande (max 25 MB)`);continue}
+    try{
+      const name=f.name.replace(/\.[^.]+$/,'').replace(/[_]+/g,' ').trim().slice(0,80)||'Canzone';
+      await myTx('readwrite',st=>st.put({id:crypto.randomUUID(),name,blob:f,at:Date.now()+added}));
+      added++;
+    }catch(x){console.warn(x);skip.push(`${f.name}: spazio del telefono esaurito`);break}
+  }
+  await My.load(); renderMy();
+  if(added){
+    toast(added===1?'Canzone aggiunta':`${added} canzoni aggiunte`,true);
+    // la prima volta passa subito alla propria musica
+    try{localStorage.setItem('music','on');localStorage.setItem('musicStyle','mine')}catch{}
+    if(key){My.start(My.list.length-added);updMusicUI()}
+  }
+  if(skip.length)$('#myInfo').textContent='Non aggiunte: '+skip.join(' · ');
+});
+$('#myList').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-y]'); if(!b)return;
+  const k=+b.closest('li').dataset.k, s=My.list[k]; if(!s)return;
+  if(b.dataset.y==='p'){
+    try{localStorage.setItem('music','on');localStorage.setItem('musicStyle','mine')}catch{}
+    window.Music?.stop(); My.start(k); updMusicUI(); return;
+  }
+  const wasCur=k===My.i, wasOn=My.playing;
+  if(wasCur){My.stop();My.el.removeAttribute('src');My.el.load()}
+  try{await myTx('readwrite',st=>st.delete(s.id))}catch(x){console.warn(x);toast('Non riesco a togliere la canzone');return}
+  if(k<My.i)My.i--;
+  await My.load();
+  if(!My.list.length&&musicCfg().st==='mine'){try{localStorage.setItem('musicStyle','ambient')}catch{}}
+  if(wasCur&&wasOn&&My.list.length)My.start(My.i);
+  renderMy(); updMusicUI(); toast('Canzone tolta');
+});
+My.load().then(renderMy);
+
 updMusicUI();
 
 /* Colore della cassaforte (applicato in anticipo da theme.js) */

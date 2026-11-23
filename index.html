@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://api.pwnedpasswords.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://api.pwnedpasswords.com; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14313a">
 <script src="theme.js"></script>
@@ -96,6 +96,12 @@ dialog#dlgPhoto{width:min(92vw,720px);background:var(--card)}
 .updbar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .updbar .btn{background:#fff;color:#12222a;border-color:transparent;white-space:nowrap;flex:none;font-weight:700}
 @keyframes updIn{from{opacity:0;transform:translate(-50%,-20px)}}
+.my-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.my-list li{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:5px 6px 5px 10px}
+.my-list li.on{border-color:var(--brass)}
+.my-list li.my-none{color:var(--mute);font-style:italic;font-size:.85rem;padding:8px 10px}
+.my-n{flex:none;min-width:1.4em;color:var(--mute);font-size:.85rem}
+.my-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.9rem}
 .exp-box.urgent{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,var(--card))}
 .exp-h{font-weight:700;font-size:.92rem;margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .exp-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:.86rem}
@@ -647,6 +653,14 @@ li.ln:first-child{border-top:0}
       <button type="button" class="chip" data-m="forest">🌲 Foresta</button>
     </div>
     <p class="mute small" style="margin:8px 0 0">Musica originale composta dall'app mentre suona: funziona anche senza internet. Si ferma quando la cassaforte si blocca o cambi app.</p>
+    <div style="font-weight:600;margin:14px 0 8px;font-size:.9rem;display:flex;justify-content:space-between"><span>🎧 La mia musica</span><span class="mute small" id="myCount">0/5</span></div>
+    <div class="seg" id="musicSel3" role="group" aria-label="La mia musica">
+      <button type="button" class="chip" data-m="mine">🎧 La mia playlist</button>
+    </div>
+    <ul class="my-list" id="myList"></ul>
+    <button type="button" class="btn s" id="bMyAdd" style="width:100%;margin-top:8px">➕ Aggiungi canzoni dal telefono</button>
+    <input type="file" id="myInp" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac" multiple class="hide">
+    <p class="mute small" id="myInfo" style="margin:8px 0 0">Fino a 5 canzoni (max 25 MB l'una), suonano in fila e poi ricominciano. Restano solo su questo telefono: non vanno nel backup né sul Cloud. Su iPhone si scelgono dall'app File (i brani di Apple Music e Spotify sono protetti).</p>
     <div style="font-weight:600;margin:14px 0 8px">Colore della cassaforte</div>
     <div class="swatches" id="accentSel" role="group" aria-label="Colore">
       <button type="button" class="sw" data-ac="oro" style="--c:#c9952f" aria-label="Oro"><span></span>Oro</button>
@@ -969,6 +983,7 @@ li.ln:first-child{border-top:0}
         <li><b>✨ Riconoscimento automatico</b>: scrivendo il nome di un servizio conosciuto (Amazon, Netflix, Intesa, Poste, SPID, Enel, Trenitalia…) l'app sceglie da sola la categoria e compila l'indirizzo del sito. Puoi sempre cambiarli a mano.</li>
         <li><b>👆 Sblocco con impronta o viso</b>: in <b>Opzioni → Sblocco con impronta o viso</b> scrivi la password principale e tocca <b>Attiva</b>, poi conferma con l'impronta o il viso. Da quel momento nella schermata iniziale basta toccare <b>Sblocca con impronta o viso</b>. La password principale resta sempre valida; se la cambi, l'impronta si disattiva e va riattivata. Vale solo per il dispositivo su cui la attivi.</li>
         <li><b>🎵 Musica di sottofondo</b>: parte da sola quando apri la Cassaforte. Il pulsante con la nota in alto la spegne o la riaccende (l'app ricorda la scelta). In <b>Opzioni → Aspetto</b> scegli lo stile: ✨ Ambient, 🎹 Lounge jazz, 🛸 Cyber o 🎸 Chitarra, oppure un suono della natura: 🌧️ Pioggia, 🌊 Onde del mare, 🐦 Uccellini o 🌲 Foresta. La musica è composta dall'app mentre suona: è originale e funziona anche senza internet. Si ferma da sola quando la cassaforte si blocca o passi a un'altra app.</li>
+        <li><b>🎧 La mia musica</b>: in <b>Opzioni → Aspetto → La mia musica</b> tocca <b>➕ Aggiungi canzoni dal telefono</b> e scegli fino a <b>5 canzoni</b> (MP3 o altri file audio, max 25 MB l'una). Suonano in fila e poi ricominciano; con ▶ scegli quale ascoltare, con ✕ la togli. Le canzoni restano solo su quel telefono (non vanno nel backup né sul Cloud). Su iPhone si scelgono dall'app <b>File</b>: i brani di Apple Music e Spotify sono protetti e non si possono usare.</li>
         <li><b>🎨 Colore della cassaforte</b>: in <b>Opzioni → Aspetto</b> scegli tra Oro, Smeraldo, Rubino, Zaffiro e Ametista.</li>
         <li><b>📋 Schede o Elenco</b>: il pulsante accanto a <b>+ Aggiungi</b> cambia la vista. A <b>schede</b> vedi tutto di ogni account; a <b>elenco</b> vedi una riga compatta per account con i pulsanti rapidi per copiare utente e password e per modificare. L'app ricorda la tua scelta.</li>
         <li><b>💯 Pannello Salute Password</b>: in cima alla lista un cerchio colorato dà un punteggio da 0 a 100 (verde = ottimo, giallo = da migliorare, rosso = a rischio). Tocca <b>Vedi quali →</b> per vedere subito le password deboli, riutilizzate o vecchie.</li>
@@ -1196,6 +1211,7 @@ li.ln:first-child{border-top:0}
       <li><b>Riflesso di luce</b> che attraversa la scritta "Cassaforte" e <b>anello di luce</b> che gira intorno allo scudo.</li>
       <li><b>Animazione della cassaforte che si apre</b> quando la sblocchi, schede che compaiono morbide.</li>
       <li><b>🎵 Musica di sottofondo originale</b>: ✨ Ambient, 🎹 Lounge jazz, 🛸 Cyber e 🎸 Chitarra, composta dall'app mentre suona; si spegne con un tocco.</li>
+      <li><b>🎧 La tua musica</b>: scegli fino a 5 canzoni dal telefono e ascoltale mentre usi la Cassaforte.</li>
       <li><b>🍃 Suoni della natura</b>: 🌧️ Pioggia, 🌊 Onde del mare, 🐦 Uccellini e 🌲 Foresta, per rilassarti mentre usi l'app.</li>
     </ul></section>
 
