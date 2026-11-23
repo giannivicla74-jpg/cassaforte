@@ -103,6 +103,15 @@ dialog#dlgPhoto{width:min(92vw,720px);background:var(--card)}
 .kit-grid{display:flex;gap:20px;align-items:center;margin:16px 0;padding:14px;border:1px solid #ccc;border-radius:10px}
 .kit-qr{width:150px;height:150px;flex:none}
 .kit-pen{border:2px dashed #666;border-radius:10px;padding:14px;margin:16px 0;min-height:74px}
+.dash-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.dash-rank{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-weight:700;font-size:.86rem;background:color-mix(in srgb,var(--rc,var(--brass)) 18%,var(--card));color:var(--rc,var(--brass));border:1px solid color-mix(in srgb,var(--rc,var(--brass)) 45%,transparent)}
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 10px}
+.dash-tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center}
+.dash-tile b{display:block;font-size:1.05rem;line-height:1.2}
+.dash-tile span{font-size:.72rem;color:var(--mute)}
+.dash-goals{display:grid;gap:4px;margin-top:8px;font-size:.82rem}
+.dash-bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:5px}
+.dash-bar i{display:block;height:100%;background:var(--brass);border-radius:99px;transition:width .3s}
 .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .acc{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .acc-u{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--ink,inherit);font-weight:600}
@@ -572,6 +581,9 @@ li.ln:first-child{border-top:0}
   <h1>Opzioni & Sicurezza</h1>
   <button type="button" class="btn feat-btn" id="bFeatSet" style="margin-top:12px">✨ Tutto quello che sa fare la Cassaforte</button>
 
+  <h3>📊 Statistiche &amp; Livello Cassaforte</h3>
+  <div class="stat-box" id="statsBox"></div>
+
   <h3>Aspetto</h3>
   <div class="stat-box">
     <div style="font-weight:600;margin-bottom:8px">Tema</div>
@@ -674,6 +686,7 @@ li.ln:first-child{border-top:0}
       <option value="60">Blocca dopo 1 minuto</option>
       <option value="300">Blocca dopo 5 minuti</option>
     </select>
+    <label class="chk" style="margin-top:12px"><input type="checkbox" id="sShake" checked> 📳 Scuoti il telefono per bloccare subito (o tasto Esc su PC)</label>
     <p class="mute small" style="margin:8px 0 0">Tempi più lunghi sono più comodi (es. per incollare una password in un'altra app) ma meno sicuri se qualcuno prende in mano il dispositivo sbloccato.</p>
   </div>
 

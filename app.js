@@ -195,10 +195,10 @@ function lock(){
 const IDLE_OPTS=[1,2,5,10,15,30], AWAY_OPTS=[0,30,60,300];
 function lockCfg(){
   let c={};try{c=JSON.parse(localStorage.getItem('lockCfg'))||{}}catch{}
-  return{idle:IDLE_OPTS.includes(c.idle)?c.idle:2, away:AWAY_OPTS.includes(c.away)?c.away:0};
+  return{idle:IDLE_OPTS.includes(c.idle)?c.idle:2, away:AWAY_OPTS.includes(c.away)?c.away:0, shake:c.shake!==false};
 }
 function saveLockCfg(){
-  const c={idle:+$('#sIdle').value, away:+$('#sAway').value};
+  const c={idle:+$('#sIdle').value, away:+$('#sAway').value, shake:$('#sShake').checked};
   try{localStorage.setItem('lockCfg',JSON.stringify(c))}catch{}
   return lockCfg();
 }
@@ -232,6 +232,39 @@ const minTxt=m=>m===1?'1 minuto':m+' minuti';
 const awayTxt=s=>s===0?'subito':s<60?`dopo ${s} secondi`:`dopo ${minTxt(s/60)}`;
 $('#sIdle').addEventListener('change',()=>{const c=saveLockCfg();bump();toast('Blocco dopo '+minTxt(c.idle)+' di inattività')});
 $('#sAway').addEventListener('change',()=>{const c=saveLockCfg();toast('Cambiando app: blocco '+awayTxt(c.away))});
+$('#sShake').addEventListener('change',async()=>{
+  if($('#sShake').checked&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
+    try{
+      const r=await DeviceMotionEvent.requestPermission();
+      if(r!=='granted'){$('#sShake').checked=false;toast('Permesso sensore di movimento negato')}
+    }catch{}
+  }
+  const c=saveLockCfg();
+  toast(c.shake?'Scuoti-per-bloccare attivo (o Esc su PC)':'Scuoti-per-bloccare disattivato');
+});
+/* Scuoti per bloccare (Shake-to-Lock) su smartphone + tasto Esc rapido su PC */
+let shX=null, shY=null, shZ=null, shHits=0, shLast=0;
+addEventListener('devicemotion',e=>{
+  if(!key||!lockCfg().shake)return;
+  const a=e.accelerationIncludingGravity||e.acceleration;
+  if(!a||a.x==null)return;
+  if(shX!==null){
+    const d=Math.abs(a.x-shX)+Math.abs(a.y-shY)+Math.abs(a.z-shZ);
+    const now=Date.now();
+    if(d>24){
+      shHits=(now-shLast<700)?shHits+1:1;
+      shLast=now;
+      if(shHits>=2){shHits=0;shX=shY=shZ=null;buzz([35,40,35]);lock();toast('Cassaforte bloccata al volo');return}
+    }
+  }
+  shX=a.x; shY=a.y; shZ=a.z;
+},{passive:true});
+addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!key||!lockCfg().shake)return;
+  if(document.querySelector('dialog[open]'))return;
+  if(document.activeElement===$('#q')&&$('#q').value)return;
+  e.preventDefault(); lock(); toast('Cassaforte bloccata (Esc)');
+});
 // Un'altra scheda ha modificato la cassaforte: blocca per non sovrascrivere i suoi dati
 addEventListener('storage',e=>{
   if(e.key!=='vault'&&e.key!==null)return;
@@ -1500,8 +1533,54 @@ $('#bBioOff').onclick=async()=>{
   bioOff(); await updBioUI(); toast('Sblocco con impronta disattivato');
 };
 
+/* Statistiche & Livello Cassaforte (Bronzo -> Argento -> Oro -> Diamante) */
+function updStatsUI(){
+  const box=$('#statsBox'); if(!box)return;
+  const cnt={login:0,card:0,wifi:0,doc:0,note:0};
+  let photos=0;
+  for(const i of items){cnt[typeOf(i)]=(cnt[typeOf(i)]||0)+1;if(Array.isArray(i.photos))photos+=i.photos.length}
+  const bytes=(localStorage.getItem('vault')||'').length;
+  const cloudOn=!!getCloudCode(), lim=cloudOn?1000000:5000000;
+  const pct=Math.min(100,Math.round((bytes/lim)*100));
+  const szTxt=bytes<1024?`${bytes} B`:bytes<1048576?`${(bytes/1024).toFixed(1)} KB`:`${(bytes/1048576).toFixed(2)} MB`;
+  const limTxt=cloudOn?'1 MB (Cloud)':'5 MB (Browser)';
+  const audit=auditItems(items), exp=expiringItems(items,Date.now(),0);
+  const lastBk=+localStorage.getItem('lastBackup')||0;
+  const goals=[
+    [items.length>0&&audit.warnIds.size===0,'Tutte le password forti e uniche'],
+    [cloudOn||!!syncHandle||(lastBk>0&&Date.now()-lastBk<14*DAY),'Cloud Sync o Backup recente attivo'],
+    [!!bioGet()||lockCfg().shake,'Impronta / Viso o Scuoti-per-bloccare attivo'],
+    [items.length>0&&exp.length===0,'Nessuna carta o documento scaduto']
+  ];
+  const score=goals.filter(g=>g[0]).length;
+  const ranks=[
+    ['🥉 Bronzo','#b45309'],
+    ['🥉 Bronzo','#b45309'],
+    ['🥈 Argento','#64748b'],
+    ['🥇 Oro','#b5842a'],
+    ['💎 Diamante','#2563c9']
+  ];
+  const [rName,rCol]=ranks[score];
+  box.innerHTML=`
+    <div class="dash-head">
+      <div><div style="font-weight:700">Livello di Sicurezza</div><div class="mute small">${score}/4 obiettivi raggiunti</div></div>
+      <span class="dash-rank" style="--rc:${rCol}">${rName}</span>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-tile"><b>${cnt.login}</b><span>🔑 Account</span></div>
+      <div class="dash-tile"><b>${cnt.card}</b><span>💳 Carte</span></div>
+      <div class="dash-tile"><b>${cnt.wifi}</b><span>📶 Wi-Fi</span></div>
+      <div class="dash-tile"><b>${cnt.doc}</b><span>🪪 Documenti</span></div>
+      <div class="dash-tile"><b>${cnt.note}</b><span>📝 Note</span></div>
+      <div class="dash-tile"><b>${photos}</b><span>📷 Foto</span></div>
+    </div>
+    <div class="small" style="display:flex;justify-content:space-between"><span>Spazio archivio cifrato</span><b>${szTxt} / ${limTxt} (${pct}%)</b></div>
+    <div class="dash-bar"><i style="width:${Math.max(2,pct)}%;background:${pct>80?'var(--bad)':'var(--brass)'}"></i></div>
+    <div class="dash-goals">${goals.map(([ok,txt])=>`<div class="${ok?'badge-ok':'mute'}">${ok?'✓':'○'} ${esc(txt)}</div>`).join('')}</div>`;
+}
+
 /* Opzioni e cambio password principale */
-$('#bSet').onclick=()=>{updBioUI();const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;updBkInfo();updCloudUI();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
+$('#bSet').onclick=()=>{updBioUI();const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;$('#sShake').checked=c.shake;updStatsUI();updBkInfo();updCloudUI();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
 $('#bSetClose').onclick=()=>$('#dlgSet').close();
 $('#pwForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=$('#pErr'); err.textContent='';
