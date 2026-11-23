@@ -153,6 +153,7 @@ li.it{background:linear-gradient(180deg,var(--card),color-mix(in srgb,var(--card
 .hist-pw{font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
 .tag{font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--mute);margin-left:6px;vertical-align:middle}
 .tag.w{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+button.pwn-tag{border:1px solid color-mix(in srgb,var(--bad) 45%,transparent);cursor:pointer;font-family:inherit;line-height:1.5}
 .star{flex:none;margin-left:auto;border:0;background:transparent;color:var(--mute);padding:6px;border-radius:10px;display:grid}
 .star.on{color:#e9a820}
 .meter{height:6px;border-radius:99px;background:var(--soft);margin-top:8px;overflow:hidden}
@@ -983,7 +984,7 @@ li.ln:first-child{border-top:0}
         <li><b>🗑️ Cestino</b>: quando elimini una scheda, va nel <b>Cestino</b> per <b>30 giorni</b>. Da <b>Opzioni → Cestino</b> puoi <b>Ripristinarla</b> con un tocco, eliminarla per sempre con ✕ o svuotare tutto il Cestino. Il Cestino è cifrato e resta solo sul dispositivo dove hai eliminato la scheda.</li>
         <li><b>🪪 Documenti e codice a barre</b>: scegli il tipo <b>Documento</b> (Carta d'Identità, Tessera Sanitaria, Patente, Passaporto…) e scrivi numero, Codice Fiscale, ente e date. Il pulsante <b>🏥 Codice a barre CF</b> mostra il codice a barre del Codice Fiscale da far leggere allo scanner in farmacia o dal medico (alza la luminosità dello schermo).</li>
         <li><b>⏳ Radar Scadenze</b>: in cima alla lista compare un riquadro quando una carta o un documento è scaduto o scade entro 60 giorni; tocca <b>Apri</b> per aggiornarlo.</li>
-        <li><b>🔍 Furti online</b>: nel pannello Salute Password il pulsante <b>Furti online</b> controlla se le tue password sono comparse in furti di dati noti; nel modulo c'è anche <b>Controlla se rubata</b> per una sola password. La password non esce mai dal telefono: viene inviato solo un pezzetto (5 caratteri) della sua "impronta" cifrata. Serve internet.</li>
+        <li><b>🔍 Furti online</b>: nel pannello Salute Password il pulsante <b>Furti online</b> controlla se le tue password sono comparse in furti di dati noti; nel modulo c'è anche <b>Controlla se rubata</b> per una sola password. La password non esce mai dal telefono: viene inviato solo un pezzetto (5 caratteri) della sua "impronta" cifrata. Serve internet. Le password trovate ricevono il bollino rosso <b>🚨 Nota agli hacker (42×)</b>: il numero indica quante volte quella password compare negli elenchi di password rubate. Tocca il bollino per la spiegazione e per <b>Cambia password ora</b>. Da quale sito sia stata rubata non si può sapere; per vedere quali siti hanno perso i dati della tua email usa <b>haveibeenpwned.com</b>.</li>
         <li><b>📳 Scuoti per bloccare</b>: scuoti forte il telefono due volte e la cassaforte si chiude subito; sul PC basta il tasto <b>Esc</b>. Si attiva o disattiva in <b>Opzioni → Blocco automatico</b> (su iPhone va attivato a mano, perché chiede il permesso del sensore).</li>
         <li><b>📊 Statistiche e Livello</b>: in <b>Opzioni</b> vedi quante schede hai per tipo, lo spazio usato e il livello della cassaforte (🥉 Bronzo, 🥈 Argento, 🥇 Oro, 💎 Diamante) con i 4 obiettivi per salire.</li>
         <li><b>📄 Kit di Emergenza</b>: con il Cloud Sync attivo, in <b>Opzioni</b> tocca <b>Kit di Emergenza (QR)</b> e stampa il foglio con il Codice Cloud e le istruzioni per il recupero; la password principale la scrivi tu a penna. Conserva il foglio sotto chiave.</li>
@@ -1115,6 +1116,28 @@ li.ln:first-child{border-top:0}
   </form>
 </dialog>
 <div id="printSheet"></div>
+<dialog id="dlgPwn" aria-labelledby="pwnT">
+  <div style="padding:20px">
+    <div class="del-ic" aria-hidden="true">🚨</div>
+    <h1 id="pwnT" style="font-size:1.2rem;text-align:center">Password nota agli hacker</h1>
+    <div class="del-name" id="pwnName" style="text-align:center"></div>
+    <p style="margin:12px 0 8px">Questa password, scritta esattamente così, compare <b id="pwnCount"></b> negli elenchi di password rubate durante attacchi informatici a siti di tutto il mondo.</p>
+    <p class="small mute" style="margin:0 0 8px">Non vuol dire per forza che qualcuno è entrato nel tuo account: vuol dire che gli hacker la conoscono e la provano per prima quando cercano di entrare negli account. Per questo non è più sicura.</p>
+    <p class="small" style="margin:0 0 4px;font-weight:700">Cosa fare:</p>
+    <ol class="small" style="margin:0 0 8px;padding-left:20px;line-height:1.5">
+      <li>Tocca <b>Cambia password ora</b>, poi <b>Genera</b> e salva.</li>
+      <li>Metti la nuova password anche sul sito (di solito in Profilo → Sicurezza).</li>
+      <li>Se usavi la stessa password su altri siti, cambiala anche lì.</li>
+      <li>Dove puoi, attiva la verifica in due passaggi (🔢 Codice 2FA).</li>
+    </ol>
+    <p class="small mute" style="margin:0 0 14px">Da quale sito è stata rubata non si può sapere: per proteggerti, la Cassaforte invia solo 5 caratteri dell'“impronta” della password, mai la password. Per sapere quali siti hanno perso i dati della tua email, apri <b>haveibeenpwned.com</b> e cerca la tua email.</p>
+    <div class="row" style="gap:10px">
+      <button type="button" class="btn grow" id="pwnClose">Chiudi</button>
+      <button type="button" class="btn p grow" id="pwnFix">Cambia password ora</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="dlgTrash" aria-labelledby="trT">
   <div style="padding:20px">
     <h1 id="trT" style="font-size:1.2rem">🗑️ Cestino</h1>

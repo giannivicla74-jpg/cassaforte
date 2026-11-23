@@ -8,8 +8,11 @@ const totpNow=new Map(); // codici 2FA del momento (id → codice), per copiarli
 let trash=[], trashK=null, trashDirty=false; // Cestino (in chiaro solo a cassaforte aperta); trashK = chiave con cui è salvato
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.18.3';
+const APP_VERSION='1.18.4';
 const CHANGELOG=[
+  ['1.18.4',[
+    '🚨 Furti online più chiaro: il bollino ora dice “Nota agli hacker” e, toccandolo, spiega cosa significa e cosa fare, con il pulsante “Cambia password ora”'
+  ]],
   ['1.18.3',[
     '📂 Nuova tendina “Tutte le categorie”: scegli la categoria da un elenco, con il numero di schede di ognuna',
     'Tipi di scheda su due righe (Account, Carta, Wi-Fi / Nota, Documento): non si sovrappongono più sul telefono'
@@ -228,7 +231,7 @@ function lock(){
   clearClip(true);
   slotStop?.(); Snd.stop(); updMusicUI();
   hideUndo(); // la copia della scheda eliminata non resta in memoria a cassaforte chiusa
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto','dlgBarcode','dlgTrash'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto','dlgBarcode','dlgTrash','dlgPwn'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
   $('#bcSvg').innerHTML=''; $('#bcCode').textContent=''; $('#expBox').classList.add('hide'); $('#expBox').innerHTML='';
   pwnedMap.clear(); $('#pwnMsg').textContent=''; $('#trList').innerHTML=''; $('#totpPrev').textContent='';
@@ -441,7 +444,7 @@ $('#hPwn').onclick=async()=>{
     }
     if(s!==sess||!key)return;
     render();
-    if(found)toast(`🚨 ${found===1?'1 password trovata':found+' password trovate'} in furti di dati online!`);
+    if(found)toast(`🚨 ${found===1?'1 password è nota':found+' password sono note'} agli hacker: tocca il bollino rosso per sapere cosa fare`);
     else toast('✅ Ottimo! Nessuna password comparsa in furti online',true);
   }catch(e){
     console.warn('HIBP',e);
@@ -455,7 +458,7 @@ $('#bPwnOne').onclick=async()=>{
   try{
     const n=await checkPwnedPassword(pw);
     if(n>0){
-      msg.innerHTML=`<span class="badge-no">🚨 Trovata in ${n.toLocaleString('it-IT')} furti di dati online! Cambiala subito.</span>`;
+      msg.innerHTML=`<span class="badge-no">🚨 Nota agli hacker: compare ${n.toLocaleString('it-IT')} ${n===1?'volta':'volte'} negli elenchi di password rubate. Usa “Genera” per crearne una nuova.</span>`;
     }else{
       msg.innerHTML='<span class="badge-ok">✓ Sicura: mai comparsa nei furti di dati noti.</span>';
     }
@@ -464,6 +467,20 @@ $('#bPwnOne').onclick=async()=>{
   }finally{btn.disabled=false}
 };
 
+/* Spiegazione del bollino "Nota agli hacker" */
+let pwnInfoId=null;
+function openPwnInfo(it){
+  const n=pwnedMap.get(it.id)||0; pwnInfoId=it.id;
+  $('#pwnName').textContent=it.name+(it.user?' · '+it.user:'');
+  $('#pwnCount').textContent=n.toLocaleString('it-IT')+(n===1?' volta':' volte');
+  $('#dlgPwn').showModal();
+}
+$('#pwnClose').onclick=()=>$('#dlgPwn').close();
+$('#pwnFix').onclick=()=>{
+  const it=items.find(x=>x.id===pwnInfoId); $('#dlgPwn').close();
+  if(it){openForm(it);setTimeout(()=>{$('#fPass').focus();$('#fPass').select()},50)}
+};
+$('#dlgPwn').addEventListener('close',()=>{pwnInfoId=null;$('#pwnName').textContent=''});
 /* Radar Scadenze: avvisa su Carte e Documenti scaduti o in scadenza entro 60 giorni */
 function updExpiry(){
   const box=$('#expBox'), list=expiringItems(items,Date.now(),60);
@@ -554,7 +571,7 @@ function render(){
   const groups=new Map();
   for(const i of rows){const k=typeOf(i)+'|'+i.name.trim().toLowerCase();if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i)}
   const expTag=i=>{const ex=expiryInfo(i);return ex&&ex.days<=60?`<span class="tag w">⏳ ${esc(ex.label)}</span>`:''};
-  const pwnTag=i=>{const n=pwnedMap.get(i.id);return n?`<span class="tag w">🚨 Rubata (${n.toLocaleString('it-IT')}×)</span>`:''};
+  const pwnTag=i=>{const n=pwnedMap.get(i.id);return n?`<button type="button" class="tag w pwn-tag" data-a="pw" title="Cosa significa?">🚨 Nota agli hacker (${n.toLocaleString('it-IT')}×) ⓘ</button>`:''};
   const warnTags=i=>[
     pwnTag(i),
     audit.weakIds.has(i.id)?'<span class="tag w">Password debole</span>':'',
@@ -702,6 +719,7 @@ $('#list').addEventListener('click',e=>{
   if(a==='cu')copy(it.user,'Utente copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='cp')copy(it.pass,typeOf(it)==='wifi'?'Password del Wi-Fi copiata':'Password copiata: incollala nel sito').then(ok=>{if(ok)copiedFx(b)});
   if(a==='cn')copy(typeOf(it)==='card'?digits(it.number):it.number,'Numero copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='pw'){openPwnInfo(it);return}
   if(a==='cv')copy(it.cvv,'CVV copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='cf')copy((it.cf||'').toUpperCase(),'Codice Fiscale copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='bc')openBarcode(it);
