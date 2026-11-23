@@ -141,6 +141,7 @@ dialog form{padding:20px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:inherit;font:inherit}
 li.it{background:linear-gradient(180deg,var(--card),color-mix(in srgb,var(--card) 90%,var(--soft)))}
+.cat-sel{width:100%;margin-top:10px;font-weight:600}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--line);background:var(--card);padding:6px 13px;border-radius:999px;font-size:.85rem}
 .seg{display:flex;gap:6px;flex-wrap:wrap}.seg .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px}
@@ -483,6 +484,7 @@ li.ln:first-child{border-top:0}
       <button class="btn" id="bView" type="button" title="Mostra a elenco" aria-label="Mostra a elenco"></button>
       <button class="btn p" id="bAdd">+ Aggiungi</button>
     </div>
+  <select id="catSel" class="cat-sel hide" aria-label="Scegli la categoria da mostrare"></select>
   <div class="chips" id="chips"></div>
   </header>
   <div class="banner hide" id="bk" role="status">
@@ -996,6 +998,7 @@ li.ln:first-child{border-top:0}
         <li><b>🛡️ Controllo Salute Password</b>: l'app segnala automaticamente con un badge rosso le <b>password deboli</b>, <b>riutilizzate su più siti</b> o <b>più vecchie di 1 anno</b>, e aggiunge il filtro rapido <b>⚠️ Da controllare</b> in cima alla lista.</li>
         <li><b>⏪ Cronologia vecchie password</b>: quando cambi la password di un account, le <b>ultime 5 password precedenti</b> vengono conservate con la data (visibili aprendo <b>Modifica → Cronologia password precedenti</b>).</li>
         <li><b>🎲 Generatore Caratteri &amp; Passphrase</b>: dentro <b>Opzioni generatore</b> puoi scegliere tra password a caratteri casuali oppure <b>Parole (Passphrase)</b> in italiano facili da digitare ma fortissime (es. <i>Bussola-castello-limone-veliero-42</i>).</li>
+        <li><b>📂 Scegliere la categoria</b>: sotto la ricerca, la tendina <b>📂 Tutte le categorie</b> apre l'elenco di tutte le categorie con il numero di schede di ognuna (più Preferiti e Da controllare); tocca quella che vuoi vedere. Puoi usare anche la riga di categorie che scorre di lato: le due restano sempre d'accordo.</li>
         <li><b>🗂️ Categorie personalizzate e Ordinamento</b>: puoi ordinare per <b>A → Z</b>, <b>Recenti</b> o <b>Categoria</b> e creare nuove categorie personalizzate scegliendo <b>+ Nuova categoria...</b> nel modulo dell'account.</li>
         <li><b>📥 Importa JSON e CSV</b>: da <b>Opzioni</b> puoi sia unire/sostituire un backup cifrato (<b>Importa JSON</b>), sia importare in un colpo solo tutte le password esportate da Chrome, Edge, Firefox, Bitwarden o Safari (<b>Importa CSV</b>).</li>
       </ul>
@@ -1170,6 +1173,7 @@ li.ln:first-child{border-top:0}
       <li><b>📶 Codice QR del Wi-Fi</b>: gli ospiti lo inquadrano e si collegano senza scrivere la password.</li>
       <li><b>👥 Più account per lo stesso servizio</b> (es. due Amazon) nella stessa scheda, con "+ Altro account".</li>
       <li><b>Categorie con simbolo e colore</b>: ✉️ Email, 👥 Social, 🏦 Banca, 💼 Lavoro, 🛒 Shopping, 🎬 Svago, 💡 Utenze, ✈️ Viaggi, 🏛️ Pubblica Amm., 📶 Wi-Fi, 📝 Note… e quelle che crei tu.</li>
+      <li><b>📂 Tendina delle categorie</b> con il numero di schede di ognuna, oltre alla riga che scorre.</li>
       <li><b>⭐ Preferiti</b>, <b>ricerca istantanea</b> e ordine <b>A→Z, Recenti o Categoria</b>.</li>
       <li><b>📋 Vista a schede o a elenco compatto</b>, a tua scelta.</li>
     </ul></section>

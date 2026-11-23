@@ -17,7 +17,7 @@ Dettagli tecnici e procedura di pubblicazione: `CLAUDE.md` / `GEMINI.md`.
 ## Versioni (dalla più recente)
 | Data | Versione | Cosa |
 |---|---|---|
-| 23/11/2026 | 1.18.3 | Pulsanti dei 5 tipi di scheda su due righe (3+2): con "Documento" si sovrapponevano sul telefono |
+| 23/11/2026 | 1.18.3 | 📂 Tendina "Tutte le categorie" (sincronizzata con la riga che scorre); pulsanti dei 5 tipi di scheda su due righe (3+2): con "Documento" si sovrapponevano sul telefono |
 | 23/11/2026 | 1.18.2 | Controllo aggiornamenti più frequente (al ritorno nell'app dopo 1 min invece di 10, e quando torna internet) |
 | 23/11/2026 | 1.18.1 | 🌈 Anello di luce dello scudo che cambia sfumatura mentre gira (hue-rotate, giro di colori in 6 s) |
 | 23/11/2026 | 1.18.0 | 🔢 Codici 2FA (TOTP) nella scheda account, con lettura del QR da foto su Android e import da CSV; 🗑️ Cestino di 30 giorni con Ripristina / Elimina per sempre / Svuota; ⬆️ avviso "Nuova versione · Aggiorna" (file `version.json`) e riquadro Novità; 🎧 La mia musica (playlist di 5 canzoni dal telefono) |

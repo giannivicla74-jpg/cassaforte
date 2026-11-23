@@ -11,6 +11,7 @@ let extUntil=0;        // finestra in cui la pagina può andare in background (c
 const APP_VERSION='1.18.3';
 const CHANGELOG=[
   ['1.18.3',[
+    '📂 Nuova tendina “Tutte le categorie”: scegli la categoria da un elenco, con il numero di schede di ognuna',
     'Tipi di scheda su due righe (Account, Carta, Wi-Fi / Nota, Documento): non si sovrappongono più sul telefono'
   ]],
   ['1.18.2',[
@@ -235,7 +236,7 @@ function lock(){
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
   // Nessun dato in chiaro deve restare nella pagina mentre è bloccata
-  $('#list').innerHTML=''; $('#chips').innerHTML=''; $('#count').textContent=''; $('#q').value='';
+  $('#list').innerHTML=''; $('#chips').innerHTML=''; $('#catSel').innerHTML=''; $('#count').textContent=''; $('#q').value='';
   $('#bk').classList.add('hide'); $('#printArea').innerHTML=''; $('#printSheet').innerHTML=''; $('#prForm').reset();
   $('#histList').innerHTML=''; $('#histBox').classList.add('hide'); $('#fCatNew').classList.add('hide');
   showLock();
@@ -370,6 +371,11 @@ const star=f=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="${f?'curren
 function updMeter(){const r=strength($('#fPass').value);$('#mBar').style.width=r.p+'%';$('#mBar').style.background=r.c;$('#mTxt').textContent=r.t?'Robustezza: '+r.t:''}
 $('#fPass').addEventListener('input',updMeter);
 $('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;cat=b.dataset.c;render()});
+$('#catSel').addEventListener('change',e=>{
+  cat=e.target.value; render();
+  // porta in vista anche il bottone giusto nella riga che scorre
+  [...document.querySelectorAll('#chips [data-c]')].find(b=>b.dataset.c===cat)?.scrollIntoView({block:'nearest',inline:'center',behavior:calm()?'auto':'smooth'});
+});
 try{const sb=localStorage.getItem('sortBy');if(['az','recent','cat'].includes(sb))$('#sortBy').value=sb}catch{}
 $('#sortBy').addEventListener('change',()=>{try{localStorage.setItem('sortBy',$('#sortBy').value)}catch{};render()});
 
@@ -533,6 +539,13 @@ function render(){
     const cls=`chip${c==='!warn'?' warn-chip':''}${c===cat?' on':''}`;
     return `<button class="${cls}" data-c="${esc(c)}">${lbl}</button>`;
   }).join(''):'';
+  // Tendina con tutte le categorie (stesse scelte della riga che scorre, con il numero di schede)
+  const nOf=c=>c==='Tutti'?items.length:c==='★'?items.filter(i=>i.fav).length:c==='!warn'?audit.warnIds.size:items.filter(i=>(i.cat||'Altro')===c).length;
+  $('#catSel').innerHTML=chips.map(c=>{
+    const t=c==='Tutti'?'📂 Tutte le categorie':c==='★'?'★ Preferiti':c==='!warn'?'⚠️ Da controllare':catInfo(c).e+' '+c;
+    return `<option value="${esc(c)}"${c===cat?' selected':''}>${esc(t)} (${nOf(c)})</option>`;
+  }).join('');
+  $('#catSel').classList.toggle('hide',!items.length);
   updHealth(audit);
   updExpiry();
   updNews();
