@@ -8,8 +8,11 @@ const totpNow=new Map(); // codici 2FA del momento (id → codice), per copiarli
 let trash=[], trashK=null, trashDirty=false; // Cestino (in chiaro solo a cassaforte aperta); trashK = chiave con cui è salvato
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.18.5';
+const APP_VERSION='1.18.6';
 const CHANGELOG=[
+  ['1.18.6',[
+    '🎧 La musica (anche le tue canzoni) si spegne subito quando chiudi l’app o la metti in sottofondo, anche se premi play dalla notifica del telefono'
+  ]],
   ['1.18.5',[
     '💯 Le password note agli hacker abbassano il punteggio di Salute Password e compaiono nel filtro “⚠️ Da controllare”',
     '🚨 Nella vista a elenco un’icona segnala le password note agli hacker: toccala per la spiegazione'

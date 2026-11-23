@@ -17,6 +17,7 @@ Dettagli tecnici e procedura di pubblicazione: `CLAUDE.md` / `GEMINI.md`.
 ## Versioni (dalla più recente)
 | Data | Versione | Cosa |
 |---|---|---|
+| 23/11/2026 | 1.18.6 | Musica spenta subito con app chiusa, in sottofondo o congelata dal telefono, anche premendo play dalla notifica (modifica di Gemini, già online come 1.18.5; versione e novità aggiunte da Claude) |
 | 23/11/2026 | 1.18.5 | Password note agli hacker nel punteggio Salute, nel filtro "Da controllare" e con 🚨 nella vista a elenco (modifica di Gemini, già online come 1.18.4; versione e novità aggiunte da Claude) |
 | 23/11/2026 | 1.18.4 | 🚨 Bollino "Nota agli hacker (N×)" cliccabile con spiegazione e "Cambia password ora" (prima diceva "Rubata", poco chiaro) |
 | 23/11/2026 | 1.18.3 | 📂 Tendina "Tutte le categorie" (sincronizzata con la riga che scorre); pulsanti dei 5 tipi di scheda su due righe (3+2): con "Documento" si sovrapponevano sul telefono |
