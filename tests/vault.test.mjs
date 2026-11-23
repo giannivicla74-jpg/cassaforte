@@ -313,3 +313,48 @@ test('Radar Scadenze: oggi, ieri e domani contati per giorni di calendario', () 
   // passaggio all'ora legale (fine marzo)
   assert.equal(core.expiryInfo({ type: 'doc', exp: '2027-04-01' }, new Date(2027, 2, 20, 12).getTime()).days, 12);
 });
+
+test('Codici 2FA: valori ufficiali dello standard RFC 6238', async () => {
+  const sha1 = core.parseTotp('otpauth://totp/Prova?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&digits=8');
+  for (const [t, code] of [[59, '94287082'], [1111111109, '07081804'], [1234567890, '89005924'], [2000000000, '69279037']])
+    assert.equal(await core.totpCode(sha1, t * 1000), code);
+  const sha256 = core.parseTotp('otpauth://totp/X?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZA&digits=8&algorithm=SHA256');
+  assert.equal(await core.totpCode(sha256, 59000), '46119246');
+  // chiave scritta come la mostrano i siti: minuscole e spazi
+  const plain = core.parseTotp('gezd gnbv gy3t qojq gezd gnbv gy3t qojq');
+  assert.equal(plain.digits, 6);
+  assert.equal(await core.totpCode(plain, 59000), '287082');
+  assert.equal(core.totpLeft(plain, 59000), 1);
+  assert.equal(core.totpLeft(plain, 60000), 30);
+});
+
+test('Codici 2FA: chiavi non valide rifiutate, solo negli account', () => {
+  for (const bad of ['', 'ciao!', 'ABC', 'otpauth://hotp/X?secret=GEZDGNBVGY3TQOJQ', 'otpauth://totp/X?secret=GEZDGNBVGY3TQOJQ&algorithm=MD5'])
+    assert.equal(core.parseTotp(bad), null, bad);
+  const uri = core.parseTotp('otpauth://totp/Amazon%3Amario%40x.it?secret=JBSWY3DPEHPK3PXP&issuer=Amazon');
+  assert.equal(uri.issuer, 'Amazon');
+  assert.equal(uri.label, 'Amazon:mario@x.it');
+  assert.equal(core.clean({ id: 'a', name: 'A', totp: ' JBSWY3DPEHPK3PXP ' }).totp, 'JBSWY3DPEHPK3PXP');
+  assert.equal(core.clean({ id: 'b', name: 'B', type: 'note', totp: 'JBSWY3DPEHPK3PXP' }).totp, undefined);
+  assert.equal(core.sameItem(core.clean({ id: 'a', name: 'A' }), core.clean({ id: 'a', name: 'A', totp: 'JBSWY3DPEHPK3PXP' })), false);
+  const csv = core.parseCsvItems('name,login_username,login_password,login_totp\nGoogle,io,pw,JBSWY3DPEHPK3PXP\nAltro,io,pw,nonvalida!');
+  assert.equal(csv[0].totp, 'JBSWY3DPEHPK3PXP');
+  assert.equal(csv[1].totp, undefined);
+});
+
+test('Cestino: tiene 30 giorni, al massimo 50, cifrato e leggibile solo con la chiave giusta', async () => {
+  const now = Date.UTC(2026, 10, 23);
+  const e = (id, daysAgo) => ({ item: { id, name: 'S' + id }, deletedAt: now - daysAgo * DAY_MS });
+  const list = core.purgeTrash([e('a', 1), e('b', 31), e('c', 29.9), null, { item: 'x', deletedAt: now }], now);
+  assert.deepEqual(list.map(x => x.item.id), ['a', 'c']);
+  assert.equal(core.trashLeftDays(list[0], now), 29);
+  assert.equal(core.purgeTrash(Array.from({ length: 70 }, (_, i) => e('n' + i, 0)), now).length, core.TRASH_MAX);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const k = await derive('Password-di-prova-1', salt, 1000);
+  const altra = await derive('Password-diversa-2', salt, 1000);
+  const str = await core.encryptTrash(k, list);
+  assert.ok(!str.includes('Sa'));
+  assert.deepEqual((await core.decryptTrash(k, str, now)).map(x => x.item.id), ['a', 'c']);
+  assert.equal(await core.decryptTrash(altra, str, now), null);
+  assert.deepEqual(await core.decryptTrash(k, null, now), []);
+});

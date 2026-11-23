@@ -4,10 +4,16 @@ let syncHandle=null, pendingHandle=null, pendingImport=null;
 let sess=0;            // cresce a ogni blocco: invalida le operazioni asincrone iniziate prima
 let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
+const totpNow=new Map(); // codici 2FA del momento (id → codice), per copiarli subito
+let trash=[], trashK=null, trashDirty=false; // Cestino (in chiaro solo a cassaforte aperta); trashK = chiave con cui è salvato
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.17.0';
+const APP_VERSION='1.18.0';
 const CHANGELOG=[
+  ['1.18.0',[
+    '🔢 Codici 2FA a 6 cifre dentro la scheda dell’account, come Google Authenticator, con conto alla rovescia e “Copia codice”',
+    '🗑️ Cestino: le schede eliminate restano 30 giorni e si possono ripristinare da Opzioni → Cestino'
+  ]],
   ['1.17.0',[
     '🪪 Nuova scheda Documento (Carta d’Identità, Tessera Sanitaria, Patente, Passaporto) con codice a barre del Codice Fiscale da mostrare in farmacia',
     '⏳ Radar Scadenze: avvisa per carte e documenti scaduti o in scadenza entro 60 giorni',
@@ -122,10 +128,13 @@ async function upgradeKdf(pw){
 /* Salvataggio: cifra e scrive in coda, così due salvataggi non si sovrappongono */
 function persist(){
   const k=key, s=salt, it=iter, snapshot=[...items];
+  // il Cestino si riscrive se è cambiato o se è cambiata la chiave (nuova password, ripristino)
+  const trSnap=(trashDirty||k!==trashK)?[...trash]:null; trashDirty=false;
   const job=saveQ.then(async()=>{
     if(!k||!s||!it)throw new Error('Cassaforte bloccata');
     const vStr=await encryptVault(k,s,it,snapshot);
     localStorage.setItem('vault',vStr);
+    if(trSnap)await saveTrash(k,trSnap);
     await syncWrite(vStr);
     // Il Cloud non blocca il salvataggio: con segnale debole l'app resterebbe ferma ad aspettare
     cloudQ=cloudQ.then(()=>cloudWrite(vStr)).catch(()=>{});
@@ -133,16 +142,36 @@ function persist(){
   saveQ=job.catch(()=>{});
   return job;
 }
+/* Il Cestino non deve mai far fallire il salvataggio: se la memoria è piena perde le schede più vecchie */
+async function saveTrash(k,list){
+  try{
+    let l=list.slice(0,TRASH_MAX);
+    while(l.length){
+      const str=await encryptTrash(k,l);
+      if(str.length<=1500000){try{localStorage.setItem('trash',str);trashK=k;return}catch{}}
+      l=l.slice(0,-1);
+    }
+    localStorage.removeItem('trash'); trashK=k;
+  }catch(e){console.warn('Cestino non salvato',e);trashDirty=true}
+}
+async function loadTrash(){
+  const k=key, t=await decryptTrash(k,localStorage.getItem('trash'));
+  if(k!==key)return;
+  if(trash.length)trashDirty=true; // eliminazioni fatte mentre il cestino si apriva
+  trash=purgeTrash([...trash,...(t||[])]);
+  if(t&&t.length>trash.length)trashDirty=true; // schede oltre i 30 giorni tolte
+  trashK=t?k:null; // cestino di un'altra chiave: sarà sostituito al prossimo salvataggio
+}
 /* Applica una modifica e la salva; se il salvataggio fallisce la annulla */
 async function commit(fn,msg){
-  const prev=structuredClone(items), prevChg=localStorage.getItem('lastChange'), s=sess;
+  const prev=structuredClone(items), prevTrash=[...trash], prevChg=localStorage.getItem('lastChange'), s=sess;
   fn();
   localStorage.setItem('lastChange',Date.now());
   try{await persist();render();if(msg)toast(msg,true);return true}
   catch(e){
     console.error(e);
     if(s===sess){
-      items=prev;
+      items=prev; trash=prevTrash; trashDirty=true;
       if(prevChg)localStorage.setItem('lastChange',prevChg);else localStorage.removeItem('lastChange');
       render();toast('Salvataggio non riuscito: modifica annullata');
     }
@@ -182,15 +211,15 @@ function showLock(){
   $('#lock').classList.remove('hide'); $('#app').classList.add('hide');
 }
 function lock(){
-  sess++; key=null; salt=null; iter=0; items=[]; shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
+  sess++; key=null; salt=null; iter=0; items=[]; trash=[]; trashK=null; trashDirty=false; totpNow.clear(); totpCache.clear(); shown.clear(); clearTimeout(lockT); clearTimeout(awayT);
   editId=qId=null; pendingImport=null; cat='Tutti'; extUntil=0; hiddenAt=0; keepOpen=false; updKeepUI();
   clearClip(true);
   slotStop?.(); window.Music?.stop(); updMusicUI();
   hideUndo(); // la copia della scheda eliminata non resta in memoria a cassaforte chiusa
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto','dlgBarcode'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto','dlgBarcode','dlgTrash'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
   $('#bcSvg').innerHTML=''; $('#bcCode').textContent=''; $('#expBox').classList.add('hide'); $('#expBox').innerHTML='';
-  pwnedMap.clear(); $('#pwnMsg').textContent='';
+  pwnedMap.clear(); $('#pwnMsg').textContent=''; $('#trList').innerHTML=''; $('#totpPrev').textContent='';
   editPhotos=[]; $('#fPhotos').innerHTML=''; $('#photoFull').removeAttribute('src');
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
@@ -292,7 +321,7 @@ $('#lockForm').addEventListener('submit',async e=>{
     if(!v){
       if(pw.length<8){$('#err').textContent='Usa almeno 8 caratteri.';return}
       if(pw!==$('#mp2').value){$('#err').textContent='Le due password non coincidono.';return}
-      salt=crypto.getRandomValues(new Uint8Array(16)); key=await derive(pw,salt,ITER); iter=ITER; items=[];
+      salt=crypto.getRandomValues(new Uint8Array(16)); key=await derive(pw,salt,ITER); iter=ITER; items=[]; trash=[]; trashK=null;
       try{await persist()}catch(err){console.error(err);key=salt=null;iter=0;$('#err').textContent='Impossibile salvare nel browser (memoria piena o bloccata).';return}
     }else{
       let decRes;
@@ -305,7 +334,7 @@ $('#lockForm').addEventListener('submit',async e=>{
         }else $('#err').textContent='Password errata.';
         shake($('.lockcard'));buzz([40,60,40]);return
       }
-      salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
+      salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items; trash=[]; trashK=null; loadTrash();
     }
     const s0=sess; await openAnim(); if(s0!==sess||!key)return;
     $('#lock').classList.add('hide'); $('#app').classList.remove('hide'); render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync(); musicPlay();
@@ -473,6 +502,7 @@ function allKnownCats(){
   return [...new Set([...CATS,...items.map(i=>i.cat||'Altro')])];
 }
 function render(){
+  queueMicrotask(tickTotp); // i codici 2FA compaiono subito, senza aspettare il secondo successivo
   if(!key)return;
   const audit=auditItems(items);
   const inCat=i=>cat==='Tutti'||(cat==='★'?i.fav:cat==='!warn'?audit.warnIds.has(i.id):(i.cat||'Altro')===cat);
@@ -561,6 +591,7 @@ function render(){
     }
     return `
       ${i.pass?`<div class="pwbox"><span>${open?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>${t==='wifi'?'Rete senza password':'Nessuna password salvata'}</span></div>`}
+      ${t==='login'&&i.totp?totpHtml(i):''}
       ${photosHtml(i,open)}
       ${noteHtml(i)}
       <div class="acts">
@@ -582,7 +613,7 @@ function render(){
         :t==='doc'?(x.cf?ib('bc','Codice a barre CF','🏥'):'')+(x.number?ib('cn','Copia numero',IC.copy):'')
         :t==='note'?ib('cs','Copia testo',IC.copy,!x.secret)
         :t==='wifi'?ib('qr','Codice QR','▦')+ib('cp','Copia password',IC.key,!x.pass)
-        :ib('cu','Copia utente',IC.user)+ib('cp','Copia password',IC.key,!x.pass);
+        :ib('cu','Copia utente',IC.user)+ib('cp','Copia password',IC.key,!x.pass)+(x.totp?ib('ct','Copia codice 2FA','🔢'):'');
       return`
     <li class="ln" data-id="${esc(x.id)}" data-ids="${esc(x.id)}">
       <div class="av sm" style="--h:${ci.h}">${esc(x.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${t==='login'?ci.e:TYPE_INFO[t].e}</span></div>
@@ -649,6 +680,7 @@ $('#list').addEventListener('click',e=>{
   if(a==='cv')copy(it.cvv,'CVV copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='cf')copy((it.cf||'').toUpperCase(),'Codice Fiscale copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='bc')openBarcode(it);
+  if(a==='ct'){const c=totpNow.get(it.id);if(c)copy(c,'Codice 2FA copiato: incollalo nel sito').then(ok=>{if(ok)copiedFx(b)});else toast('Codice non ancora pronto, riprova')}
   if(a==='cs')copy(it.secret,'Testo copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='qr')openQr(it);
   if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
@@ -780,6 +812,72 @@ function openBarcode(it){
 $('#bcClose').onclick=()=>$('#dlgBarcode').close();
 $('#dlgBarcode').addEventListener('close',()=>{$('#bcSvg').innerHTML='';$('#bcCode').textContent=''});
 
+/* Codici 2FA: la scheda mostra il codice a 6 cifre del momento, aggiornato ogni secondo */
+const totpStore=v=>{const c=parseTotp(v);return c?(/^otpauth:/i.test(v.trim())?v.trim():c.secret):''};
+const fmtCode=c=>c.length===6?c.slice(0,3)+' '+c.slice(3):c.length===8?c.slice(0,4)+' '+c.slice(4):c;
+const totpHtml=i=>`<div class="totp" data-totp="${esc(i.id)}">
+  <span class="totp-l">🔢 Codice 2FA</span><b class="totp-c">··· ···</b>
+  <span class="totp-r" aria-hidden="true"><i></i></span><span class="totp-s"></span>
+  <button class="btn s" data-a="ct">${IC.copy}Copia codice</button></div>`;
+const totpCache=new Map(); // id|periodo → codice (si ricalcola solo quando cambia)
+let totpBusy=false;
+async function tickTotp(){
+  if(!key||totpBusy||document.hidden)return;
+  const els=[...document.querySelectorAll('[data-totp]')];
+  const ids=new Set(els.map(e=>e.dataset.totp));
+  if(getView()==='list')items.forEach(i=>{if(i.totp)ids.add(i.id)}); // nella vista a elenco si copia senza vedere il codice
+  if(!ids.size)return;
+  totpBusy=true; const s=sess, now=Date.now();
+  try{
+    for(const id of ids){
+      const it=items.find(x=>x.id===id), cfg=parseTotp(it?.totp); if(!cfg)continue;
+      const ck=id+'|'+Math.floor(now/1000/cfg.period);
+      let code=totpCache.get(ck);
+      if(!code){code=await totpCode(cfg,now);if(s!==sess)return;totpCache.set(ck,code)}
+      totpNow.set(id,code);
+      const left=totpLeft(cfg,now);
+      for(const el of els.filter(e=>e.dataset.totp===id)){
+        el.querySelector('.totp-c').textContent=fmtCode(code);
+        el.querySelector('.totp-s').textContent=left+' s';
+        el.querySelector('.totp-r i').style.width=(100*left/cfg.period)+'%';
+        el.classList.toggle('end',left<=5);
+      }
+    }
+    if(totpCache.size>200)totpCache.clear();
+  }catch(e){console.warn('2FA',e)}
+  finally{totpBusy=false}
+}
+setInterval(tickTotp,1000);
+/* Anteprima nel modulo: dice subito se la chiave è giusta e mostra il codice */
+async function updTotpPrev(){
+  const v=$('#fTotp').value.trim(), out=$('#totpPrev');
+  if(!v){out.textContent='';out.className='small';return}
+  const cfg=parseTotp(v);
+  if(!cfg){out.textContent='Chiave non valida: copia tutto il codice che ti dà il sito (solo lettere A-Z e numeri 2-7).';out.className='small bad-t';return}
+  try{
+    const c=await totpCode(cfg);
+    if($('#fTotp').value.trim()!==v)return;
+    out.textContent=`✓ Chiave valida${cfg.issuer?' ('+cfg.issuer+')':''}: il codice adesso è ${fmtCode(c)}. Scrivilo nel sito per confermare.`;out.className='small ok-t';
+  }catch{out.textContent='Questo dispositivo non riesce a calcolare il codice.';out.className='small bad-t'}
+}
+$('#fTotp').addEventListener('input',updTotpPrev);
+/* Lettura del QR del sito da una foto (dove il telefono lo permette: Chrome su Android) */
+const canScan='BarcodeDetector' in window;
+$('#bTotpScan').classList.toggle('hide',!canScan);
+$('#bTotpScan').onclick=()=>{allowExternal();$('#fTotpImg').value='';$('#fTotpImg').click()};
+$('#fTotpImg').addEventListener('change',async e=>{
+  const f=e.target.files?.[0]; if(!f)return;
+  try{
+    const bmp=await createImageBitmap(f);
+    const codes=await new BarcodeDetector({formats:['qr_code']}).detect(bmp);
+    bmp.close?.();
+    const raw=codes.map(c=>c.rawValue).find(v=>/^otpauth:\/\/totp\//i.test(v||''));
+    if(!raw){toast('Nella foto non trovo il QR della verifica in due passaggi');return}
+    $('#fTotp').value=raw; updTotpPrev(); toast('QR letto',true);
+  }catch(x){console.warn(x);toast('Impossibile leggere il QR: incolla la chiave a mano')}
+  finally{e.target.value=''}
+});
+
 /* Tipo della scheda nel modulo: mostra solo i campi giusti */
 let fType='login', catAuto=true, urlAuto=false;
 const NAME_L={login:['Servizio','es. Netflix'],card:['Nome della carta','es. Visa Intesa'],wifi:['Nome della rete (SSID)','es. Casa Rossi'],note:['Titolo','es. Codici antifurto'],doc:['Nome del documento','es. Carta d’Identità Mario']};
@@ -834,7 +932,7 @@ function openForm(it,pre){
   const ty=it?typeOf(it):pre?.type||'login';
   $('#dlgT').textContent=it?'Modifica '+TYPE_INFO[ty].t:pre?'Altro account per '+pre.name:'Nuovo account';
   $('#fName').value=it?.name||pre?.name||'';$('#fUser').value=it?.user||'';$('#fPass').value=it?.pass||'';
-  $('#fUrl').value=it?.url||pre?.url||'';$('#fNote').value=it?.note||'';$('#fFav').checked=!!it?.fav;
+  $('#fUrl').value=it?.url||pre?.url||'';$('#fTotp').value=it?.totp||'';updTotpPrev();$('#fNote').value=it?.note||'';$('#fFav').checked=!!it?.fav;
   $('#fHolder').value=it?.holder||'';$('#fNumber').value=fmtCard(it?.number||'');$('#fExp').value=it?.exp||'';
   $('#fCvv').value=it?.cvv||'';$('#fPin').value=it?.pin||'';$('#fWsec').value=it?.wsec||'WPA';$('#fWhidden').checked=!!it?.whidden;
   $('#fSecret').value=it?.secret||'';
@@ -903,12 +1001,14 @@ $('#form').addEventListener('submit',async e=>{
     user:has('login')?$('#fUser').value.trim():'',
     pass:has('login')||has('wifi')?$('#fPass').value:'',
     url:has('login')?normUrl($('#fUrl').value):'',
+    totp:has('login')?totpStore($('#fTotp').value):'',
     holder:has('card')?$('#fHolder').value.trim().toUpperCase():'',number:has('card')?fmtCard($('#fNumber').value):(has('doc')?$('#fDocNum').value.trim().toUpperCase():''),
     exp:has('card')?$('#fExp').value.trim():(has('doc')?$('#fDocExp').value.trim():''),cvv:has('card')?$('#fCvv').value:'',pin:has('card')?$('#fPin').value:'',
     docType:has('doc')?$('#fDocType').value:'',cf:has('doc')?$('#fCf').value.trim().toUpperCase():'',issuer:has('doc')?$('#fIssuer').value.trim():'',issued:has('doc')?$('#fIssued').value.trim():'',
     wsec:has('wifi')?$('#fWsec').value:'',whidden:has('wifi')&&$('#fWhidden').checked,secret:has('note')?$('#fSecret').value:'',
     photos:editPhotos});
   if(!$('#fName').value.trim())return;
+  if(has('login')&&$('#fTotp').value.trim()&&!d.totp){toast('Chiave 2FA non valida: controlla di averla copiata tutta');$('#fTotp').focus();return}
   if(d.url&&!safeUrl(d.url)){toast('Indirizzo del sito non valido (usa http:// o https://)');$('#fUrl').focus();return}
   if(t==='card'&&d.exp&&!/^(0[1-9]|1[0-2])\/\d{2}$/.test(d.exp)){toast('Scadenza non valida: usa MM/AA (es. 08/29)');$('#fExp').focus();return}
   const id=editId, btn=$('#bSave'); btn.disabled=true;
@@ -931,9 +1031,15 @@ $('#form').addEventListener('submit',async e=>{
   }finally{btn.disabled=false}
 });
 /* Eliminazione sicura: finestra di avviso con il nome della scheda, poi 8 secondi per annullare */
-function askDelete(name){
+const DEL_TXT={
+  title:'Eliminare questa scheda?',
+  text:'La scheda andrà nel Cestino: subito puoi premere “Annulla” in basso, e per 30 giorni puoi recuperarla da Opzioni → Cestino.',
+  yes:'Elimina'
+};
+function askDelete(name,o={}){
   return new Promise(res=>{
     const d=$('#dlgDel'); $('#delName').textContent=name;
+    $('#delT').textContent=o.title||DEL_TXT.title; $('#delTxt').textContent=o.text||DEL_TXT.text; $('#delYes').textContent=o.yes||DEL_TXT.yes;
     const done=v=>{d.removeEventListener('close',onClose);if(d.open)d.close();res(v)};
     const onClose=()=>done(false); // tasto Indietro / Esc = annulla
     $('#delNo').onclick=()=>done(false);
@@ -948,7 +1054,7 @@ function hideUndo(){clearTimeout(undoT);clearInterval(undoTick);undoData=null;$(
 function showUndo(name){
   clearTimeout(undoT);clearInterval(undoTick);
   const bar=$('#undoBar'), end=Date.now()+UNDO_SEC*1000;
-  $('#undoTxt').textContent=`“${name}” eliminata`;
+  $('#undoTxt').textContent=`“${name}” nel Cestino`;
   $('#undoSec').textContent=UNDO_SEC;
   bar.classList.remove('hide','run'); void bar.offsetWidth; bar.classList.add('run'); // riparte la linea che si accorcia
   // conto alla rovescia: 8, 7, 6… (calcolato sull'orario, così resta giusto anche se il telefono rallenta)
@@ -958,16 +1064,60 @@ function showUndo(name){
 $('#undoBtn').onclick=async()=>{
   const u=undoData; if(!u||!key)return hideUndo();
   hideUndo();
-  if(await commit(()=>{if(!items.some(x=>x.id===u.item.id))items.splice(Math.min(u.at,items.length),0,u.item)},'Scheda ripristinata'))buzz(20);
+  if(await commit(()=>{if(!items.some(x=>x.id===u.item.id))items.splice(Math.min(u.at,items.length),0,u.item);trash=trash.filter(x=>x.item.id!==u.item.id);trashDirty=true},'Scheda ripristinata'))buzz(20);
 };
 $('#bDel').onclick=async()=>{
   const id=editId, at=items.findIndex(x=>x.id===id); if(at<0)return;
   const item=structuredClone(items[at]);
   if(!await askDelete(item.name))return;
-  if(await commit(()=>{items=items.filter(x=>x.id!==id)})){
+  if(await commit(()=>{items=items.filter(x=>x.id!==id);trash=purgeTrash([{item,deletedAt:Date.now()},...trash]);trashDirty=true})){
     $('#dlg').close(); buzz(30);
     showUndo(item.name); undoData={item,at};
   }
+};
+
+/* Cestino: schede eliminate negli ultimi 30 giorni, da ripristinare o eliminare per sempre */
+function updTrashBtn(){$('#bTrash').textContent=`🗑️ Apri il Cestino (${trash.length})`}
+function renderTrash(){
+  const now=Date.now(), ul=$('#trList');
+  trash=purgeTrash(trash,now);
+  $('#trEmpty').disabled=!trash.length;
+  updTrashBtn();
+  if(!trash.length){ul.innerHTML='<li class="tr-none">Il Cestino è vuoto.</li>';return}
+  const day=d=>new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'short'});
+  ul.innerHTML=trash.map(e=>{
+    const i=e.item, t=typeOf(i), left=trashLeftDays(e,now);
+    return `<li data-id="${esc(i.id)}">
+      <span class="tr-e" aria-hidden="true">${t==='login'?catInfo(i.cat).e:TYPE_INFO[t].e}</span>
+      <div class="tr-t"><b>${esc(i.name)}</b><small>${esc(subOf(i)||TYPE_INFO[t].t)} · eliminata il ${esc(day(e.deletedAt))} · ${left===1?'sparisce domani':`sparisce tra ${left} giorni`}</small></div>
+      <div class="tr-a"><button type="button" class="btn s" data-t="r">↩️ Ripristina</button><button type="button" class="btn s ic" data-t="x" title="Elimina per sempre" aria-label="Elimina per sempre: ${esc(i.name)}">✕</button></div>
+    </li>`;
+  }).join('');
+}
+$('#bTrash').onclick=()=>{renderTrash();$('#dlgTrash').showModal()};
+$('#trClose').onclick=()=>$('#dlgTrash').close();
+$('#dlgTrash').addEventListener('close',()=>{$('#trList').innerHTML=''});
+$('#trList').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-t]'); if(!b||!key)return;
+  const id=b.closest('li').dataset.id, en=trash.find(x=>x.item.id===id); if(!en)return;
+  if(b.dataset.t==='r'){
+    const ok=await commit(()=>{
+      const it=structuredClone(en.item);
+      if(items.some(x=>x.id===it.id))it.id=crypto.randomUUID();
+      items.push(it); trash=trash.filter(x=>x!==en); trashDirty=true;
+    },`“${en.item.name}” ripristinata`);
+    if(ok){buzz(20);hideUndo()}
+  }else{
+    if(!await askDelete(en.item.name,{title:'Eliminare per sempre?',text:'Dal Cestino la scheda sparisce del tutto e non si potrà più recuperare.',yes:'Elimina per sempre'}))return;
+    await commit(()=>{trash=trash.filter(x=>x!==en);trashDirty=true},'Eliminata per sempre');
+  }
+  if($('#dlgTrash').open)renderTrash();
+});
+$('#trEmpty').onclick=async()=>{
+  if(!trash.length||!key)return;
+  const n=trash.length;
+  if(!await askDelete(n===1?'1 scheda nel Cestino':`${n} schede nel Cestino`,{title:'Svuotare il Cestino?',text:'Tutte le schede del Cestino spariranno per sempre e non si potranno più recuperare.',yes:'Svuota'}))return;
+  if(await commit(()=>{trash=[];trashDirty=true},'Cestino svuotato'))renderTrash();
 };
 
 /* Backup: il file resta cifrato con la password principale */
@@ -1474,7 +1624,7 @@ $('#cloudForm').addEventListener('submit',async e=>{
       localStorage.setItem('vault',vStr);
       if(cleanCode){localStorage.setItem('cloudCode',cleanCode);localStorage.setItem('lastCloudSync',Date.now());localStorage.removeItem('cloudErr')}
       markBackup();
-      salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items;
+      salt=decRes.salt; key=decRes.key; iter=decRes.iter; items=decRes.items; trash=[]; trashK=null; loadTrash();
       $('#dlgCloud').close();
       $('#lock').classList.add('hide'); $('#app').classList.remove('hide');
       render(); enterAnim(); bump(); checkAndRequestPersistence(true); initSync(); musicPlay();
@@ -1634,7 +1784,7 @@ function updStatsUI(){
 }
 
 /* Opzioni e cambio password principale */
-$('#bSet').onclick=()=>{updBioUI();const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;$('#sShake').checked=c.shake;updStatsUI();updBkInfo();updCloudUI();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
+$('#bSet').onclick=()=>{updBioUI();const c=lockCfg();$('#sIdle').value=c.idle;$('#sAway').value=c.away;$('#sShake').checked=c.shake;updStatsUI();updTrashBtn();updBkInfo();updCloudUI();checkAndRequestPersistence(false);$('#pErr').textContent='';$('#dlgSet').showModal()};
 $('#bSetClose').onclick=()=>$('#dlgSet').close();
 $('#pwForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=$('#pErr'); err.textContent='';

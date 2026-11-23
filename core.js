@@ -43,6 +43,9 @@ function clean(i){
   }else{
     delete out.type; EXTRA_FIELDS.forEach(k=>delete out[k]); delete out.whidden;
   }
+  // Codice 2FA (chiave TOTP): solo negli account
+  const totp=out.type?'':s(i.totp).trim().slice(0,600);
+  if(totp)out.totp=totp; else delete out.totp;
   if(Array.isArray(i.photos)){
     const ph=i.photos.filter(x=>typeof x==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(x)).slice(0,MAX_PHOTOS);
     if(ph.length)out.photos=ph; else delete out.photos;
@@ -84,7 +87,7 @@ function normUrl(u){u=u.trim();if(!u)return'';if(!/^[a-z][a-z0-9+.-]*:\/\//i.tes
 function safeUrl(u){try{const x=new URL(u);return x.protocol==='https:'||x.protocol==='http:'?x.href:''}catch{return''}}
 
 const sameItem=(a,b)=>typeOf(a)===typeOf(b)&&!!a.whidden===!!b.whidden
-  &&['name','user','pass','url','note','cat',...EXTRA_FIELDS].every(k=>(a[k]||'')===(b[k]||''))
+  &&['name','user','pass','url','note','cat','totp',...EXTRA_FIELDS].every(k=>(a[k]||'')===(b[k]||''))
   &&(a.photos||[]).join('|')===(b.photos||[]).join('|');
 
 /* Carte: circuito, formattazione, controllo del numero (algoritmo di Luhn) */
@@ -302,6 +305,7 @@ function parseCsvItems(csvText,now=Date.now()){
   const iNote=idx('note','notes','comment','extra');
   const iCat=idx('category','categoria','folder','group');
   const iFav=idx('favorite','fav','preferito');
+  const iTotp=idx('totp','login_totp','otpauth','otp');
   if(iName<0&&iUrl<0&&iUser<0&&iPass<0)throw new Error('Intestazioni CSV non riconosciute');
   const out=[];
   for(let r=1;r<rows.length;r++){
@@ -314,7 +318,8 @@ function parseCsvItems(csvText,now=Date.now()){
     const favVal=get(iFav).toLowerCase();
     const fav=favVal==='1'||favVal==='true'||favVal==='yes'||favVal==='si';
     if(!name&&!user&&!pass&&!url)continue;
-    out.push(clean({id:crypto.randomUUID(),name:name||user||'Account',user,pass,url:safeUrl(url)?url:'',note,cat,fav,updatedAt:now}));
+    const totp=parseTotp(get(iTotp))?get(iTotp):'';
+    out.push(clean({id:crypto.randomUUID(),name:name||user||'Account',user,pass,url:safeUrl(url)?url:'',note,cat,fav,totp,updatedAt:now}));
   }
   return out;
 }
@@ -408,6 +413,77 @@ async function checkPwnedPassword(pw,cache){
   return parsePwnedCount(txt,suffix);
 }
 
+/* Codici 2FA a 6 cifre (TOTP, RFC 6238): gli stessi di Google Authenticator */
+const B32='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const b32norm=x=>String(x??'').toUpperCase().replace(/[\s-]/g,'').replace(/=+$/,'');
+function base32Decode(str){
+  const t=b32norm(str);
+  if(!t||/[^A-Z2-7]/.test(t))return null;
+  let bits=0, val=0; const out=[];
+  for(const ch of t){
+    val=(val<<5)|B32.indexOf(ch); bits+=5;
+    if(bits>=8){bits-=8;out.push((val>>>bits)&255);val&=(1<<bits)-1}
+  }
+  return new Uint8Array(out);
+}
+/* Accetta la chiave segreta ("JBSW Y3DP …") o il link otpauth:// contenuto nel QR del sito */
+function parseTotp(input){
+  const raw=String(input??'').trim(); if(!raw)return null;
+  let secret=raw, digits=6, period=30, algo='SHA-1', issuer='', label='';
+  if(/^otpauth:/i.test(raw)){
+    let u; try{u=new URL(raw)}catch{return null}
+    if(u.host.toLowerCase()!=='totp')return null;
+    const p=u.searchParams;
+    secret=p.get('secret')||'';
+    digits=+(p.get('digits')||6); period=+(p.get('period')||30);
+    algo={SHA1:'SHA-1',SHA256:'SHA-256',SHA512:'SHA-512'}[(p.get('algorithm')||'SHA1').toUpperCase().replace('-','')];
+    if(!algo)return null;
+    issuer=p.get('issuer')||'';
+    try{label=decodeURIComponent(u.pathname.replace(/^\//,''))}catch{label=''}
+  }
+  const k=base32Decode(secret);
+  if(!k||k.length<10)return null; // chiavi più corte di 80 bit non sono valide
+  if(![6,7,8].includes(digits)||!(period>=10&&period<=120))return null;
+  return {secret:b32norm(secret),digits,period,algo,issuer,label};
+}
+async function totpCode(cfg,now=Date.now()){
+  const k=await crypto.subtle.importKey('raw',base32Decode(cfg.secret),{name:'HMAC',hash:cfg.algo||'SHA-1'},false,['sign']);
+  let c=Math.floor(now/1000/(cfg.period||30));
+  const msg=new Uint8Array(8);
+  for(let i=7;i>=0;i--){msg[i]=c%256;c=Math.floor(c/256)}
+  const h=new Uint8Array(await crypto.subtle.sign('HMAC',k,msg));
+  const o=h[h.length-1]&15;
+  const bin=((h[o]&127)<<24)|(h[o+1]<<16)|(h[o+2]<<8)|h[o+3];
+  const d=cfg.digits||6;
+  return String(bin%10**d).padStart(d,'0');
+}
+const totpLeft=(cfg,now=Date.now())=>{const p=(cfg?.period||30)*1000;return Math.ceil((p-now%p)/1000)};
+
+/* Cestino: schede eliminate tenute 30 giorni, cifrate con la stessa chiave (solo su questo dispositivo) */
+const TRASH_DAYS=30, TRASH_MAX=50;
+function purgeTrash(list,now=Date.now()){
+  return (Array.isArray(list)?list:[])
+    .filter(x=>x&&typeof x==='object'&&x.item&&typeof x.item==='object'&&Number.isFinite(x.deletedAt)&&now-x.deletedAt<TRASH_DAYS*DAY_MS)
+    .map(x=>({item:clean(x.item),deletedAt:Math.floor(x.deletedAt)}))
+    .sort((a,b)=>b.deletedAt-a.deletedAt)
+    .slice(0,TRASH_MAX);
+}
+const trashLeftDays=(e,now=Date.now())=>Math.max(1,Math.ceil((e.deletedAt+TRASH_DAYS*DAY_MS-now)/DAY_MS));
+async function encryptTrash(k,list){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(JSON.stringify(list)));
+  return JSON.stringify({v:1,iv:b64(iv),data:b64(ct)});
+}
+/* null = cestino presente ma di un'altra chiave (es. dopo un ripristino): verrà sostituito */
+async function decryptTrash(k,str,now=Date.now()){
+  if(!str)return [];
+  try{
+    const v=JSON.parse(str);
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(v.iv)},k,unb64(v.data));
+    return purgeTrash(JSON.parse(dec.decode(pt)),now);
+  }catch{return null}
+}
+
 if(typeof module!=='undefined'&&module.exports){
   module.exports={
     CATS,ITER,ITER_OLD,DAY_MS,OLD_DAYS,MAX_HISTORY,MAX_PHOTOS,iterOf,b64,unb64,esc,derive,encryptVault,decryptVault,
@@ -415,6 +491,7 @@ if(typeof module!=='undefined'&&module.exports){
     strength,SETS,WORDS_IT,rnd,generatePassword,parseCsvRows,parseCsvItems,
     generateCloudCode,normalizeCloudCode,cloudDocId,
     TYPES,EXTRA_FIELDS,typeOf,cardBrand,fmtCard,luhnOk,wifiQr,SERVICES,recognize,
-    code39Svg,expiryInfo,expiringItems,sha1Hex,parsePwnedCount,checkPwnedPassword
+    code39Svg,expiryInfo,expiringItems,sha1Hex,parsePwnedCount,checkPwnedPassword,
+    base32Decode,parseTotp,totpCode,totpLeft,TRASH_DAYS,TRASH_MAX,purgeTrash,trashLeftDays,encryptTrash,decryptTrash
   };
 }

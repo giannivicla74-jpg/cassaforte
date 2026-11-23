@@ -57,3 +57,9 @@ Nessun server: i dati stanno nel `localStorage` del dispositivo; i backup sono f
 - `clean()` in core.js tiene solo i campi del tipo; `sameItem` li confronta (import/unione).
 - QR Wi-Fi con `qrcode.js` (qrcode-generator 1.4.4, MIT, copiata in locale: niente CDN per la CSP).
 - Riconoscimento servizi: tabella `SERVICES` + `recognize()` in core.js (testata).
+- Codici 2FA (v1.18): campo `totp` solo negli account; `parseTotp`/`totpCode` in core.js, testati con i valori RFC 6238.
+
+## Cestino (dalla v1.18)
+- localStorage `trash` = {iv,data} cifrato con la chiave della cassaforte; in memoria `trash` solo a cassaforte aperta.
+- `persist()` lo riscrive quando cambia o quando cambia la chiave (`trashK`): cambio password e ripristino sono gestiti lì.
+- Non fa mai fallire il salvataggio: se la memoria è piena perde le schede più vecchie.
