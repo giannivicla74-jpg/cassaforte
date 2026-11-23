@@ -1979,28 +1979,39 @@ const My={
     return true;
   },
   start(i){
-    if(!this.list.length)return false;
+    if(!this.list.length||!key||document.hidden)return false;
     this.on=true;
     if(i!=null||!this.el.src||!this.list.some(s=>s.url===this.el.src))this.track(i??this.i);
     this.el.muted=false; this.el.volume=.6;
     this.el.play().catch(e=>console.warn('La mia musica',e));
     return true;
   },
-  stop(){this.on=false;this.el.pause()},
-  pause(){this.el.pause()},
-  resume(){if(this.on&&this.list.length)this.el.play().catch(()=>{})},
+  stop(){
+    this.on=false; this.el.pause(); this.el.muted=true;
+    if(this.el.hasAttribute('src')){this.el.removeAttribute('src');this.el.load()}
+  },
+  pause(){this.el.pause();this.el.muted=true},
+  resume(){
+    if(!this.on||!this.list.length||!key||document.hidden)return;
+    if(!this.el.src)this.track(this.i);
+    this.el.muted=false; this.el.play().catch(()=>{});
+  },
   // dentro il tocco dell'utente: su iPhone "sblocca" il lettore, senza far sentire nulla
   prime(){
     if(!this.list.length)return;
     if(!this.el.src)this.track(this.i);
     if(!this.el.paused)return;
     this.el.muted=true;
-    this.el.play().then(()=>{if(!this.on)this.el.pause();this.el.muted=false}).catch(()=>{this.el.muted=false});
+    this.el.play().then(()=>{if(!this.on||!key||document.hidden)this.el.pause();this.el.muted=false}).catch(()=>{this.el.muted=false});
   }
 };
 My.el.preload='auto';
-My.el.addEventListener('ended',()=>{if(My.on&&My.list.length>1){My.track(My.i+1);My.el.play().catch(()=>{})}});
-['play','pause'].forEach(ev=>My.el.addEventListener(ev,()=>{updMusicUI();renderMy()}));
+My.el.addEventListener('ended',()=>{if(My.on&&key&&!document.hidden&&My.list.length>1){My.track(My.i+1);My.el.play().catch(()=>{})}});
+My.el.addEventListener('play',()=>{
+  if(!key||document.hidden||!My.on){My.el.pause();My.el.muted=true;return}
+  updMusicUI();renderMy();
+});
+My.el.addEventListener('pause',()=>{updMusicUI();renderMy()});
 My.el.addEventListener('error',()=>{if(My.on&&My.el.src){console.warn('Brano non leggibile');if(My.list.length>1){My.track(My.i+1);My.el.play().catch(()=>{})}else{My.stop();toast('Questo brano non si può riprodurre su questo dispositivo')}}});
 /* Un solo punto di comando per la musica generata (music.js) e per la propria playlist */
 const Snd={
@@ -2011,6 +2022,9 @@ const Snd={
   resume(){if(this.mine())My.resume();else window.Music?.resume()},
   prime(){if(this.mine())My.prime();else window.Music?.prime()}
 };
+// Quando si chiude o si mette via l'app sul telefono, la musica si spegne sempre subito (anche le proprie canzoni)
+['pagehide','beforeunload'].forEach(ev=>addEventListener(ev,()=>Snd.stop()));
+document.addEventListener('freeze',()=>Snd.stop());
 function renderMy(){
   const ul=$('#myList'); if(!ul)return;
   $('#bMyAdd').disabled=My.list.length>=MY_MAX;
@@ -2077,7 +2091,7 @@ $('#myInp').addEventListener('change',async e=>{
     toast(added===1?'Canzone aggiunta':`${added} canzoni aggiunte`,true);
     // la prima volta passa subito alla propria musica
     try{localStorage.setItem('music','on');localStorage.setItem('musicStyle','mine')}catch{}
-    if(key){My.start(My.list.length-added);updMusicUI()}
+    if(key){window.Music?.stop();My.start(My.list.length-added);updMusicUI()}
   }
   if(skip.length)$('#myInfo').textContent='Non aggiunte: '+skip.join(' · ');
 });
