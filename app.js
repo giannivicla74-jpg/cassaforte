@@ -6,8 +6,16 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.16.0';
+const APP_VERSION='1.17.0';
 const CHANGELOG=[
+  ['1.17.0',[
+    '🪪 Nuova scheda Documento (Carta d’Identità, Tessera Sanitaria, Patente, Passaporto) con codice a barre del Codice Fiscale da mostrare in farmacia',
+    '⏳ Radar Scadenze: avvisa per carte e documenti scaduti o in scadenza entro 60 giorni',
+    '🔍 Controllo “Furti online”: verifica in privacy se una password è comparsa in furti di dati (la password non esce mai dal telefono)',
+    '📊 Statistiche e Livello della Cassaforte (Bronzo → Diamante) in Opzioni',
+    '📳 Scuoti il telefono (o premi Esc sul PC) per bloccare subito',
+    '📄 Kit di Emergenza da stampare con il QR del Codice Cloud'
+  ]],
   ['1.16.0',[
     '📷 Foto cifrate in ogni scheda (fino a 3), nascoste finché non tocchi Mostra',
     'Foto compresse a circa 60 KB e controllo dello spazio: il backup sul Cloud non si riempie più per sbaglio',
@@ -196,7 +204,9 @@ function lock(){
 const IDLE_OPTS=[1,2,5,10,15,30], AWAY_OPTS=[0,30,60,300];
 function lockCfg(){
   let c={};try{c=JSON.parse(localStorage.getItem('lockCfg'))||{}}catch{}
-  return{idle:IDLE_OPTS.includes(c.idle)?c.idle:2, away:AWAY_OPTS.includes(c.away)?c.away:0, shake:c.shake!==false};
+  // iPhone/iPad chiedono il permesso per il sensore di movimento: lì "Scuoti" parte spento finché non lo attivi tu
+  const iOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  return{idle:IDLE_OPTS.includes(c.idle)?c.idle:2, away:AWAY_OPTS.includes(c.away)?c.away:0, shake:typeof c.shake==='boolean'?c.shake:!iOS};
 }
 function saveLockCfg(){
   const c={idle:+$('#sIdle').value, away:+$('#sAway').value, shake:$('#sShake').checked};
@@ -909,6 +919,7 @@ $('#form').addEventListener('submit',async e=>{
         if(k>=0){
           const it=items[k];
           const meta=t==='login'||t==='wifi'?recordPasswordChange(it,d.pass):{updatedAt:Date.now()};
+          if(it.pass!==d.pass)pwnedMap.delete(id); // password cambiata: il bollino "Rubata" non vale più
           // la scheda viene ricostruita: cambiando tipo non restano campi del tipo precedente
           items[k]=clean({...d,...meta,id});
         }
@@ -1110,7 +1121,7 @@ $('#fQ').addEventListener('submit',async e=>{
   e.preventDefault();
   slotStop?.();
   const id=qId, p=$('#qPass').value, it=items.find(x=>x.id===id); if(!it||!p)return;
-  if(await commit(()=>{Object.assign(it,recordPasswordChange(it,p),{pass:p})},'Password aggiornata'))$('#dlgQ').close();
+  if(await commit(()=>{Object.assign(it,recordPasswordChange(it,p),{pass:p});pwnedMap.delete(id)},'Password aggiornata'))$('#dlgQ').close();
 });
 
 /* Avviso di backup proattivo (incluso avviso immediato dopo ogni modifica non salvata) */
@@ -1583,14 +1594,14 @@ function updStatsUI(){
   let photos=0;
   for(const i of items){cnt[typeOf(i)]=(cnt[typeOf(i)]||0)+1;if(Array.isArray(i.photos))photos+=i.photos.length}
   const bytes=(localStorage.getItem('vault')||'').length;
-  const cloudOn=!!getCloudCode(), lim=cloudOn?1000000:5000000;
+  const cloudOn=!!getCloudCode(), lim=cloudOn?CLOUD_MAX:LOCAL_MAX; // stessi limiti del controllo delle foto
   const pct=Math.min(100,Math.round((bytes/lim)*100));
   const szTxt=bytes<1024?`${bytes} B`:bytes<1048576?`${(bytes/1024).toFixed(1)} KB`:`${(bytes/1048576).toFixed(2)} MB`;
-  const limTxt=cloudOn?'1 MB (Cloud)':'5 MB (Browser)';
+  const limTxt=cloudOn?'1 MB (Cloud)':'4,5 MB (Browser)';
   const audit=auditItems(items), exp=expiringItems(items,Date.now(),0);
   const lastBk=+localStorage.getItem('lastBackup')||0;
   const goals=[
-    [items.length>0&&audit.warnIds.size===0,'Tutte le password forti e uniche'],
+    [items.length>0&&audit.warnIds.size===0&&!pwnedMap.size,'Tutte le password forti e uniche'],
     [cloudOn||!!syncHandle||(lastBk>0&&Date.now()-lastBk<14*DAY),'Cloud Sync o Backup recente attivo'],
     [!!bioGet()||lockCfg().shake,'Impronta / Viso o Scuoti-per-bloccare attivo'],
     [items.length>0&&exp.length===0,'Nessuna carta o documento scaduto']

@@ -363,7 +363,10 @@ function expiryInfo(item,now=Date.now()){
     if(!m)return null;
     endMs=new Date(+m[1],+m[2]-1,+m[3],23,59,59,999).getTime();
   }else return null;
-  const days=Math.ceil((endMs-now)/DAY_MS);
+  // giorni di calendario tra oggi e il giorno di scadenza (0 = scade oggi, -1 = scaduto ieri);
+  // si confrontano le mezzanotti e si arrotonda, così l'ora del giorno e l'ora legale non spostano il conto
+  const day0=t=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()};
+  const days=Math.round((day0(endMs)-day0(now))/DAY_MS);
   const expired=days<0;
   const label=expired
     ?(days===-1?'scaduto ieri':`scaduto da ${Math.abs(days)} gg`)

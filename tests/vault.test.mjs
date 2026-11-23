@@ -251,3 +251,65 @@ test('clean accetta solo foto valide, al massimo 3, su ogni tipo di scheda', () 
   assert.equal(vuota.photos, undefined);
   assert.equal(core.sameItem({ ...c, id: 'z' }, core.clean({ ...c, photos: [] })), false);
 });
+
+test('scheda documento: tiene CF, ente e date; cambiando tipo spariscono', () => {
+  const d = core.clean({ id: 'd', name: 'CI', type: 'doc', docType: 'Carta d’Identità', number: 'CA123', cf: 'RSSMRA80A01H501U', issuer: 'Comune', issued: '2020-01-02', exp: '2030-01-02' });
+  assert.equal(d.type, 'doc');
+  assert.equal(d.cf, 'RSSMRA80A01H501U');
+  assert.equal(d.issued, '2020-01-02');
+  const l = core.clean({ ...d, type: undefined });
+  assert.equal(l.cf, undefined);
+  assert.equal(l.issuer, undefined);
+});
+
+test('codice a barre Code 39 del Codice Fiscale', () => {
+  const svg = core.code39Svg('rssmra80a01h501u');
+  assert.ok(svg.startsWith('<svg'));
+  // 16 caratteri + 2 asterischi, 5 barre ciascuno, più il rettangolo bianco di sfondo
+  assert.equal((svg.match(/<rect/g) || []).length, 18 * 5 + 1);
+  assert.ok(svg.includes('RSSMRA80A01H501U'));
+  assert.equal(core.code39Svg('§§§'), '');
+  assert.ok(!core.code39Svg('A"><script>').includes('<script'));
+});
+
+test('Radar Scadenze: carte MM/AA e documenti AAAA-MM-GG', () => {
+  const now = new Date(2026, 10, 23, 12).getTime();
+  assert.equal(core.expiryInfo({ type: 'card', exp: '11/26' }, now).days, 7); // dal 23 al 30 novembre
+  assert.equal(core.expiryInfo({ type: 'card', exp: '10/26' }, now).expired, true);
+  assert.equal(core.expiryInfo({ type: 'doc', exp: '2026-11-24' }, now).label, 'scade domani');
+  assert.equal(core.expiryInfo({ type: 'doc', exp: '24/11/2026' }, now), null);
+  assert.equal(core.expiryInfo({ name: 'login', exp: '11/26' }, now), null);
+  const list = core.expiringItems([
+    { id: 'a', type: 'doc', exp: '2027-06-01' },
+    { id: 'b', type: 'doc', exp: '2026-12-20' },
+    { id: 'c', type: 'card', exp: '10/26' }
+  ], now, 60);
+  assert.deepEqual(list.map(x => x.item.id), ['c', 'b']);
+});
+
+test('Furti online: si invia solo il prefisso di 5 caratteri e si legge il conteggio', async () => {
+  assert.equal(await core.sha1Hex('password'), '5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8');
+  const risposta = '1E4C9B93F3F0682250B6CF8331B7EE68FD8:3861493\r\n0018A45C4D1DEF81644B54AB7F969B88D65:0';
+  assert.equal(core.parsePwnedCount(risposta, '1e4c9b93f3f0682250b6cf8331b7ee68fd8'), 3861493);
+  assert.equal(core.parsePwnedCount(risposta, 'FFFFF'), 0);
+  const chiesti = [];
+  const vero = globalThis.fetch;
+  globalThis.fetch = async u => { chiesti.push(String(u)); return new Response(risposta); };
+  try {
+    assert.equal(await core.checkPwnedPassword('password', new Map()), 3861493);
+  } finally { globalThis.fetch = vero; }
+  assert.deepEqual(chiesti, ['https://api.pwnedpasswords.com/range/5BAA6']);
+});
+
+test('Radar Scadenze: oggi, ieri e domani contati per giorni di calendario', () => {
+  for (const ora of [0, 9, 23]) {
+    const now = new Date(2026, 10, 23, ora, 30).getTime();
+    assert.equal(core.expiryInfo({ type: 'doc', exp: '2026-11-23' }, now).label, 'scade oggi');
+    assert.equal(core.expiryInfo({ type: 'doc', exp: '2026-11-23' }, now).expired, false);
+    const ieri = core.expiryInfo({ type: 'doc', exp: '2026-11-22' }, now);
+    assert.equal(ieri.label, 'scaduto ieri');
+    assert.equal(ieri.expired, true);
+  }
+  // passaggio all'ora legale (fine marzo)
+  assert.equal(core.expiryInfo({ type: 'doc', exp: '2027-04-01' }, new Date(2027, 2, 20, 12).getTime()).days, 12);
+});

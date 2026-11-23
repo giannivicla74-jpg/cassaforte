@@ -17,6 +17,7 @@ Dettagli tecnici e procedura di pubblicazione: `CLAUDE.md` / `GEMINI.md`.
 ## Versioni (dalla più recente)
 | Data | Versione | Cosa |
 |---|---|---|
+| 23/11/2026 | 1.17.0 | 🪪 Scheda Documento con codice a barre del Codice Fiscale, ⏳ Radar Scadenze, 🔍 controllo "Furti online", 📊 Statistiche e Livello, 📳 Scuoti/Esc per bloccare, 📄 Kit di Emergenza (scritte da Gemini); Claude ha corretto il conteggio dei giorni di scadenza (era sfasato di 1), il bollino "Rubata" dopo il cambio password, "Scuoti" su iPhone, e aggiunto test, versione, manuale e novità |
 | 23/11/2026 | 1.16.0 | 📷 Foto cifrate in ogni scheda (avviata da Gemini), poi rese leggere (~56 KB) con controllo dello spazio del backup; fix icona al ricaricamento e blocco pull-to-refresh (Gemini) |
 | 20-23/11/2026 | 1.15.0 | 🎸 Chitarra e 🍃 suoni della natura (pioggia con gocce vere e tuono, mare, uccellini, foresta); corretto bug che ammutoliva l'audio |
 | 20/11/2026 | 1.14.x | Schede 💳 Carta, 📶 Wi-Fi con QR, 📝 Nota; ✨ riconoscimento automatico di ~150 servizi; finestra "Tutto quello che sa fare"; messaggi chiari per gli errori del Cloud; eliminazione con avviso e Annulla (8 s, conto alla rovescia) |
@@ -34,6 +35,9 @@ Dettagli tecnici e procedura di pubblicazione: `CLAUDE.md` / `GEMINI.md`.
   permesso alle app (solo impronta o PIN): è una regola di Android, non un difetto.
 - **Foto**: max 3 per scheda, compresse a ~56 KB. Tutta la cassaforte cifrata deve stare sotto ~1 MB (limite di un
   documento del database, vale anche con il piano a pagamento): l'app rifiuta la foto che farebbe superare il limite.
+- **Furti online** (Have I Been Pwned): si invia solo l'inizio (5 caratteri) dell'impronta SHA-1 della password,
+  mai la password; per questo il sito `api.pwnedpasswords.com` è permesso nella CSP (`index.html` e `firebase.json`).
+- **Scuoti per bloccare**: acceso di serie, tranne su iPhone/iPad dove il sensore richiede il permesso (si attiva a mano).
 - **Più account per lo stesso servizio**: schede raggruppate per nome (non un nuovo formato dati) per restare
   compatibili con backup e versioni vecchie.
 - **Pubblicazione**: `firebase.json` è dentro `cassaforte-main` (spostato il 19/11 per averlo su GitHub);
