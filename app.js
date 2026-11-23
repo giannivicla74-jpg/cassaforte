@@ -371,7 +371,7 @@ const IC={user:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 let cat='Tutti';
 const star=f=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`;
-function updMeter(){const r=strength($('#fPass').value);$('#mBar').style.width=r.p+'%';$('#mBar').style.background=r.c;$('#mTxt').textContent=r.t?'Robustezza: '+r.t:''}
+function updMeter(){const r=strength($('#fPass').value);$('#mBar').style.width=r.p+'%';$('#mBar').style.background=r.c;$('#mTxt').textContent=r.t?'Robustezza: '+r.t:'';$('#pwnMsg').textContent=''}
 $('#fPass').addEventListener('input',updMeter);
 $('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;cat=b.dataset.c;render()});
 $('#catSel').addEventListener('change',e=>{
@@ -420,7 +420,8 @@ function updHealth(audit){
   $('#hRing').style.strokeDashoffset=(169.6*(1-score/100)).toFixed(1);
   $('#hScore').textContent=score;
   $('#hStatus').textContent=score===100?'Ottima! 🎉':score>=80?'Buona':score>=50?'Da migliorare':'A rischio';
-  const parts=[[audit.weakIds.size,'debol','e','i'],[audit.dupIds.size,'riutilizzat','a','e'],[audit.oldIds.size,'vecchi','a','e']]
+  const pwnCnt=[...pwnedMap.keys()].filter(id=>items.some(i=>i.id===id&&i.pass)).length;
+  const parts=[[pwnCnt,'not','a agli hacker','e agli hacker'],[audit.weakIds.size,'debol','e','i'],[audit.dupIds.size,'riutilizzat','a','e'],[audit.oldIds.size,'vecchi','a','e']]
     .filter(p=>p[0]).map(([n,s,one,many])=>`${n} ${s}${n===1?one:many}`);
   $('#hDet').textContent=bad?`${bad===1?'1 password da migliorare':bad+' password da migliorare'}: ${parts.join(' · ')}`:`Tutte le ${withPass} password sono a posto`;
   $('#hGo').classList.toggle('hide',!bad||cat==='!warn');
@@ -539,6 +540,7 @@ function render(){
   queueMicrotask(tickTotp); // i codici 2FA compaiono subito, senza aspettare il secondo successivo
   if(!key)return;
   const audit=auditItems(items);
+  for(const id of pwnedMap.keys()){if(items.some(i=>i.id===id&&i.pass))audit.warnIds.add(id)}
   const inCat=i=>cat==='Tutti'||(cat==='★'?i.fav:cat==='!warn'?audit.warnIds.has(i.id):(i.cat||'Altro')===cat);
   if(!items.some(inCat))cat='Tutti';
   updBackup();
@@ -649,7 +651,7 @@ function render(){
   // Vista a elenco: una riga compatta per account, con i pulsanti rapidi
   if(asList&&rows.length){
     $('#list').innerHTML=[...groups.values()].flat().map(x=>{
-      const ci=catInfo(x.cat), warn=audit.warnIds.has(x.id), t=typeOf(x), nm=esc(x.name);
+      const ci=catInfo(x.cat), isPwn=pwnedMap.has(x.id), warn=audit.warnIds.has(x.id), t=typeOf(x), nm=esc(x.name);
       const ib=(a,title,icon,dis)=>`<button class="btn s ic" data-a="${a}" title="${title}" aria-label="${title}: ${nm}"${dis?' disabled':''}>${icon}</button>`;
       const btns=t==='card'?ib('cn','Copia numero',IC.copy,!digits(x.number))+(x.cvv?ib('cv','Copia CVV',IC.key):'')
         :t==='doc'?(x.cf?ib('bc','Codice a barre CF','🏥'):'')+(x.number?ib('cn','Copia numero',IC.copy):'')
@@ -659,7 +661,7 @@ function render(){
       return`
     <li class="ln" data-id="${esc(x.id)}" data-ids="${esc(x.id)}">
       <div class="av sm" style="--h:${ci.h}">${esc(x.name.trim().charAt(0).toUpperCase())}<span class="ae" aria-hidden="true">${t==='login'?ci.e:TYPE_INFO[t].e}</span></div>
-      <div class="ln-t"><div class="ln-n">${x.fav?'<span class="ln-f" aria-label="Preferito">★</span>':''}${nm}${warn?' <span class="ln-w" title="Password da controllare">⚠️</span>':''}</div><div class="u">${esc(subOf(x))||'<i>senza utente</i>'}</div></div>
+      <div class="ln-t"><div class="ln-n">${x.fav?'<span class="ln-f" aria-label="Preferito">★</span>':''}${nm}${isPwn?' <button type="button" class="tag w pwn-tag" data-a="pw" title="Nota agli hacker: tocca per dettagli">🚨</button>':warn?' <span class="ln-w" title="Password da controllare">⚠️</span>':''}</div><div class="u">${esc(subOf(x))||'<i>senza utente</i>'}</div></div>
       <div class="ln-a">${btns}${ib('ed','Modifica',IC.edit)}</div>
     </li>`}).join('');
     return;
