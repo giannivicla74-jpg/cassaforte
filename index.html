@@ -525,6 +525,7 @@ li.ln:first-child{border-top:0}
       <button type="button" class="btn s" id="bAddPhoto">📷 Allega foto</button>
       <input type="file" id="fPhotoInp" accept="image/*" class="hide" multiple>
     </div>
+    <div class="small" id="fPhotoInfo" style="margin-top:6px;min-height:1.2em"></div>
     <div class="row" style="margin-top:16px">
       <button type="button" class="btn d" id="bDel">Elimina</button>
       <span class="grow"></span>
@@ -863,6 +864,7 @@ li.ln:first-child{border-top:0}
           <b>Carta</b>: intestatario, numero, scadenza, CVV e PIN; la carta appare disegnata e il numero resta nascosto finché non tocchi <b>Mostra</b>; l'app controlla anche che il numero sia scritto giusto.
           <b>Wi-Fi</b>: nome della rete e password; il pulsante <b>▦ Codice QR</b> mostra un codice che gli ospiti inquadrano con la fotocamera per collegarsi senza scrivere la password.
           <b>Nota</b>: un testo segreto (PIN, combinazioni, codici di recupero) nascosto finché non tocchi <b>Mostra</b>.</li>
+        <li><b>📷 Foto allegate</b>: in ogni scheda (account, carta, Wi-Fi o nota) puoi allegare fino a <b>3 foto</b>, scattate al momento o prese dalla galleria: per esempio il fronte e il retro della carta, l'etichetta del router o un documento. Le foto vengono rimpicciolite (circa 60 KB l'una) e <b>cifrate</b> insieme al resto; si vedono solo toccando <b>Mostra</b> e si ingrandiscono con un tocco. Le foto occupano molto spazio: sotto le foto vedi quanto spazio del backup stai usando, e se una foto farebbe superare il limite del Cloud (circa 1 MB) l'app non la aggiunge e te lo dice.</li>
         <li><b>✨ Riconoscimento automatico</b>: scrivendo il nome di un servizio conosciuto (Amazon, Netflix, Intesa, Poste, SPID, Enel, Trenitalia…) l'app sceglie da sola la categoria e compila l'indirizzo del sito. Puoi sempre cambiarli a mano.</li>
         <li><b>👆 Sblocco con impronta o viso</b>: in <b>Opzioni → Sblocco con impronta o viso</b> scrivi la password principale e tocca <b>Attiva</b>, poi conferma con l'impronta o il viso. Da quel momento nella schermata iniziale basta toccare <b>Sblocca con impronta o viso</b>. La password principale resta sempre valida; se la cambi, l'impronta si disattiva e va riattivata. Vale solo per il dispositivo su cui la attivi.</li>
         <li><b>🎵 Musica di sottofondo</b>: parte da sola quando apri la Cassaforte. Il pulsante con la nota in alto la spegne o la riaccende (l'app ricorda la scelta). In <b>Opzioni → Aspetto</b> scegli lo stile: ✨ Ambient, 🎹 Lounge jazz, 🛸 Cyber o 🎸 Chitarra, oppure un suono della natura: 🌧️ Pioggia, 🌊 Onde del mare, 🐦 Uccellini o 🌲 Foresta. La musica è composta dall'app mentre suona: è originale e funziona anche senza internet. Si ferma da sola quando la cassaforte si blocca o passi a un'altra app.</li>
@@ -1025,6 +1027,7 @@ li.ln:first-child{border-top:0}
     <section class="feat-g"><h2>🗂️ Tutto in ordine</h2><ul>
       <li><b>4 tipi di scheda</b>: 🔑 Account, 💳 Carta di credito, 📶 Wi-Fi e 📝 Nota segreta.</li>
       <li><b>💳 Carte disegnate come quelle vere</b>, con circuito (VISA, Mastercard…), numero nascosto, CVV e PIN.</li>
+      <li><b>📷 Foto cifrate in ogni scheda</b> (fino a 3): fronte e retro della carta, etichetta del router, documenti… nascoste finché non tocchi Mostra, con controllo dello spazio del backup.</li>
       <li><b>📶 Codice QR del Wi-Fi</b>: gli ospiti lo inquadrano e si collegano senza scrivere la password.</li>
       <li><b>👥 Più account per lo stesso servizio</b> (es. due Amazon) nella stessa scheda, con "+ Altro account".</li>
       <li><b>Categorie con simbolo e colore</b>: ✉️ Email, 👥 Social, 🏦 Banca, 💼 Lavoro, 🛒 Shopping, 🎬 Svago, 💡 Utenze, ✈️ Viaggi, 🏛️ Pubblica Amm., 📶 Wi-Fi, 📝 Note… e quelle che crei tu.</li>

@@ -6,8 +6,13 @@ let saveQ=Promise.resolve(); // serializza i salvataggi
 let cloudQ=Promise.resolve(); // invii al Cloud in sottofondo, uno alla volta
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.15.0';
+const APP_VERSION='1.16.0';
 const CHANGELOG=[
+  ['1.16.0',[
+    '📷 Foto cifrate in ogni scheda (fino a 3), nascoste finché non tocchi Mostra',
+    'Foto compresse a circa 60 KB e controllo dello spazio: il backup sul Cloud non si riempie più per sbaglio',
+    'Icona dello scudo senza difetti al ricaricamento; niente più ricarica per sbaglio tirando giù la pagina'
+  ]],
   ['1.15.0',[
     'Nuovi suoni: 🎸 Chitarra e suoni della natura (🌧️ Pioggia, 🌊 Onde del mare, 🐦 Uccellini, 🌲 Foresta)'
   ]],
@@ -544,22 +549,39 @@ let editPhotos=[];
 function openPhoto(src){$('#photoFull').src=src;$('#dlgPhoto').showModal()}
 $('#photoClose').onclick=()=>$('#dlgPhoto').close();
 $('#dlgPhoto').addEventListener('close',()=>{$('#photoFull').removeAttribute('src')});
+/* Spazio: le foto pesano molto. Stima di quanto occuperà la cassaforte salvata (la cifratura la fa crescere di ~1/3)
+   e confronto con il limite del backup sul Cloud (~1 MB) o, senza Cloud, con la memoria del browser (~5 MB). */
+const PHOTO_TARGET=82000;            // ~60 KB per foto: documenti e tessere restano ben leggibili
+const LOCAL_MAX=4500000;             // margine prudente sotto il limite della memoria del browser
+const sumLen=a=>(a||[]).reduce((s,x)=>s+x.length,0);
+function spaceInfo(extra=0){
+  const saved=editId?sumLen(items.find(x=>x.id===editId)?.photos):0;
+  const proj=(localStorage.getItem('vault')||'').length+Math.ceil((sumLen(editPhotos)-saved+extra)*1.36);
+  const cloud=!!getCloudCode(), max=cloud?CLOUD_MAX*.97:LOCAL_MAX;
+  return {proj,max,cloud,pct:Math.round(100*proj/(cloud?CLOUD_MAX:LOCAL_MAX))};
+}
 function renderEditPhotos(){
   $('#fPhotos').innerHTML=editPhotos.map((src,idx)=>`<div class="ph-th"><img src="${src}" alt="Foto ${idx+1}" data-pv="${idx}"><button type="button" class="ph-rm" data-rm="${idx}" aria-label="Rimuovi foto">✕</button></div>`).join('');
   $('#bAddPhoto').disabled=editPhotos.length>=MAX_PHOTOS;
   $('#bAddPhoto').textContent=editPhotos.length>=MAX_PHOTOS?'📷 Massimo 3 foto':'📷 Allega foto';
+  const s=spaceInfo(), info=$('#fPhotoInfo');
+  info.textContent=`Spazio ${s.cloud?'backup sul Cloud':'nella memoria'} usato: ${Math.min(s.pct,999)}%`+(s.pct>=80?' · quasi pieno: allega solo le foto indispensabili':'');
+  info.style.color=s.pct>=100?'var(--bad)':s.pct>=80?'#d99a1a':'var(--mute)';
 }
 function compressPhoto(file){
   return new Promise((res,rej)=>{
     const url=URL.createObjectURL(file), img=new Image();
     img.onload=()=>{
       URL.revokeObjectURL(url);
-      const max=900, scale=Math.min(1,max/Math.max(img.width,img.height));
-      const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
-      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-      cv.getContext('2d').drawImage(img,0,0,w,h);
-      let out=cv.toDataURL('image/jpeg',0.72);
-      if(out.length>150000)out=cv.toDataURL('image/jpeg',0.52);
+      // prova dimensioni e qualità decrescenti finché la foto sta sotto ~60 KB
+      let out='';
+      for(const max of [1100,900,760,640,520]){
+        const scale=Math.min(1,max/Math.max(img.width,img.height));
+        const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        const g=cv.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,w,h); g.drawImage(img,0,0,w,h); // sfondo bianco per le immagini trasparenti
+        for(const q of [.68,.58,.48,.4]){out=cv.toDataURL('image/jpeg',q);if(out.length<=PHOTO_TARGET)return res(out)}
+      }
       res(out);
     };
     img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Immagine non valida'))};
@@ -574,13 +596,23 @@ $('#fPhotoInp').addEventListener('change',async e=>{
   if(!files.length)return;
   const slots=MAX_PHOTOS-editPhotos.length;
   if(slots<=0){toast('Puoi allegare al massimo 3 foto per nota');return}
-  let added=0;
+  let added=0, full=false;
   for(const f of files.slice(0,slots)){
     if(!f.type.startsWith('image/'))continue;
-    try{editPhotos.push(await compressPhoto(f));added++}
-    catch{toast('Impossibile leggere una delle foto')}
+    let p; try{p=await compressPhoto(f)}catch{toast('Impossibile leggere una delle foto');continue}
+    // controllo dello spazio PRIMA di aggiungerla: meglio una foto in meno che un backup che si ferma
+    if(spaceInfo(p.length).proj>spaceInfo().max){full=true;break}
+    editPhotos.push(p);added++;
   }
-  if(added){renderEditPhotos();toast(added===1?'Foto allegata (verrà cifrata al salvataggio)':`${added} foto allegate`,true)}
+  if(added||full)renderEditPhotos();
+  if(full){
+    const c=!!getCloudCode();
+    $('#fPhotoInfo').textContent=c
+      ?'📦 Spazio esaurito: con questa foto il backup sul Cloud supererebbe il limite (circa 1 MB) e smetterebbe di salvare. Togli qualche foto da altre schede.'
+      :'📦 Spazio esaurito: con questa foto la memoria del browser non basterebbe. Togli qualche foto da altre schede.';
+    $('#fPhotoInfo').style.color='var(--bad)';
+    toast(added?`${added} foto allegate, le altre non ci stanno`:'Foto non allegata: spazio esaurito');
+  }else if(added)toast(added===1?'Foto allegata (verrà cifrata al salvataggio)':`${added} foto allegate`,true);
 });
 $('#fPhotos').addEventListener('click',e=>{
   const rm=e.target.closest('button[data-rm]');

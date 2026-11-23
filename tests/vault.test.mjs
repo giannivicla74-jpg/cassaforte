@@ -238,3 +238,16 @@ test('recognize riconosce i servizi più comuni senza falsi positivi', () => {
   assert.equal(core.recognize('Palestra Fitness'), null);
   assert.equal(core.recognize('a'), null);
 });
+
+/* ---- v1.16: foto allegate ---- */
+test('clean accetta solo foto valide, al massimo 3, su ogni tipo di scheda', () => {
+  const ok = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+  const l = core.clean({ id: 'a', name: 'Gmail', photos: [ok, 'javascript:alert(1)', 'data:text/html;base64,PHNjcmlwdD4=', ok + '"onerror="x', ok, ok, ok] });
+  assert.equal(l.photos.length, 3);
+  assert.ok(l.photos.every(p => p === ok));
+  const c = core.clean({ id: 'b', name: 'Visa', type: 'card', photos: [ok] });
+  assert.equal(c.photos.length, 1);
+  const vuota = core.clean({ id: 'c', name: 'X', photos: ['nulla'] });
+  assert.equal(vuota.photos, undefined);
+  assert.equal(core.sameItem({ ...c, id: 'z' }, core.clean({ ...c, photos: [] })), false);
+});
