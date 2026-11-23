@@ -40,13 +40,13 @@ function clean(i){
     out.type=i.type;
     EXTRA_FIELDS.forEach(k=>{out[k]=s(i[k])});
     out.whidden=!!i.whidden;
-    if(i.type==='note'&&Array.isArray(i.photos)){
-      const ph=i.photos.filter(x=>typeof x==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(x)).slice(0,MAX_PHOTOS);
-      if(ph.length)out.photos=ph; else delete out.photos;
-    }else delete out.photos;
   }else{
-    delete out.type; EXTRA_FIELDS.forEach(k=>delete out[k]); delete out.whidden; delete out.photos;
+    delete out.type; EXTRA_FIELDS.forEach(k=>delete out[k]); delete out.whidden;
   }
+  if(Array.isArray(i.photos)){
+    const ph=i.photos.filter(x=>typeof x==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(x)).slice(0,MAX_PHOTOS);
+    if(ph.length)out.photos=ph; else delete out.photos;
+  }else delete out.photos;
   if(Number.isFinite(i.updatedAt)&&i.updatedAt>0)out.updatedAt=Math.floor(i.updatedAt);
   if(Array.isArray(i.history)){
     const h=i.history

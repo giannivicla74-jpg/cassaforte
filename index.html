@@ -480,15 +480,7 @@ li.ln:first-child{border-top:0}
       <select id="fWsec"><option value="WPA">WPA / WPA2 / WPA3 (la più comune)</option><option value="WEP">WEP (vecchi router)</option><option value="nopass">Nessuna password (rete aperta)</option></select>
       <label class="chk"><input type="checkbox" id="fWhidden"> Rete nascosta</label>
     </div>
-    <div data-for="note">
-      <label for="fSecret">Testo segreto</label><textarea id="fSecret" rows="5" spellcheck="false" placeholder="es. PIN del cancello, combinazione della cassaforte, codici di recupero…"></textarea>
-      <label>Foto allegate <span class="mute small">(cifrate, max 3)</span></label>
-      <div id="fPhotos" class="ph-grid"></div>
-      <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
-        <button type="button" class="btn s" id="bAddPhoto">📷 Allega foto</button>
-        <input type="file" id="fPhotoInp" accept="image/*" class="hide" multiple>
-      </div>
-    </div>
+    <div data-for="note"><label for="fSecret">Testo segreto</label><textarea id="fSecret" rows="5" spellcheck="false" placeholder="es. PIN del cancello, combinazione della cassaforte, codici di recupero…"></textarea></div>
     <div data-for="login wifi">
     <label for="fPass" id="fPassL">Password</label>
     <div class="row"><input id="fPass" class="grow" type="text" spellcheck="false"><button type="button" class="btn" id="bGen">Genera</button></div>
@@ -527,6 +519,12 @@ li.ln:first-child{border-top:0}
     <label class="chk"><input type="checkbox" id="fFav"> Segna come preferito</label>
     <div data-for="login"><label for="fUrl">Indirizzo sito</label><input id="fUrl" type="text" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="es. netflix.com"></div>
     <label for="fNote">Note</label><textarea id="fNote" rows="3"></textarea>
+    <label>Foto allegate <span class="mute small">(cifrate, max 3)</span></label>
+    <div id="fPhotos" class="ph-grid"></div>
+    <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn s" id="bAddPhoto">📷 Allega foto</button>
+      <input type="file" id="fPhotoInp" accept="image/*" class="hide" multiple>
+    </div>
     <div class="row" style="margin-top:16px">
       <button type="button" class="btn d" id="bDel">Elimina</button>
       <span class="grow"></span>

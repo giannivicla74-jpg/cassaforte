@@ -397,10 +397,18 @@ function render(){
   const showBtn=i=>`<button class="btn s" data-a="sh">${shown.has(i.id)?IC.eyeoff+'Nascondi':IC.eye+'Mostra'}</button>`;
   const editBtn=`<button class="btn s" data-a="ed">${IC.edit}Modifica</button>`;
   const noteHtml=i=>i.note?`<div class="note">${esc(i.note)}</div>`:'';
+  const photosHtml=(i,open)=>{
+    const ph=Array.isArray(i.photos)?i.photos:[];
+    if(!ph.length)return '';
+    return open
+      ?`<div class="ph-grid">${ph.map((src,idx)=>`<div class="ph-th"><img src="${src}" alt="Foto ${idx+1}" data-a="ph" data-idx="${idx}"></div>`).join('')}</div>`
+      :`<div class="ph-hint">📷 ${ph.length} foto allegat${ph.length===1?'a':'e'} (premi Mostra)</div>`;
+  };
   const accBody=i=>{
     const t=typeOf(i), open=shown.has(i.id);
     if(t==='card')return `${cardHtml(i,open)}
       ${open&&(i.cvv||i.pin)?`<div class="secrets">${i.cvv?`<div class="sv"><small>CVV</small>${esc(i.cvv)}</div>`:''}${i.pin?`<div class="sv"><small>PIN</small>${esc(i.pin)}</div>`:''}</div>`:''}
+      ${photosHtml(i,open)}
       ${noteHtml(i)}
       <div class="acts">
         <button class="btn s" data-a="cn"${digits(i.number)?'':' disabled'}>${IC.copy}Copia numero</button>
@@ -408,14 +416,9 @@ function render(){
         ${showBtn(i)}${editBtn}
       </div>`;
     if(t==='note'){
-      const ph=Array.isArray(i.photos)?i.photos:[];
-      const phHtml=ph.length
-        ?(open
-          ?`<div class="ph-grid">${ph.map((src,idx)=>`<div class="ph-th"><img src="${src}" alt="Foto ${idx+1}" data-a="ph" data-idx="${idx}"></div>`).join('')}</div>`
-          :`<div class="ph-hint">📷 ${ph.length} foto allegat${ph.length===1?'a':'e'} (premi Mostra)</div>`)
-        :'';
-      return `<div class="secretbox">${i.secret?(open?esc(i.secret):'•••••••• testo nascosto ••••••••'):(ph.length?'<i>solo foto allegate</i>':'<i>vuota</i>')}</div>
-      ${phHtml}
+      const hasPh=Array.isArray(i.photos)&&i.photos.length>0;
+      return `<div class="secretbox">${i.secret?(open?esc(i.secret):'•••••••• testo nascosto ••••••••'):(hasPh?'<i>solo foto allegate</i>':'<i>vuota</i>')}</div>
+      ${photosHtml(i,open)}
       ${noteHtml(i)}
       <div class="acts">
         <button class="btn s" data-a="cs"${i.secret?'':' disabled'}>${IC.copy}Copia testo</button>
@@ -424,6 +427,7 @@ function render(){
     }
     return `
       ${i.pass?`<div class="pwbox"><span>${open?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>${t==='wifi'?'Rete senza password':'Nessuna password salvata'}</span></div>`}
+      ${photosHtml(i,open)}
       ${noteHtml(i)}
       <div class="acts">
         ${t==='wifi'
@@ -719,7 +723,7 @@ $('#form').addEventListener('submit',async e=>{
     holder:has('card')?$('#fHolder').value.trim().toUpperCase():'',number:has('card')?fmtCard($('#fNumber').value):'',
     exp:has('card')?$('#fExp').value.trim():'',cvv:has('card')?$('#fCvv').value:'',pin:has('card')?$('#fPin').value:'',
     wsec:has('wifi')?$('#fWsec').value:'',whidden:has('wifi')&&$('#fWhidden').checked,secret:has('note')?$('#fSecret').value:'',
-    photos:has('note')?editPhotos:[]});
+    photos:editPhotos});
   if(!$('#fName').value.trim())return;
   if(d.url&&!safeUrl(d.url)){toast('Indirizzo del sito non valido (usa http:// o https://)');$('#fUrl').focus();return}
   if(t==='card'&&d.exp&&!/^(0[1-9]|1[0-2])\/\d{2}$/.test(d.exp)){toast('Scadenza non valida: usa MM/AA (es. 08/29)');$('#fExp').focus();return}
