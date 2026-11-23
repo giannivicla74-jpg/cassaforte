@@ -8,8 +8,11 @@ const totpNow=new Map(); // codici 2FA del momento (id → codice), per copiarli
 let trash=[], trashK=null, trashDirty=false; // Cestino (in chiaro solo a cassaforte aperta); trashK = chiave con cui è salvato
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.18.2';
+const APP_VERSION='1.18.3';
 const CHANGELOG=[
+  ['1.18.3',[
+    'Tipi di scheda su due righe (Account, Carta, Wi-Fi / Nota, Documento): non si sovrappongono più sul telefono'
+  ]],
   ['1.18.2',[
     'L’avviso “Nuova versione” controlla più spesso: quando torni nell’app (dopo 1 minuto) e appena torna internet'
   ]],
