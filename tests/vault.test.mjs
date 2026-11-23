@@ -353,7 +353,8 @@ test('Cestino: tiene 30 giorni, al massimo 50, cifrato e leggibile solo con la c
   const k = await derive('Password-di-prova-1', salt, 1000);
   const altra = await derive('Password-diversa-2', salt, 1000);
   const str = await core.encryptTrash(k, list);
-  assert.ok(!str.includes('Sa'));
+  assert.deepEqual(Object.keys(JSON.parse(str)), ['v', 'iv', 'data']); // solo dati cifrati, nessun nome in chiaro
+  assert.ok(!str.includes('"name"'));
   assert.deepEqual((await core.decryptTrash(k, str, now)).map(x => x.item.id), ['a', 'c']);
   assert.equal(await core.decryptTrash(altra, str, now), null);
   assert.deepEqual(await core.decryptTrash(k, null, now), []);
