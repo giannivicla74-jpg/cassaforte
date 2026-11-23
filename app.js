@@ -174,8 +174,9 @@ function lock(){
   clearClip(true);
   slotStop?.(); window.Music?.stop(); updMusicUI();
   hideUndo(); // la copia della scheda eliminata non resta in memoria a cassaforte chiusa
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
+  editPhotos=[]; $('#fPhotos').innerHTML=''; $('#photoFull').removeAttribute('src');
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
   // Nessun dato in chiaro deve restare nella pagina mentre è bloccata
@@ -406,12 +407,21 @@ function render(){
         ${i.cvv?`<button class="btn s" data-a="cv">${IC.key}Copia CVV</button>`:''}
         ${showBtn(i)}${editBtn}
       </div>`;
-    if(t==='note')return `<div class="secretbox">${i.secret?(open?esc(i.secret):'•••••••• testo nascosto ••••••••'):'<i>vuota</i>'}</div>
+    if(t==='note'){
+      const ph=Array.isArray(i.photos)?i.photos:[];
+      const phHtml=ph.length
+        ?(open
+          ?`<div class="ph-grid">${ph.map((src,idx)=>`<div class="ph-th"><img src="${src}" alt="Foto ${idx+1}" data-a="ph" data-idx="${idx}"></div>`).join('')}</div>`
+          :`<div class="ph-hint">📷 ${ph.length} foto allegat${ph.length===1?'a':'e'} (premi Mostra)</div>`)
+        :'';
+      return `<div class="secretbox">${i.secret?(open?esc(i.secret):'•••••••• testo nascosto ••••••••'):(ph.length?'<i>solo foto allegate</i>':'<i>vuota</i>')}</div>
+      ${phHtml}
       ${noteHtml(i)}
       <div class="acts">
         <button class="btn s" data-a="cs"${i.secret?'':' disabled'}>${IC.copy}Copia testo</button>
         ${showBtn(i)}${editBtn}
       </div>`;
+    }
     return `
       ${i.pass?`<div class="pwbox"><span>${open?esc(i.pass):'••••••••••'}</span></div>`:`<div class="pwbox none"><span>${t==='wifi'?'Rete senza password':'Nessuna password salvata'}</span></div>`}
       ${noteHtml(i)}
@@ -484,9 +494,10 @@ function clearClip(force){
 addEventListener('focus',()=>clearClip());
 
 $('#list').addEventListener('click',e=>{
-  const b=e.target.closest('button[data-a]'); if(!b)return;
+  const b=e.target.closest('button[data-a],img[data-a]'); if(!b)return;
   const li=b.closest('li'), a=b.dataset.a;
   const id=(b.closest('[data-id]')||li).dataset.id, it=items.find(x=>x.id===id); if(!it)return;
+  if(a==='ph'){const src=it.photos?.[+b.dataset.idx];if(src)openPhoto(src);return}
   if(a==='fv'||a==='ad'){
     const ids=new Set((li.dataset.ids||id).split(',')), g=items.filter(x=>ids.has(x.id));
     if(a==='fv'){const on=!g.some(x=>x.fav);commit(()=>{g.forEach(x=>{x.fav=on})})}
@@ -522,6 +533,56 @@ $('#fCat').addEventListener('change',()=>{
 $('#histList').addEventListener('click',e=>{
   const b=e.target.closest('button[data-hp]');
   if(b)copy(b.dataset.hp,'Vecchia password copiata (si cancella tra 30 s)');
+});
+
+/* Foto allegate alle note segrete (ridimensionate e compresse in locale, poi cifrate nella cassaforte) */
+let editPhotos=[];
+function openPhoto(src){$('#photoFull').src=src;$('#dlgPhoto').showModal()}
+$('#photoClose').onclick=()=>$('#dlgPhoto').close();
+$('#dlgPhoto').addEventListener('close',()=>{$('#photoFull').removeAttribute('src')});
+function renderEditPhotos(){
+  $('#fPhotos').innerHTML=editPhotos.map((src,idx)=>`<div class="ph-th"><img src="${src}" alt="Foto ${idx+1}" data-pv="${idx}"><button type="button" class="ph-rm" data-rm="${idx}" aria-label="Rimuovi foto">✕</button></div>`).join('');
+  $('#bAddPhoto').disabled=editPhotos.length>=MAX_PHOTOS;
+  $('#bAddPhoto').textContent=editPhotos.length>=MAX_PHOTOS?'📷 Massimo 3 foto':'📷 Allega foto';
+}
+function compressPhoto(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const max=900, scale=Math.min(1,max/Math.max(img.width,img.height));
+      const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      let out=cv.toDataURL('image/jpeg',0.72);
+      if(out.length>150000)out=cv.toDataURL('image/jpeg',0.52);
+      res(out);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Immagine non valida'))};
+    img.src=url;
+  });
+}
+$('#bAddPhoto').onclick=()=>{allowExternal();$('#fPhotoInp').click()};
+$('#fPhotoInp').addEventListener('cancel',()=>{extUntil=0});
+$('#fPhotoInp').addEventListener('change',async e=>{
+  extUntil=0;
+  const files=[...(e.target.files||[])]; e.target.value='';
+  if(!files.length)return;
+  const slots=MAX_PHOTOS-editPhotos.length;
+  if(slots<=0){toast('Puoi allegare al massimo 3 foto per nota');return}
+  let added=0;
+  for(const f of files.slice(0,slots)){
+    if(!f.type.startsWith('image/'))continue;
+    try{editPhotos.push(await compressPhoto(f));added++}
+    catch{toast('Impossibile leggere una delle foto')}
+  }
+  if(added){renderEditPhotos();toast(added===1?'Foto allegata (verrà cifrata al salvataggio)':`${added} foto allegate`,true)}
+});
+$('#fPhotos').addEventListener('click',e=>{
+  const rm=e.target.closest('button[data-rm]');
+  if(rm){editPhotos.splice(+rm.dataset.rm,1);renderEditPhotos();return}
+  const pv=e.target.closest('img[data-pv]');
+  if(pv&&editPhotos[+pv.dataset.pv])openPhoto(editPhotos[+pv.dataset.pv]);
 });
 /* Codice QR del Wi-Fi: lo inquadra la fotocamera dell'ospite e si collega senza scrivere la password */
 if(window.qrcode&&qrcode.stringToBytesFuncs?.['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
@@ -597,6 +658,8 @@ function openForm(it,pre){
   $('#fHolder').value=it?.holder||'';$('#fNumber').value=fmtCard(it?.number||'');$('#fExp').value=it?.exp||'';
   $('#fCvv').value=it?.cvv||'';$('#fPin').value=it?.pin||'';$('#fWsec').value=it?.wsec||'WPA';$('#fWhidden').checked=!!it?.whidden;
   $('#fSecret').value=it?.secret||'';
+  editPhotos=Array.isArray(it?.photos)?[...it.photos]:[];
+  renderEditPhotos();
   populateCatSelect(it?.cat||pre?.cat||'Altro');
   setFormType(ty,!it&&!pre?.cat);
   // con una scheda già esistente si può cambiare tipo, ma solo i campi visibili vengono salvati
@@ -655,7 +718,8 @@ $('#form').addEventListener('submit',async e=>{
     url:has('login')?normUrl($('#fUrl').value):'',
     holder:has('card')?$('#fHolder').value.trim().toUpperCase():'',number:has('card')?fmtCard($('#fNumber').value):'',
     exp:has('card')?$('#fExp').value.trim():'',cvv:has('card')?$('#fCvv').value:'',pin:has('card')?$('#fPin').value:'',
-    wsec:has('wifi')?$('#fWsec').value:'',whidden:has('wifi')&&$('#fWhidden').checked,secret:has('note')?$('#fSecret').value:''});
+    wsec:has('wifi')?$('#fWsec').value:'',whidden:has('wifi')&&$('#fWhidden').checked,secret:has('note')?$('#fSecret').value:'',
+    photos:has('note')?editPhotos:[]});
   if(!$('#fName').value.trim())return;
   if(d.url&&!safeUrl(d.url)){toast('Indirizzo del sito non valido (usa http:// o https://)');$('#fUrl').focus();return}
   if(t==='card'&&d.exp&&!/^(0[1-9]|1[0-2])\/\d{2}$/.test(d.exp)){toast('Scadenza non valida: usa MM/AA (es. 08/29)');$('#fExp').focus();return}

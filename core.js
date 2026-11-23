@@ -8,7 +8,7 @@ const TYPES=['login','card','wifi','note'];
 const EXTRA_FIELDS=['holder','number','exp','cvv','pin','wsec','secret'];
 const typeOf=i=>TYPES.includes(i?.type)?i.type:'login';
 const ITER=600000, ITER_OLD=310000;
-const DAY_MS=864e5, OLD_DAYS=365, MAX_HISTORY=5;
+const DAY_MS=864e5, OLD_DAYS=365, MAX_HISTORY=5, MAX_PHOTOS=3;
 const iterOf=v=>Number.isInteger(v?.iter)&&v.iter>=100000&&v.iter<=5000000?v.iter:ITER_OLD;
 
 async function derive(pw,s,it=ITER){
@@ -40,8 +40,12 @@ function clean(i){
     out.type=i.type;
     EXTRA_FIELDS.forEach(k=>{out[k]=s(i[k])});
     out.whidden=!!i.whidden;
+    if(i.type==='note'&&Array.isArray(i.photos)){
+      const ph=i.photos.filter(x=>typeof x==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(x)).slice(0,MAX_PHOTOS);
+      if(ph.length)out.photos=ph; else delete out.photos;
+    }else delete out.photos;
   }else{
-    delete out.type; EXTRA_FIELDS.forEach(k=>delete out[k]); delete out.whidden;
+    delete out.type; EXTRA_FIELDS.forEach(k=>delete out[k]); delete out.whidden; delete out.photos;
   }
   if(Number.isFinite(i.updatedAt)&&i.updatedAt>0)out.updatedAt=Math.floor(i.updatedAt);
   if(Array.isArray(i.history)){
@@ -80,7 +84,8 @@ function normUrl(u){u=u.trim();if(!u)return'';if(!/^[a-z][a-z0-9+.-]*:\/\//i.tes
 function safeUrl(u){try{const x=new URL(u);return x.protocol==='https:'||x.protocol==='http:'?x.href:''}catch{return''}}
 
 const sameItem=(a,b)=>typeOf(a)===typeOf(b)&&!!a.whidden===!!b.whidden
-  &&['name','user','pass','url','note','cat',...EXTRA_FIELDS].every(k=>(a[k]||'')===(b[k]||''));
+  &&['name','user','pass','url','note','cat',...EXTRA_FIELDS].every(k=>(a[k]||'')===(b[k]||''))
+  &&(a.photos||[]).join('|')===(b.photos||[]).join('|');
 
 /* Carte: circuito, formattazione, controllo del numero (algoritmo di Luhn) */
 const digits=s=>String(s??'').replace(/\D/g,'');

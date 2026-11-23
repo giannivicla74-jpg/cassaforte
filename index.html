@@ -81,6 +81,13 @@ li.it h2{font-size:1.05rem;margin:0;overflow-wrap:anywhere}
 .pwbox{margin-top:12px;background:var(--soft);border-radius:10px;padding:9px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em;overflow-wrap:anywhere}
 .pwbox.none{font-family:inherit;letter-spacing:0;color:var(--mute);font-style:italic}
 .note{margin-top:8px;font-size:.88rem;color:var(--mute);white-space:pre-wrap}
+.ph-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ph-th{position:relative;width:78px;height:78px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--soft);flex:none}
+.ph-th img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
+.ph-rm{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.68);color:#fff;font-size:.75rem;display:grid;place-items:center;padding:0;line-height:1}
+.ph-hint{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:4px 10px;border-radius:8px;background:var(--soft);color:var(--mute);font-size:.82rem}
+dialog#dlgPhoto{width:min(92vw,720px);background:var(--card)}
+#photoFull{max-width:100%;max-height:74vh;border-radius:10px;display:block;margin:0 auto;object-fit:contain}
 .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .acc{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .acc-u{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--ink,inherit);font-weight:600}
@@ -473,7 +480,15 @@ li.ln:first-child{border-top:0}
       <select id="fWsec"><option value="WPA">WPA / WPA2 / WPA3 (la più comune)</option><option value="WEP">WEP (vecchi router)</option><option value="nopass">Nessuna password (rete aperta)</option></select>
       <label class="chk"><input type="checkbox" id="fWhidden"> Rete nascosta</label>
     </div>
-    <div data-for="note"><label for="fSecret">Testo segreto</label><textarea id="fSecret" rows="5" spellcheck="false" placeholder="es. PIN del cancello, combinazione della cassaforte, codici di recupero…"></textarea></div>
+    <div data-for="note">
+      <label for="fSecret">Testo segreto</label><textarea id="fSecret" rows="5" spellcheck="false" placeholder="es. PIN del cancello, combinazione della cassaforte, codici di recupero…"></textarea>
+      <label>Foto allegate <span class="mute small">(cifrate, max 3)</span></label>
+      <div id="fPhotos" class="ph-grid"></div>
+      <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn s" id="bAddPhoto">📷 Allega foto</button>
+        <input type="file" id="fPhotoInp" accept="image/*" class="hide" multiple>
+      </div>
+    </div>
     <div data-for="login wifi">
     <label for="fPass" id="fPassL">Password</label>
     <div class="row"><input id="fPass" class="grow" type="text" spellcheck="false"><button type="button" class="btn" id="bGen">Genera</button></div>
@@ -1073,6 +1088,13 @@ li.ln:first-child{border-top:0}
     <div style="margin-top:12px;font-weight:700" id="qrSsid"></div>
     <div class="mute small" id="qrPass" style="font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:2px"></div>
     <button type="button" class="btn p" id="qrClose" style="width:100%;margin-top:16px">Chiudi</button>
+  </div>
+</dialog>
+
+<dialog id="dlgPhoto" aria-label="Anteprima foto">
+  <div style="padding:16px;text-align:center">
+    <img id="photoFull" alt="Foto allegata">
+    <button type="button" class="btn p" id="photoClose" style="width:100%;margin-top:14px">Chiudi</button>
   </div>
 </dialog>
 
