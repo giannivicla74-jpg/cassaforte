@@ -15,7 +15,8 @@ Nessun server: i dati stanno nel `localStorage` del dispositivo; i backup sono f
   1. `git push origin main` (repo di riferimento `cassaforte`);
   2. `firebase.cmd deploy --only hosting:cassaforte-gccodelab` (il dominio);
   3. `git push dominio main` (repo `cassaforte-app`, il workflow aggiorna la sua copia github.io).
-- Prima di pubblicare: test verdi, poi aumentare `APP_VERSION` e aggiungere una voce in cima a `CHANGELOG` in `app.js`.
+- Prima di pubblicare: test verdi, poi aumentare `APP_VERSION` **e `version.json`** (stesso numero, lo controlla un test) e aggiungere una voce in cima a `CHANGELOG` in `app.js`.
+- `version.json` fa comparire l'avviso "Nuova versione · Aggiorna" (controllo all'avvio, al ritorno nell'app e ogni 30 min; il service worker non lo mette in cache). Dopo l'aggiornamento il riquadro Novità usa `CHANGELOG` e localStorage `seenVer`.
   Per le modifiche visibili: provarle in Chrome headless (DevTools Protocol) a 360/390/1000 px, giorno e notte.
 - Dopo: confrontare i file online con quelli locali e controllare `APP_VERSION` sulle 3 copie.
 - Se si aggiunge un file all'app, metterlo anche in `FILES` dentro `sw.js` (uso offline).

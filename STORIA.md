@@ -17,7 +17,7 @@ Dettagli tecnici e procedura di pubblicazione: `CLAUDE.md` / `GEMINI.md`.
 ## Versioni (dalla più recente)
 | Data | Versione | Cosa |
 |---|---|---|
-| 23/11/2026 | 1.18.0 | 🔢 Codici 2FA (TOTP) nella scheda account, con lettura del QR da foto su Android e import da CSV; 🗑️ Cestino di 30 giorni con Ripristina / Elimina per sempre / Svuota |
+| 23/11/2026 | 1.18.0 | 🔢 Codici 2FA (TOTP) nella scheda account, con lettura del QR da foto su Android e import da CSV; 🗑️ Cestino di 30 giorni con Ripristina / Elimina per sempre / Svuota; ⬆️ avviso "Nuova versione · Aggiorna" (file `version.json`) e riquadro Novità |
 | 23/11/2026 | 1.17.0 | 🪪 Scheda Documento con codice a barre del Codice Fiscale, ⏳ Radar Scadenze, 🔍 controllo "Furti online", 📊 Statistiche e Livello, 📳 Scuoti/Esc per bloccare, 📄 Kit di Emergenza (scritte da Gemini); Claude ha corretto il conteggio dei giorni di scadenza (era sfasato di 1), il bollino "Rubata" dopo il cambio password, "Scuoti" su iPhone, e aggiunto test, versione, manuale e novità |
 | 23/11/2026 | 1.16.0 | 📷 Foto cifrate in ogni scheda (avviata da Gemini), poi rese leggere (~56 KB) con controllo dello spazio del backup; fix icona al ricaricamento e blocco pull-to-refresh (Gemini) |
 | 20-23/11/2026 | 1.15.0 | 🎸 Chitarra e 🍃 suoni della natura (pioggia con gocce vere e tuono, mare, uccellini, foresta); corretto bug che ammutoliva l'audio |

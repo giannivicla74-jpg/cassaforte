@@ -13,7 +13,9 @@ Qui sotto le regole essenziali, valide per qualunque assistente.
 - Test: `node --test tests/` (devono essere tutti verdi).
 
 ## Quando aggiungi o cambi una funzione (sempre, prima di pubblicare)
-1. Aumenta `APP_VERSION` in `app.js` (es. 1.16.0 → 1.17.0 per una funzione nuova, 1.16.1 per una correzione).
+1. Aumenta `APP_VERSION` in `app.js` (es. 1.16.0 → 1.17.0 per una funzione nuova, 1.16.1 per una correzione)
+   e scrivi **lo stesso numero in `version.json`**: è quello che fa comparire agli utenti l'avviso "Nuova versione · Aggiorna"
+   (un test controlla che siano uguali).
 2. Aggiungi una voce **in cima** a `CHANGELOG` in `app.js` (compare in Guida → Novità).
 3. Aggiorna il **manuale** (Guida, sezione "Funzioni Intelligenti" in `index.html`).
 4. Aggiorna la finestra **"✨ Tutto quello che sa fare"** (`#dlgFeat` in `index.html`).

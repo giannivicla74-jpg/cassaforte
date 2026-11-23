@@ -89,6 +89,13 @@ li.it h2{font-size:1.05rem;margin:0;overflow-wrap:anywhere}
 dialog#dlgPhoto{width:min(92vw,720px);background:var(--card)}
 #photoFull{max-width:100%;max-height:74vh;border-radius:10px;display:block;margin:0 auto;object-fit:contain}
 .exp-box{padding:12px 14px;margin:8px 0 12px;border-left:4px solid var(--brass);background:color-mix(in srgb,var(--brass) 7%,var(--card))}
+.news-box{padding:12px 14px;margin:8px 0 12px;border-left:4px solid var(--brass);background:color-mix(in srgb,var(--brass) 9%,var(--card))}
+.nb-h{font-weight:700;margin-bottom:6px}
+.news-box ul{margin:0 0 10px;padding-left:20px;font-size:.88rem;line-height:1.45}
+.updbar{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;background:var(--brass);color:#fff;padding:6px 6px 6px 14px;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:.9rem;font-weight:700;max-width:94vw;animation:updIn .4s ease-out}
+.updbar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.updbar .btn{background:#fff;color:#12222a;border-color:transparent;white-space:nowrap;flex:none;font-weight:700}
+@keyframes updIn{from{opacity:0;transform:translate(-50%,-20px)}}
 .exp-box.urgent{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,var(--card))}
 .exp-h{font-weight:700;font-size:.92rem;margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .exp-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:.86rem}
@@ -486,6 +493,7 @@ li.ln:first-child{border-top:0}
       <button class="btn s" id="hPwn" title="Verifica in privacy se le password sono comparse in furti di dati">🔍 Furti online</button>
     </div>
   </section>
+  <section class="card news-box hide" id="newsBox" role="status" aria-label="Novità della nuova versione"></section>
   <section class="card exp-box hide" id="expBox" role="status" aria-label="Scadenze in arrivo"></section>
   <ul id="list"></ul>
   <input type="file" id="file" accept="application/json,.json" class="hide">
@@ -950,6 +958,7 @@ li.ln:first-child{border-top:0}
           <b>Nota</b>: un testo segreto (PIN, combinazioni, codici di recupero) nascosto finché non tocchi <b>Mostra</b>.</li>
         <li><b>📷 Foto allegate</b>: in ogni scheda (account, carta, Wi-Fi o nota) puoi allegare fino a <b>3 foto</b>, scattate al momento o prese dalla galleria: per esempio il fronte e il retro della carta, l'etichetta del router o un documento. Le foto vengono rimpicciolite (circa 60 KB l'una) e <b>cifrate</b> insieme al resto; si vedono solo toccando <b>Mostra</b> e si ingrandiscono con un tocco. Le foto occupano molto spazio: sotto le foto vedi quanto spazio del backup stai usando, e se una foto farebbe superare il limite del Cloud (circa 1 MB) l'app non la aggiunge e te lo dice.</li>
         <li><b>🔢 Codici 2FA (verifica in due passaggi)</b>: molti siti (Google, Amazon, Facebook, Aruba…) chiedono un codice a 6 cifre che cambia ogni 30 secondi. Quando attivi la verifica sul sito, scegli <b>“inserisci la chiave”</b> (o “non riesci a scansionare il codice?”), copia la chiave e incollala nel campo <b>🔢 Codice 2FA</b> della scheda dell'account; sui telefoni Android puoi anche toccare <b>📷 Foto QR</b> e fotografare il QR. La scheda mostra il codice del momento con il tempo che resta: tocca <b>Copia codice</b> e incollalo nel sito. Consiglio: conserva anche i <b>codici di recupero</b> che ti dà il sito (per esempio in una Nota segreta). Per banche e SPID usa la loro app ufficiale.</li>
+        <li><b>⬆️ Aggiornamenti</b>: quando esce una nuova versione, in alto compare <b>“Nuova versione · ⬆️ Aggiorna”</b>. Toccalo e l'app si aggiorna (poi rientri con la password principale); con ✕ lo rimandi a più tardi. Dopo l'aggiornamento un riquadro ti mostra le novità.</li>
         <li><b>🗑️ Cestino</b>: quando elimini una scheda, va nel <b>Cestino</b> per <b>30 giorni</b>. Da <b>Opzioni → Cestino</b> puoi <b>Ripristinarla</b> con un tocco, eliminarla per sempre con ✕ o svuotare tutto il Cestino. Il Cestino è cifrato e resta solo sul dispositivo dove hai eliminato la scheda.</li>
         <li><b>🪪 Documenti e codice a barre</b>: scegli il tipo <b>Documento</b> (Carta d'Identità, Tessera Sanitaria, Patente, Passaporto…) e scrivi numero, Codice Fiscale, ente e date. Il pulsante <b>🏥 Codice a barre CF</b> mostra il codice a barre del Codice Fiscale da far leggere allo scanner in farmacia o dal medico (alza la luminosità dello schermo).</li>
         <li><b>⏳ Radar Scadenze</b>: in cima alla lista compare un riquadro quando una carta o un documento è scaduto o scade entro 60 giorni; tocca <b>Apri</b> per aggiornarlo.</li>
@@ -1107,6 +1116,7 @@ li.ln:first-child{border-top:0}
     </div>
   </div>
 </dialog>
+<div class="updbar hide" id="updBar" role="status"><span id="updTxt">Nuova versione</span><button type="button" class="btn s" id="updBtn">⬆️ Aggiorna</button><button type="button" class="btn s ic" id="updX" title="Più tardi" aria-label="Più tardi">✕</button></div>
 <div class="undo hide" id="undoBar" role="status"><span id="undoTxt"></span><button type="button" class="btn s" id="undoBtn">↩️ Annulla <b class="undo-sec" id="undoSec">8</b></button><i class="undo-bar" id="undoProg" aria-hidden="true"></i></div>
 
 <dialog id="dlgFeat" aria-labelledby="featT">
@@ -1166,6 +1176,7 @@ li.ln:first-child{border-top:0}
       <li><b>Pulsante Sito</b> per aprire subito la pagina di accesso.</li>
       <li><b>Funziona anche senza internet</b> e si apre in un attimo anche con segnale debole.</li>
       <li><b>Si installa come un'app</b> sulla schermata del telefono.</li>
+      <li><b>⬆️ Ti avvisa quando c'è una nuova versione</b> e ti mostra le novità.</li>
     </ul></section>
 
     <section class="feat-g"><h2>💾 Non perdi mai niente</h2><ul>

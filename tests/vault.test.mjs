@@ -358,3 +358,15 @@ test('Cestino: tiene 30 giorni, al massimo 50, cifrato e leggibile solo con la c
   assert.equal(await core.decryptTrash(altra, str, now), null);
   assert.deepEqual(await core.decryptTrash(k, null, now), []);
 });
+
+test('Aggiornamenti: confronto versioni e version.json allineato ad APP_VERSION', async () => {
+  assert.equal(core.cmpVer('1.18.0', '1.9.2'), 1);
+  assert.equal(core.cmpVer('1.17.0', '1.17.0'), 0);
+  assert.equal(core.cmpVer('1.17', '1.17.1'), -1);
+  const fs = await import('node:fs');
+  const app = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+  const ver = /const APP_VERSION='([^']+)'/.exec(app)[1];
+  const json = JSON.parse(fs.readFileSync(new URL('../version.json', import.meta.url), 'utf8'));
+  assert.equal(json.version, ver, 'aggiorna version.json insieme ad APP_VERSION');
+  assert.equal(/\['([^']+)'/.exec(app.slice(app.indexOf('const CHANGELOG')))[1], ver, 'la prima voce di CHANGELOG deve essere la versione attuale');
+});

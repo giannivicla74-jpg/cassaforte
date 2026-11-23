@@ -484,6 +484,14 @@ async function decryptTrash(k,str,now=Date.now()){
   }catch{return null}
 }
 
+/* Confronto versioni "1.18.0" > "1.9.2" (numero per numero, non come testo) */
+function cmpVer(a,b){
+  const p=v=>String(v??'').split('.').map(x=>parseInt(x,10)||0);
+  const x=p(a), y=p(b);
+  for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0?1:-1}
+  return 0;
+}
+
 if(typeof module!=='undefined'&&module.exports){
   module.exports={
     CATS,ITER,ITER_OLD,DAY_MS,OLD_DAYS,MAX_HISTORY,MAX_PHOTOS,iterOf,b64,unb64,esc,derive,encryptVault,decryptVault,
@@ -492,6 +500,6 @@ if(typeof module!=='undefined'&&module.exports){
     generateCloudCode,normalizeCloudCode,cloudDocId,
     TYPES,EXTRA_FIELDS,typeOf,cardBrand,fmtCard,luhnOk,wifiQr,SERVICES,recognize,
     code39Svg,expiryInfo,expiringItems,sha1Hex,parsePwnedCount,checkPwnedPassword,
-    base32Decode,parseTotp,totpCode,totpLeft,TRASH_DAYS,TRASH_MAX,purgeTrash,trashLeftDays,encryptTrash,decryptTrash
+    base32Decode,parseTotp,totpCode,totpLeft,TRASH_DAYS,TRASH_MAX,purgeTrash,trashLeftDays,encryptTrash,decryptTrash,cmpVer
   };
 }

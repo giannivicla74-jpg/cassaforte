@@ -12,7 +12,8 @@ const APP_VERSION='1.18.0';
 const CHANGELOG=[
   ['1.18.0',[
     '🔢 Codici 2FA a 6 cifre dentro la scheda dell’account, come Google Authenticator, con conto alla rovescia e “Copia codice”',
-    '🗑️ Cestino: le schede eliminate restano 30 giorni e si possono ripristinare da Opzioni → Cestino'
+    '🗑️ Cestino: le schede eliminate restano 30 giorni e si possono ripristinare da Opzioni → Cestino',
+    '⬆️ Avviso “Nuova versione · Aggiorna” quando esce un aggiornamento, e riquadro con le novità'
   ]],
   ['1.17.0',[
     '🪪 Nuova scheda Documento (Carta d’Identità, Tessera Sanitaria, Patente, Passaporto) con codice a barre del Codice Fiscale da mostrare in farmacia',
@@ -321,7 +322,7 @@ $('#lockForm').addEventListener('submit',async e=>{
     if(!v){
       if(pw.length<8){$('#err').textContent='Usa almeno 8 caratteri.';return}
       if(pw!==$('#mp2').value){$('#err').textContent='Le due password non coincidono.';return}
-      salt=crypto.getRandomValues(new Uint8Array(16)); key=await derive(pw,salt,ITER); iter=ITER; items=[]; trash=[]; trashK=null;
+      salt=crypto.getRandomValues(new Uint8Array(16)); key=await derive(pw,salt,ITER); iter=ITER; items=[]; trash=[]; trashK=null; setSeen();
       try{await persist()}catch(err){console.error(err);key=salt=null;iter=0;$('#err').textContent='Impossibile salvare nel browser (memoria piena o bloccata).';return}
     }else{
       let decRes;
@@ -524,6 +525,7 @@ function render(){
   }).join(''):'';
   updHealth(audit);
   updExpiry();
+  updNews();
   const rows=filterItems(items,cat,q,$('#sortBy').value,audit.warnIds);
   // Account con lo stesso nome di servizio (es. due account Amazon) stanno nella stessa scheda
   const groups=new Map();
@@ -1944,6 +1946,58 @@ updThemeUI();
 /* Versione e novità */
 document.querySelectorAll('.appver').forEach(e=>e.textContent=APP_VERSION);
 $('#news').innerHTML=CHANGELOG.map(([v,l],i)=>`<div class="news-v"><span class="ver">v${esc(v)}</span>${i===0?'<span class="now">attuale</span>':''}</div><ul>${l.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>`).join('');
+
+/* Aggiornamenti: se sul sito c'è una versione più nuova compare l'avviso "Aggiorna" (version.json non passa dalla cache) */
+let updAt=0;
+async function checkUpdate(force){
+  if(navigator.onLine===false||(!force&&Date.now()-updAt<10*60*1000))return;
+  updAt=Date.now();
+  try{
+    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),8000);
+    const r=await fetch('version.json?t='+Date.now(),{cache:'no-store',signal:ctl.signal}); clearTimeout(t);
+    if(!r.ok)return;
+    const v=String((await r.json())?.version||'');
+    if(cmpVer(v,APP_VERSION)>0){$('#updTxt').textContent=`Nuova versione ${v}`;$('#updBar').classList.remove('hide')}
+  }catch{} // senza rete si riprova più tardi
+}
+$('#updBtn').onclick=async()=>{
+  const b=$('#updBtn'); b.disabled=true; b.textContent='Aggiorno…';
+  try{
+    // scarica subito i file nuovi (aggiorna anche la copia offline), così il ricaricamento non riprende quelli vecchi
+    const reg=await navigator.serviceWorker?.getRegistration?.(); await reg?.update().catch(()=>{});
+    await Promise.race([
+      Promise.all(['./','index.html','app.js','core.js','theme.js','music.js','qrcode.js'].map(f=>fetch(f,{cache:'no-store'}).catch(()=>{}))),
+      new Promise(r=>setTimeout(r,15000))
+    ]);
+  }catch{}
+  location.reload();
+};
+$('#updX').onclick=()=>$('#updBar').classList.add('hide');
+setTimeout(()=>checkUpdate(true),4000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
+setInterval(()=>checkUpdate(),30*60*1000);
+
+/* Dopo un aggiornamento: riquadro con le novità, una volta sola */
+const seenVer=()=>{try{return localStorage.getItem('seenVer')||''}catch{return ''}};
+const setSeen=()=>{try{localStorage.setItem('seenVer',APP_VERSION)}catch{}};
+function updNews(){
+  const box=$('#newsBox');
+  // chi usava già l'app prima di questa funzione non ha "seenVer": gli mostriamo le novità di questa versione
+  const seen=seenVer()||(getVault()?CHANGELOG[1]?.[0]||'':APP_VERSION);
+  if(!seenVer()&&!getVault())setSeen();
+  if(cmpVer(APP_VERSION,seen)<=0){box.classList.add('hide');box.innerHTML='';return}
+  if(box.innerHTML)return box.classList.remove('hide');
+  const list=CHANGELOG.filter(([v])=>cmpVer(v,seen)>0).flatMap(([,l])=>l).slice(0,8);
+  box.innerHTML=`<div class="nb-h">🎉 Cassaforte aggiornata alla versione ${esc(APP_VERSION)}</div>
+    <ul>${list.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>
+    <div class="row" style="gap:8px;justify-content:flex-end;flex-wrap:wrap"><button type="button" class="btn s" data-n="all">✨ Tutto quello che sa fare</button><button type="button" class="btn s p" data-n="ok">Ok, ho capito</button></div>`;
+  box.classList.remove('hide');
+}
+$('#newsBox').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-n]'); if(!b)return;
+  setSeen(); $('#newsBox').classList.add('hide'); $('#newsBox').innerHTML='';
+  if(b.dataset.n==='all')openFeat();
+});
 
 showLock();
 resetPwEyes();

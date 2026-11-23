@@ -8,6 +8,7 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.a
 self.addEventListener('fetch',e=>{
   const r=e.request, u=new URL(r.url);
   if(r.method!=='GET'||u.origin!==location.origin)return;
+  if(u.pathname.endsWith('/version.json'))return; // il controllo degli aggiornamenti va sempre in rete, mai dalla cache
   // Icone e immagini: subito dalla cache (evita il lampeggio al ricaricamento), con aggiornamento in sottofondo
   if(/\.(png|jpg|jpeg|webp|svg|ico)$/i.test(u.pathname)){
     e.respondWith(caches.match(r,{ignoreSearch:true}).then(c=>{
