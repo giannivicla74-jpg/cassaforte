@@ -379,6 +379,32 @@ function expiringItems(list,now=Date.now(),withinDays=60){
   return out.sort((a,b)=>a.days-b.days);
 }
 
+/* Controllo Data Breach (Have I Been Pwned k-Anonymity: invia solo i primi 5 caratteri dell'hash SHA-1) */
+async function sha1Hex(text){
+  const buf=await crypto.subtle.digest('SHA-1',enc.encode(String(text??'')));
+  return Array.from(new Uint8Array(buf),b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function parsePwnedCount(rangeText,suffix){
+  const target=String(suffix??'').toUpperCase();
+  for(const line of String(rangeText??'').split(/\r?\n/)){
+    const [s,c]=line.split(':');
+    if(s&&s.trim().toUpperCase()===target)return parseInt(c,10)||0;
+  }
+  return 0;
+}
+async function checkPwnedPassword(pw,cache){
+  if(!pw)return 0;
+  const h=await sha1Hex(pw), prefix=h.slice(0,5), suffix=h.slice(5);
+  let txt=cache?.get(prefix);
+  if(txt===undefined){
+    const res=await fetch('https://api.pwnedpasswords.com/range/'+prefix,{headers:{'Add-Padding':'true'}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    txt=await res.text();
+    cache?.set(prefix,txt);
+  }
+  return parsePwnedCount(txt,suffix);
+}
+
 if(typeof module!=='undefined'&&module.exports){
   module.exports={
     CATS,ITER,ITER_OLD,DAY_MS,OLD_DAYS,MAX_HISTORY,MAX_PHOTOS,iterOf,b64,unb64,esc,derive,encryptVault,decryptVault,
@@ -386,6 +412,6 @@ if(typeof module!=='undefined'&&module.exports){
     strength,SETS,WORDS_IT,rnd,generatePassword,parseCsvRows,parseCsvItems,
     generateCloudCode,normalizeCloudCode,cloudDocId,
     TYPES,EXTRA_FIELDS,typeOf,cardBrand,fmtCard,luhnOk,wifiQr,SERVICES,recognize,
-    code39Svg,expiryInfo,expiringItems
+    code39Svg,expiryInfo,expiringItems,sha1Hex,parsePwnedCount,checkPwnedPassword
   };
 }

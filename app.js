@@ -182,6 +182,7 @@ function lock(){
   ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto','dlgBarcode'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
   $('#bcSvg').innerHTML=''; $('#bcCode').textContent=''; $('#expBox').classList.add('hide'); $('#expBox').innerHTML='';
+  pwnedMap.clear(); $('#pwnMsg').textContent='';
   editPhotos=[]; $('#fPhotos').innerHTML=''; $('#photoFull').removeAttribute('src');
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
@@ -368,6 +369,45 @@ function updHealth(audit){
 }
 $('#hGo').onclick=()=>{cat='!warn';render();$('#chips').scrollIntoView({behavior:'smooth',block:'start'})};
 
+/* Controllo Data Breach (Have I Been Pwned k-Anonymity: la password non esce mai dal dispositivo) */
+const pwnedMap=new Map();
+$('#hPwn').onclick=async()=>{
+  const list=items.filter(i=>i.pass), btn=$('#hPwn'), s=sess;
+  if(!list.length){toast('Nessuna password da controllare');return}
+  btn.disabled=true; const oldTxt=btn.textContent; btn.textContent='⏳ Controllo…';
+  const cache=new Map(); let found=0;
+  try{
+    pwnedMap.clear();
+    for(const it of list){
+      if(s!==sess||!key)return;
+      const n=await checkPwnedPassword(it.pass,cache);
+      if(n>0){pwnedMap.set(it.id,n);found++}
+    }
+    if(s!==sess||!key)return;
+    render();
+    if(found)toast(`🚨 ${found===1?'1 password trovata':found+' password trovate'} in furti di dati online!`);
+    else toast('✅ Ottimo! Nessuna password comparsa in furti online',true);
+  }catch(e){
+    console.warn('HIBP',e);
+    toast('Controllo non riuscito (verifica la connessione Internet)');
+  }finally{btn.disabled=false;btn.textContent=oldTxt}
+};
+$('#bPwnOne').onclick=async()=>{
+  const pw=$('#fPass').value, msg=$('#pwnMsg'), btn=$('#bPwnOne');
+  if(!pw){msg.textContent='Inserisci prima una password.';msg.style.color='var(--mute)';return}
+  btn.disabled=true; msg.textContent='Controllo in privacy (k-Anonymity)…'; msg.style.color='var(--mute)';
+  try{
+    const n=await checkPwnedPassword(pw);
+    if(n>0){
+      msg.innerHTML=`<span class="badge-no">🚨 Trovata in ${n.toLocaleString('it-IT')} furti di dati online! Cambiala subito.</span>`;
+    }else{
+      msg.innerHTML='<span class="badge-ok">✓ Sicura: mai comparsa nei furti di dati noti.</span>';
+    }
+  }catch{
+    msg.textContent='Impossibile verificare (serve connessione Internet).'; msg.style.color='var(--mute)';
+  }finally{btn.disabled=false}
+};
+
 /* Radar Scadenze: avvisa su Carte e Documenti scaduti o in scadenza entro 60 giorni */
 function updExpiry(){
   const box=$('#expBox'), list=expiringItems(items,Date.now(),60);
@@ -449,7 +489,9 @@ function render(){
   const groups=new Map();
   for(const i of rows){const k=typeOf(i)+'|'+i.name.trim().toLowerCase();if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i)}
   const expTag=i=>{const ex=expiryInfo(i);return ex&&ex.days<=60?`<span class="tag w">⏳ ${esc(ex.label)}</span>`:''};
+  const pwnTag=i=>{const n=pwnedMap.get(i.id);return n?`<span class="tag w">🚨 Rubata (${n.toLocaleString('it-IT')}×)</span>`:''};
   const warnTags=i=>[
+    pwnTag(i),
     audit.weakIds.has(i.id)?'<span class="tag w">Password debole</span>':'',
     audit.dupIds.has(i.id)?'<span class="tag w">Password riutilizzata</span>':'',
     audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':'',
@@ -812,6 +854,7 @@ function openForm(it,pre){
     $('#histBox').classList.add('hide');
   }
   $('#bDel').classList.toggle('hide',!it);
+  $('#pwnMsg').textContent='';
   updMeter();$('#dlg').showModal();
 }
 $('#bAdd').onclick=()=>openForm(null);

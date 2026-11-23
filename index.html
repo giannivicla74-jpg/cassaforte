@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://api.pwnedpasswords.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14313a">
 <script src="theme.js"></script>
@@ -465,7 +465,10 @@ li.ln:first-child{border-top:0}
   <section class="card health hide" id="health" aria-label="Salute password">
     <div class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="bg" cx="32" cy="32" r="27"/><circle class="fg" id="hRing" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="169.6"/></svg><b id="hScore">0</b></div>
     <div class="h-body"><div class="h-t">Salute password</div><div class="h-s" id="hStatus"></div><div class="h-d" id="hDet"></div></div>
-    <button class="btn s" id="hGo">Vedi quali →</button>
+    <div style="display:flex;flex-direction:column;gap:6px;flex:none">
+      <button class="btn s" id="hGo">Vedi quali →</button>
+      <button class="btn s" id="hPwn" title="Verifica in privacy se le password sono comparse in furti di dati">🔍 Furti online</button>
+    </div>
   </section>
   <section class="card exp-box hide" id="expBox" role="status" aria-label="Scadenze in arrivo"></section>
   <ul id="list"></ul>
@@ -527,7 +530,12 @@ li.ln:first-child{border-top:0}
     <div data-for="login wifi">
     <label for="fPass" id="fPassL">Password</label>
     <div class="row"><input id="fPass" class="grow" type="text" spellcheck="false"><button type="button" class="btn" id="bGen">Genera</button></div>
-    <div class="meter"><i id="mBar"></i></div><div class="small mute" id="mTxt" style="margin-top:4px;min-height:1.2em"></div>
+    <div class="meter"><i id="mBar"></i></div>
+    <div class="row" style="margin-top:4px;justify-content:space-between;flex-wrap:wrap;gap:6px">
+      <div class="small mute" id="mTxt" style="min-height:1.2em"></div>
+      <button type="button" class="btn s" id="bPwnOne" style="padding:3px 9px;font-size:.78rem" title="Verifica in totale privacy (k-Anonymity) se questa password è comparsa in furti di dati online">🔍 Controlla se rubata</button>
+    </div>
+    <div class="small" id="pwnMsg" role="status" style="min-height:1.1em;margin-top:2px"></div>
     <details id="gOpts"><summary>Opzioni generatore</summary>
       <div class="gopts">
         <div class="seg" id="gModeSel" role="group" aria-label="Tipo generatore">
