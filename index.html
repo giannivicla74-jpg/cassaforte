@@ -323,12 +323,14 @@ li.it{transition:transform .15s,box-shadow .15s}
   -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
-  animation:ring 2.2s linear infinite
+  animation:ring 2.2s linear infinite,ringHue 6s linear infinite
 }
 #lock .logo::before{inset:-5px;padding:5px;border-radius:calc(var(--r) + 5px)}
 .brand .mark img,#lock .logo img{position:relative;z-index:1}
 #lock .logo::after{display:none}
 @keyframes ring{to{--ring:360deg}}
+/* la luce cambia anche sfumatura mentre gira: oro → verde → azzurro → viola → rosa → oro */
+@keyframes ringHue{to{filter:hue-rotate(360deg)}}
 /* Sblocco con impronta */
 #lock .btn.bio{margin-top:10px;border:2px solid var(--brass);color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 8%,var(--card))}
 .bio-ic{font-size:1.15rem}
@@ -1208,7 +1210,7 @@ li.ln:first-child{border-top:0}
     <section class="feat-g"><h2>🎨 Bella da vedere</h2><ul>
       <li><b>🌙 Tema giorno / notte</b> con un tocco (o automatico).</li>
       <li><b>5 colori a scelta</b>: 🥇 Oro, 💚 Smeraldo, ❤️ Rubino, 💙 Zaffiro, 💜 Ametista.</li>
-      <li><b>Riflesso di luce</b> che attraversa la scritta "Cassaforte" e <b>anello di luce</b> che gira intorno allo scudo.</li>
+      <li><b>Riflesso di luce</b> che attraversa la scritta "Cassaforte" e <b>anello di luce</b> che gira intorno allo scudo cambiando colore.</li>
       <li><b>Animazione della cassaforte che si apre</b> quando la sblocchi, schede che compaiono morbide.</li>
       <li><b>🎵 Musica di sottofondo originale</b>: ✨ Ambient, 🎹 Lounge jazz, 🛸 Cyber e 🎸 Chitarra, composta dall'app mentre suona; si spegne con un tocco.</li>
       <li><b>🎧 La tua musica</b>: scegli fino a 5 canzoni dal telefono e ascoltale mentre usi la Cassaforte.</li>

@@ -8,8 +8,11 @@ const totpNow=new Map(); // codici 2FA del momento (id → codice), per copiarli
 let trash=[], trashK=null, trashDirty=false; // Cestino (in chiaro solo a cassaforte aperta); trashK = chiave con cui è salvato
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.18.0';
+const APP_VERSION='1.18.1';
 const CHANGELOG=[
+  ['1.18.1',[
+    '🌈 L’anello di luce intorno allo scudo cambia anche colore mentre gira (oro, verde, azzurro, viola, rosa)'
+  ]],
   ['1.18.0',[
     '🔢 Codici 2FA a 6 cifre dentro la scheda dell’account, come Google Authenticator, con conto alla rovescia e “Copia codice”',
     '🗑️ Cestino: le schede eliminate restano 30 giorni e si possono ripristinare da Opzioni → Cestino',
