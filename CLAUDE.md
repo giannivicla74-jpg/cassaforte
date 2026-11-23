@@ -19,6 +19,7 @@ Nessun server: i dati stanno nel `localStorage` del dispositivo; i backup sono f
   Per le modifiche visibili: provarle in Chrome headless (DevTools Protocol) a 360/390/1000 px, giorno e notte.
 - Dopo: confrontare i file online con quelli locali e controllare `APP_VERSION` sulle 3 copie.
 - Se si aggiunge un file all'app, metterlo anche in `FILES` dentro `sw.js` (uso offline).
+- Gianni usa anche Gemini: le regole essenziali sono copiate in `GEMINI.md`. Se cambi la procedura, aggiorna entrambi i file.
 
 ## Funzioni "di stile" (v1.10–1.13)
 - Riflesso sulla scritta e anello di luce sullo scudo: solo CSS in `index.html`, seguono il colore scelto (`--brass`).
