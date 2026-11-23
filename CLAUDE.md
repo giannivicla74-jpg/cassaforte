@@ -20,6 +20,10 @@ Nessun server: i dati stanno nel `localStorage` del dispositivo; i backup sono f
 - Dopo: confrontare i file online con quelli locali e controllare `APP_VERSION` sulle 3 copie.
 - Se si aggiunge un file all'app, metterlo anche in `FILES` dentro `sw.js` (uso offline).
 - Gianni usa anche Gemini: le regole essenziali sono copiate in `GEMINI.md`. Se cambi la procedura, aggiorna entrambi i file.
+- Per ogni funzione nuova: versione + CHANGELOG + manuale + "Tutto quello che sa fare" (`#dlgFeat`) + riga in `STORIA.md`.
+- `STORIA.md` = diario del progetto (decisioni, versioni, cose aperte): leggilo a inizio lavoro, sostituisce le chat
+  che restano sul singolo PC. Il repo è pubblico: niente dati personali o dettagli di sicurezza.
+- Limite ~1 MB della cassaforte cifrata = limite di un documento Firestore, **anche con piano Blaze**.
 
 ## Funzioni "di stile" (v1.10–1.13)
 - Riflesso sulla scritta e anello di luce sullo scudo: solo CSS in `index.html`, seguono il colore scelto (`--brass`).
