@@ -88,6 +88,21 @@ li.it h2{font-size:1.05rem;margin:0;overflow-wrap:anywhere}
 .ph-hint{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:4px 10px;border-radius:8px;background:var(--soft);color:var(--mute);font-size:.82rem}
 dialog#dlgPhoto{width:min(92vw,720px);background:var(--card)}
 #photoFull{max-width:100%;max-height:74vh;border-radius:10px;display:block;margin:0 auto;object-fit:contain}
+.exp-box{padding:12px 14px;margin:8px 0 12px;border-left:4px solid var(--brass);background:color-mix(in srgb,var(--brass) 7%,var(--card))}
+.exp-box.urgent{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,var(--card))}
+.exp-h{font-weight:700;font-size:.92rem;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.exp-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:.86rem}
+.exp-row:first-of-type{border-top:0}
+.exp-bad{color:var(--bad);font-weight:700}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;background:var(--soft);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:.86rem}
+.doc-grid small{display:block;font-size:.7rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.doc-grid b{font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+.bc-card{background:#fff;color:#111;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;text-align:center}
+.bc-txt{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.14em;font-size:.95rem;margin-top:6px;color:#111}
+.kit-box{border:2px solid #14313a;border-radius:12px;padding:24px;color:#111;background:#fff}
+.kit-grid{display:flex;gap:20px;align-items:center;margin:16px 0;padding:14px;border:1px solid #ccc;border-radius:10px}
+.kit-qr{width:150px;height:150px;flex:none}
+.kit-pen{border:2px dashed #666;border-radius:10px;padding:14px;margin:16px 0;min-height:74px}
 .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .acc{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .acc-u{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--ink,inherit);font-weight:600}
@@ -443,6 +458,7 @@ li.ln:first-child{border-top:0}
     <div class="h-body"><div class="h-t">Salute password</div><div class="h-s" id="hStatus"></div><div class="h-d" id="hDet"></div></div>
     <button class="btn s" id="hGo">Vedi quali →</button>
   </section>
+  <section class="card exp-box hide" id="expBox" role="status" aria-label="Scadenze in arrivo"></section>
   <ul id="list"></ul>
   <input type="file" id="file" accept="application/json,.json" class="hide">
   <input type="file" id="fileCsv" accept=".csv,text/csv" class="hide">
@@ -460,6 +476,7 @@ li.ln:first-child{border-top:0}
       <button type="button" class="chip" data-ty="card">💳 Carta</button>
       <button type="button" class="chip" data-ty="wifi">📶 Wi-Fi</button>
       <button type="button" class="chip" data-ty="note">📝 Nota</button>
+      <button type="button" class="chip" data-ty="doc">🪪 Documento</button>
     </div>
     <label for="fName" id="fNameL">Servizio</label><input id="fName" required placeholder="es. Netflix">
     <div class="small rec hide" id="fHint" role="status"></div>
@@ -481,6 +498,23 @@ li.ln:first-child{border-top:0}
       <label class="chk"><input type="checkbox" id="fWhidden"> Rete nascosta</label>
     </div>
     <div data-for="note"><label for="fSecret">Testo segreto</label><textarea id="fSecret" rows="5" spellcheck="false" placeholder="es. PIN del cancello, combinazione della cassaforte, codici di recupero…"></textarea></div>
+    <div data-for="doc">
+      <label for="fDocType">Tipo di documento</label>
+      <select id="fDocType">
+        <option value="Carta d’Identità">🪪 Carta d’Identità</option>
+        <option value="Tessera Sanitaria">🏥 Tessera Sanitaria</option>
+        <option value="Patente">🚗 Patente di guida</option>
+        <option value="Passaporto">🛂 Passaporto</option>
+        <option value="Altro documento">📄 Altro documento</option>
+      </select>
+      <label for="fDocNum">Numero documento</label><input id="fDocNum" autocapitalize="characters" spellcheck="false" placeholder="es. CA12345AB">
+      <label for="fCf">Codice Fiscale <span class="mute small">(genera il codice a barre per la farmacia)</span></label><input id="fCf" autocapitalize="characters" spellcheck="false" maxlength="16" placeholder="es. RSSMRA80A01H501U">
+      <label for="fIssuer">Ente / Rilasciato da</label><input id="fIssuer" placeholder="es. Comune di Roma, Motorizzazione">
+      <div class="row" style="gap:10px">
+        <div class="grow"><label for="fIssued">Data rilascio</label><input id="fIssued" type="date"></div>
+        <div class="grow"><label for="fDocExp">Data scadenza</label><input id="fDocExp" type="date"></div>
+      </div>
+    </div>
     <div data-for="login wifi">
     <label for="fPass" id="fPassL">Password</label>
     <div class="row"><input id="fPass" class="grow" type="text" spellcheck="false"><button type="button" class="btn" id="bGen">Genera</button></div>
@@ -597,6 +631,7 @@ li.ln:first-child{border-top:0}
       <button type="button" class="btn s p" id="bCloudEnable">Attiva Cloud Sync automatico</button>
       <button type="button" class="btn s" id="bCloudLink">Ho già un Codice Cloud</button>
       <button type="button" class="btn s hide" id="bCloudPull">Scarica da Cloud ora</button>
+      <button type="button" class="btn s hide" id="bCloudKit">📄 Kit di Emergenza (QR)</button>
       <button type="button" class="btn s d hide" id="bCloudDisable">Disattiva Cloud</button>
     </div>
   </div>
@@ -1096,6 +1131,19 @@ li.ln:first-child{border-top:0}
   <div style="padding:16px;text-align:center">
     <img id="photoFull" alt="Foto allegata">
     <button type="button" class="btn p" id="photoClose" style="width:100%;margin-top:14px">Chiudi</button>
+  </div>
+</dialog>
+
+<dialog id="dlgBarcode" aria-labelledby="bcT">
+  <div style="padding:20px;text-align:center">
+    <h1 id="bcT" style="font-size:1.15rem">🏥 Codice Fiscale</h1>
+    <p class="mute small" style="margin:6px 0 14px">Mostra questo codice a barre allo scanner in farmacia o dal medico (alza la luminosità dello schermo).</p>
+    <div class="bc-card">
+      <div id="bcSvg"></div>
+      <div class="bc-txt" id="bcCode"></div>
+    </div>
+    <div class="mute small" id="bcOwner" style="margin-top:10px;font-weight:600"></div>
+    <button type="button" class="btn p" id="bcClose" style="width:100%;margin-top:14px">Chiudi</button>
   </div>
 </dialog>
 

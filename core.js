@@ -4,8 +4,8 @@ const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const CATS=['Email','Social','Banca','Lavoro','Shopping','Altro'];
-const TYPES=['login','card','wifi','note'];
-const EXTRA_FIELDS=['holder','number','exp','cvv','pin','wsec','secret'];
+const TYPES=['login','card','wifi','note','doc'];
+const EXTRA_FIELDS=['holder','number','exp','cvv','pin','wsec','secret','docType','cf','issuer','issued'];
 const typeOf=i=>TYPES.includes(i?.type)?i.type:'login';
 const ITER=600000, ITER_OLD=310000;
 const DAY_MS=864e5, OLD_DAYS=365, MAX_HISTORY=5, MAX_PHOTOS=3;
@@ -319,12 +319,73 @@ function parseCsvItems(csvText,now=Date.now()){
   return out;
 }
 
+/* Codice a barre Code 39 (standard della Tessera Sanitaria per il Codice Fiscale) */
+const C39={
+  '0':'nnnwwnwnn','1':'wnnwnnnnw','2':'nnwwnnnnw','3':'wnwwnnnnn','4':'nnnwwnnnw','5':'wnnwwnnnn',
+  '6':'nnwwwnnnn','7':'nnnwnnwnw','8':'wnnwnnwnn','9':'nnwwnnwnn','A':'wnnnnwnnw','B':'nnwnnwnnw',
+  'C':'wnwnnwnnn','D':'nnnnwwnnw','E':'wnnnwwnnn','F':'nnwnwwnnn','G':'nnnnnwwnw','H':'wnnnnwwnn',
+  'I':'nnwnnwwnn','J':'nnnnwwwnn','K':'wnnnnnnww','L':'nnwnnnnww','M':'wnwnnnnwn','N':'nnnnwnnww',
+  'O':'wnnnwnnwn','P':'nnwnwnnwn','Q':'nnnnnnwww','R':'wnnnnnwwn','S':'nnwnnnwwn','T':'nnnnwnwwn',
+  'U':'wwnnnnnnw','V':'nwwnnnnnw','W':'wwwnnnnnn','X':'nwnnwnnnw','Y':'wwnnwnnnn','Z':'nwwnwnnnn',
+  '-':'nwnnnnwnw','.':'wwnnnnwnn',' ':'nwwnnnwnn','$':'nwnwnwnnn','/':'nwnwnnnwn','+':'nwnnnwnwn',
+  '%':'nnnwnwnwn','*':'nwnnwnwnn'
+};
+function code39Svg(text){
+  const cleanTxt=String(text??'').toUpperCase().replace(/[^0-9A-Z\-. $/+%]/g,'');
+  if(!cleanTxt)return '';
+  const full='*'+cleanTxt+'*';
+  let x=12, rects='';
+  for(const ch of full){
+    const pat=C39[ch]; if(!pat)continue;
+    for(let i=0;i<9;i++){
+      const w=pat[i]==='w'?3:1;
+      if(i%2===0)rects+=`<rect x="${x}" y="4" width="${w}" height="56" fill="#000"/>`;
+      x+=w;
+    }
+    x+=1; // spazio tra caratteri
+  }
+  const totalW=x+11;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} 64" width="100%" height="64" preserveAspectRatio="none" role="img" aria-label="Codice a barre ${esc(cleanTxt)}"><rect width="${totalW}" height="64" fill="#fff"/>${rects}</svg>`;
+}
+
+/* Radar Scadenze: calcola giorni rimanenti per Carte (MM/AA) e Documenti (YYYY-MM-DD) */
+function expiryInfo(item,now=Date.now()){
+  const t=typeOf(item), raw=String(item?.exp||'').trim();
+  if(!raw)return null;
+  let endMs=0;
+  if(t==='card'){
+    const m=/^(0[1-9]|1[0-2])\/(\d{2})$/.exec(raw);
+    if(!m)return null;
+    const yr=2000+(+m[2]), mo=+m[1];
+    endMs=new Date(yr,mo,0,23,59,59,999).getTime(); // ultimo giorno del mese
+  }else if(t==='doc'){
+    const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+    if(!m)return null;
+    endMs=new Date(+m[1],+m[2]-1,+m[3],23,59,59,999).getTime();
+  }else return null;
+  const days=Math.ceil((endMs-now)/DAY_MS);
+  const expired=days<0;
+  const label=expired
+    ?(days===-1?'scaduto ieri':`scaduto da ${Math.abs(days)} gg`)
+    :(days===0?'scade oggi':days===1?'scade domani':`scade tra ${days} gg`);
+  return {days, expired, label, endMs};
+}
+function expiringItems(list,now=Date.now(),withinDays=60){
+  const out=[];
+  for(const item of list){
+    const info=expiryInfo(item,now);
+    if(info&&info.days<=withinDays)out.push({item,...info});
+  }
+  return out.sort((a,b)=>a.days-b.days);
+}
+
 if(typeof module!=='undefined'&&module.exports){
   module.exports={
-    CATS,ITER,ITER_OLD,DAY_MS,OLD_DAYS,MAX_HISTORY,iterOf,b64,unb64,esc,derive,encryptVault,decryptVault,
+    CATS,ITER,ITER_OLD,DAY_MS,OLD_DAYS,MAX_HISTORY,MAX_PHOTOS,iterOf,b64,unb64,esc,derive,encryptVault,decryptVault,
     clean,recordPasswordChange,parseItems,normUrl,safeUrl,sameItem,mergeItems,auditItems,filterItems,
     strength,SETS,WORDS_IT,rnd,generatePassword,parseCsvRows,parseCsvItems,
     generateCloudCode,normalizeCloudCode,cloudDocId,
-    TYPES,EXTRA_FIELDS,typeOf,cardBrand,fmtCard,luhnOk,wifiQr,SERVICES,recognize
+    TYPES,EXTRA_FIELDS,typeOf,cardBrand,fmtCard,luhnOk,wifiQr,SERVICES,recognize,
+    code39Svg,expiryInfo,expiringItems
   };
 }

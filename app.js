@@ -179,8 +179,9 @@ function lock(){
   clearClip(true);
   slotStop?.(); window.Music?.stop(); updMusicUI();
   hideUndo(); // la copia della scheda eliminata non resta in memoria a cassaforte chiusa
-  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
+  ['dlg','dlgSet','dlgQ','dlgHelp','dlgImp','dlgPrint','dlgCloud','dlgQr','dlgFeat','dlgDel','dlgPhoto','dlgBarcode'].forEach(i=>{if($('#'+i).open)$('#'+i).close()});
   $('#qrBox').innerHTML=''; $('#qrPass').textContent=''; $('#cPrev').innerHTML='';
+  $('#bcSvg').innerHTML=''; $('#bcCode').textContent=''; $('#expBox').classList.add('hide'); $('#expBox').innerHTML='';
   editPhotos=[]; $('#fPhotos').innerHTML=''; $('#photoFull').removeAttribute('src');
   ['#pwForm','#fQ','#form','#impForm','#cloudForm'].forEach(f=>$(f).reset());
   $('#pErr').textContent=''; $('#impErr').textContent=''; $('#cErr').textContent=''; $('#bioPw').value=''; $('#bioErr').textContent='';
@@ -290,9 +291,9 @@ $('#sortBy').addEventListener('change',()=>{try{localStorage.setItem('sortBy',$(
 
 /* Simbolo e colore di ogni categoria (le categorie personalizzate prendono un colore dal nome) */
 const CAT_INFO={Email:['✉️',210],Social:['👥',275],Banca:['🏦',150],Lavoro:['💼',28],Shopping:['🛒',340],Altro:['📁',195],
-  Svago:['🎬',300],Utenze:['💡',45],Viaggi:['✈️',190],'Pubblica Amm.':['🏛️',225],'Wi-Fi':['📶',170],Note:['📝',60]};
+  Svago:['🎬',300],Utenze:['💡',45],Viaggi:['✈️',190],'Pubblica Amm.':['🏛️',225],'Wi-Fi':['📶',170],Note:['📝',60],Documenti:['🪪',205]};
 /* Tipi di scheda: nome, simbolo e categoria proposta */
-const TYPE_INFO={login:{t:'account',e:'🔑',cat:'Altro'},card:{t:'carta',e:'💳',cat:'Banca'},wifi:{t:'Wi-Fi',e:'📶',cat:'Wi-Fi'},note:{t:'nota',e:'📝',cat:'Note'}};
+const TYPE_INFO={login:{t:'account',e:'🔑',cat:'Altro'},card:{t:'carta',e:'💳',cat:'Banca'},wifi:{t:'Wi-Fi',e:'📶',cat:'Wi-Fi'},note:{t:'nota',e:'📝',cat:'Note'},doc:{t:'documento',e:'🪪',cat:'Documenti'}};
 const last4=n=>digits(n).slice(-4);
 const maskCard=n=>{const d=digits(n);return d?'•••• •••• •••• '+d.slice(-4):'•••• •••• •••• ••••'};
 /* Carta disegnata come una carta vera; numero completo solo se "Mostra" è attivo */
@@ -310,6 +311,7 @@ function subOf(i){
   if(t==='card')return [cardBrand(i.number),i.number?'•••• '+last4(i.number):''].filter(Boolean).join(' ')||'Carta';
   if(t==='wifi')return 'Rete Wi-Fi'+(i.wsec==='nopass'?' aperta':'');
   if(t==='note')return 'Nota segreta';
+  if(t==='doc')return [i.docType,i.number].filter(Boolean).join(' · ')||'Documento';
   return i.user;
 }
 const catInfo=c=>CAT_INFO[c]?{e:CAT_INFO[c][0],h:CAT_INFO[c][1]}:{e:'🏷️',h:hue(c||'Altro')};
@@ -332,6 +334,24 @@ function updHealth(audit){
   box.classList.remove('hide');
 }
 $('#hGo').onclick=()=>{cat='!warn';render();$('#chips').scrollIntoView({behavior:'smooth',block:'start'})};
+
+/* Radar Scadenze: avvisa su Carte e Documenti scaduti o in scadenza entro 60 giorni */
+function updExpiry(){
+  const box=$('#expBox'), list=expiringItems(items,Date.now(),60);
+  if(!list.length){box.classList.add('hide');box.innerHTML='';return}
+  const hasUrgent=list.some(x=>x.expired||x.days<=15);
+  box.classList.toggle('urgent',hasUrgent);
+  box.innerHTML=`<div class="exp-h">⏳ Radar Scadenze (${list.length})</div>`+list.map(x=>{
+    const icn=TYPE_INFO[typeOf(x.item)]?.e||'📄';
+    return `<div class="exp-row"><span>${icn} <b>${esc(x.item.name)}</b> · <span class="${x.expired||x.days<=15?'exp-bad':'mute'}">${esc(x.label)}</span></span><button type="button" class="btn s" data-exp-id="${esc(x.item.id)}">Apri</button></div>`;
+  }).join('');
+  box.classList.remove('hide');
+}
+$('#expBox').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-exp-id]'); if(!b)return;
+  const it=items.find(x=>x.id===b.dataset.expId);
+  if(it)openForm(it);
+});
 
 /* Animazioni: apertura della cassaforte e comparsa delle schede */
 const calm=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -390,14 +410,17 @@ function render(){
     return `<button class="${cls}" data-c="${esc(c)}">${lbl}</button>`;
   }).join(''):'';
   updHealth(audit);
+  updExpiry();
   const rows=filterItems(items,cat,q,$('#sortBy').value,audit.warnIds);
   // Account con lo stesso nome di servizio (es. due account Amazon) stanno nella stessa scheda
   const groups=new Map();
   for(const i of rows){const k=typeOf(i)+'|'+i.name.trim().toLowerCase();if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i)}
+  const expTag=i=>{const ex=expiryInfo(i);return ex&&ex.days<=60?`<span class="tag w">⏳ ${esc(ex.label)}</span>`:''};
   const warnTags=i=>[
     audit.weakIds.has(i.id)?'<span class="tag w">Password debole</span>':'',
     audit.dupIds.has(i.id)?'<span class="tag w">Password riutilizzata</span>':'',
-    audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':''
+    audit.oldIds.has(i.id)?'<span class="tag w">Oltre 1 anno</span>':'',
+    expTag(i)
   ].join('');
   const showBtn=i=>`<button class="btn s" data-a="sh">${shown.has(i.id)?IC.eyeoff+'Nascondi':IC.eye+'Mostra'}</button>`;
   const editBtn=`<button class="btn s" data-a="ed">${IC.edit}Modifica</button>`;
@@ -420,6 +443,27 @@ function render(){
         ${i.cvv?`<button class="btn s" data-a="cv">${IC.key}Copia CVV</button>`:''}
         ${showBtn(i)}${editBtn}
       </div>`;
+    if(t==='doc'){
+      const fmtDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')?d.split('-').reverse().join('/'):(d||'—');
+      const mask=v=>v?(open?esc(v):'••••••••'):'—';
+      const cfClean=String(i.cf||'').trim().toUpperCase();
+      return `<div class="doc-grid">
+        ${i.docType?`<div><small>Tipo</small><b>${esc(i.docType)}</b></div>`:''}
+        ${i.number?`<div><small>Numero</small><b>${mask(i.number)}</b></div>`:''}
+        ${cfClean?`<div><small>Codice Fiscale</small><b>${mask(cfClean)}</b></div>`:''}
+        ${i.issuer?`<div><small>Rilasciato da</small><b>${esc(i.issuer)}</b></div>`:''}
+        ${i.issued?`<div><small>Rilascio</small><b>${esc(fmtDate(i.issued))}</b></div>`:''}
+        ${i.exp?`<div><small>Scadenza</small><b>${esc(fmtDate(i.exp))}</b></div>`:''}
+      </div>
+      ${open&&cfClean?`<div class="bc-card">${code39Svg(cfClean)}<div class="bc-txt">${esc(cfClean)}</div></div>`:''}
+      ${photosHtml(i,open)}
+      ${noteHtml(i)}
+      <div class="acts">
+        ${cfClean?`<button class="btn s" data-a="bc">🏥 Codice a barre CF</button><button class="btn s" data-a="cf">${IC.copy}Copia CF</button>`:''}
+        ${i.number?`<button class="btn s" data-a="cn">${IC.copy}Copia numero</button>`:''}
+        ${showBtn(i)}${editBtn}
+      </div>`;
+    }
     if(t==='note'){
       const hasPh=Array.isArray(i.photos)&&i.photos.length>0;
       return `<div class="secretbox">${i.secret?(open?esc(i.secret):'•••••••• testo nascosto ••••••••'):(hasPh?'<i>solo foto allegate</i>':'<i>vuota</i>')}</div>
@@ -450,6 +494,7 @@ function render(){
       const ci=catInfo(x.cat), warn=audit.warnIds.has(x.id), t=typeOf(x), nm=esc(x.name);
       const ib=(a,title,icon,dis)=>`<button class="btn s ic" data-a="${a}" title="${title}" aria-label="${title}: ${nm}"${dis?' disabled':''}>${icon}</button>`;
       const btns=t==='card'?ib('cn','Copia numero',IC.copy,!digits(x.number))+(x.cvv?ib('cv','Copia CVV',IC.key):'')
+        :t==='doc'?(x.cf?ib('bc','Codice a barre CF','🏥'):'')+(x.number?ib('cn','Copia numero',IC.copy):'')
         :t==='note'?ib('cs','Copia testo',IC.copy,!x.secret)
         :t==='wifi'?ib('qr','Codice QR','▦')+ib('cp','Copia password',IC.key,!x.pass)
         :ib('cu','Copia utente',IC.user)+ib('cp','Copia password',IC.key,!x.pass);
@@ -515,8 +560,10 @@ $('#list').addEventListener('click',e=>{
   }
   if(a==='cu')copy(it.user,'Utente copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='cp')copy(it.pass,typeOf(it)==='wifi'?'Password del Wi-Fi copiata':'Password copiata: incollala nel sito').then(ok=>{if(ok)copiedFx(b)});
-  if(a==='cn')copy(digits(it.number),'Numero della carta copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='cn')copy(typeOf(it)==='card'?digits(it.number):it.number,'Numero copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='cv')copy(it.cvv,'CVV copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='cf')copy((it.cf||'').toUpperCase(),'Codice Fiscale copiato').then(ok=>{if(ok)copiedFx(b)});
+  if(a==='bc')openBarcode(it);
   if(a==='cs')copy(it.secret,'Testo copiato').then(ok=>{if(ok)copiedFx(b)});
   if(a==='qr')openQr(it);
   if(a==='sh'){shown.has(id)?shown.delete(id):shown.add(id);render()}
@@ -636,16 +683,28 @@ const closeQr=()=>{$('#qrBox').innerHTML='';$('#qrPass').textContent='';if($('#d
 $('#qrClose').onclick=closeQr;
 $('#dlgQr').addEventListener('close',()=>{$('#qrBox').innerHTML='';$('#qrPass').textContent=''});
 
+/* Codice a barre Code 39 del Codice Fiscale (per scanner in farmacia / medico) */
+function openBarcode(it){
+  const cf=String(it?.cf||'').trim().toUpperCase();
+  if(!cf){toast('Nessun Codice Fiscale salvato');return}
+  $('#bcSvg').innerHTML=code39Svg(cf);
+  $('#bcCode').textContent=cf;
+  $('#bcOwner').textContent=[it.docType,it.name].filter(Boolean).join(' · ');
+  $('#dlgBarcode').showModal();
+}
+$('#bcClose').onclick=()=>$('#dlgBarcode').close();
+$('#dlgBarcode').addEventListener('close',()=>{$('#bcSvg').innerHTML='';$('#bcCode').textContent=''});
+
 /* Tipo della scheda nel modulo: mostra solo i campi giusti */
 let fType='login', catAuto=true, urlAuto=false;
-const NAME_L={login:['Servizio','es. Netflix'],card:['Nome della carta','es. Visa Intesa'],wifi:['Nome della rete (SSID)','es. Casa Rossi'],note:['Titolo','es. Codici antifurto']};
+const NAME_L={login:['Servizio','es. Netflix'],card:['Nome della carta','es. Visa Intesa'],wifi:['Nome della rete (SSID)','es. Casa Rossi'],note:['Titolo','es. Codici antifurto'],doc:['Nome del documento','es. Carta d’Identità Mario']};
 function setFormType(t,isNew){
   fType=TYPES.includes(t)?t:'login';
   document.querySelectorAll('#fTypeSel [data-ty]').forEach(b=>{const on=b.dataset.ty===fType;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
   document.querySelectorAll('#form [data-for]').forEach(el=>el.classList.toggle('hide',!el.dataset.for.split(' ').includes(fType)));
   $('#fNameL').textContent=NAME_L[fType][0]; $('#fName').placeholder=NAME_L[fType][1];
   $('#fPassL').textContent=fType==='wifi'?'Password del Wi-Fi':'Password';
-  if(!editId)$('#dlgT').textContent={login:'Nuovo account',card:'Nuova carta',wifi:'Nuova rete Wi-Fi',note:'Nuova nota segreta'}[fType];
+  if(!editId)$('#dlgT').textContent={login:'Nuovo account',card:'Nuova carta',wifi:'Nuova rete Wi-Fi',note:'Nuova nota segreta',doc:'Nuovo documento'}[fType];
   if(isNew&&catAuto)populateCatSelect(TYPE_INFO[fType].cat);
   $('#fHint').classList.add('hide');
   if(fType==='login'&&!editId)recognizeName();
@@ -694,6 +753,12 @@ function openForm(it,pre){
   $('#fHolder').value=it?.holder||'';$('#fNumber').value=fmtCard(it?.number||'');$('#fExp').value=it?.exp||'';
   $('#fCvv').value=it?.cvv||'';$('#fPin').value=it?.pin||'';$('#fWsec').value=it?.wsec||'WPA';$('#fWhidden').checked=!!it?.whidden;
   $('#fSecret').value=it?.secret||'';
+  $('#fDocType').value=it?.docType||'Carta d’Identità';
+  $('#fDocNum').value=ty==='doc'?(it?.number||''):'';
+  $('#fCf').value=it?.cf||'';
+  $('#fIssuer').value=it?.issuer||'';
+  $('#fIssued').value=it?.issued||'';
+  $('#fDocExp').value=ty==='doc'?(it?.exp||''):'';
   editPhotos=Array.isArray(it?.photos)?[...it.photos]:[];
   renderEditPhotos();
   populateCatSelect(it?.cat||pre?.cat||'Altro');
@@ -752,8 +817,9 @@ $('#form').addEventListener('submit',async e=>{
     user:has('login')?$('#fUser').value.trim():'',
     pass:has('login')||has('wifi')?$('#fPass').value:'',
     url:has('login')?normUrl($('#fUrl').value):'',
-    holder:has('card')?$('#fHolder').value.trim().toUpperCase():'',number:has('card')?fmtCard($('#fNumber').value):'',
-    exp:has('card')?$('#fExp').value.trim():'',cvv:has('card')?$('#fCvv').value:'',pin:has('card')?$('#fPin').value:'',
+    holder:has('card')?$('#fHolder').value.trim().toUpperCase():'',number:has('card')?fmtCard($('#fNumber').value):(has('doc')?$('#fDocNum').value.trim().toUpperCase():''),
+    exp:has('card')?$('#fExp').value.trim():(has('doc')?$('#fDocExp').value.trim():''),cvv:has('card')?$('#fCvv').value:'',pin:has('card')?$('#fPin').value:'',
+    docType:has('doc')?$('#fDocType').value:'',cf:has('doc')?$('#fCf').value.trim().toUpperCase():'',issuer:has('doc')?$('#fIssuer').value.trim():'',issued:has('doc')?$('#fIssued').value.trim():'',
     wsec:has('wifi')?$('#fWsec').value:'',whidden:has('wifi')&&$('#fWhidden').checked,secret:has('note')?$('#fSecret').value:'',
     photos:editPhotos});
   if(!$('#fName').value.trim())return;
@@ -1103,6 +1169,7 @@ function updCloudUI(){
   $('#bCloudEnable').classList.toggle('hide',active);
   $('#bCloudLink').textContent=active?'Cambia Codice Cloud':'Ho già un Codice Cloud';
   $('#bCloudPull').classList.toggle('hide',!active);
+  $('#bCloudKit').classList.toggle('hide',!active);
   $('#bCloudDisable').classList.toggle('hide',!active);
   const err=active?cloudErrGet():null;
   if(!active){
@@ -1205,6 +1272,42 @@ $('#bCloudDisable').onclick=()=>{
   localStorage.removeItem('cloudCode'); localStorage.removeItem('cloudErr');
   updCloudUI();
   toast('Cloud Sync disattivato');
+};
+/* Kit di Emergenza stampabile con QR Code del Codice Cloud (la Password Principale si scrive a penna) */
+$('#bCloudKit').onclick=()=>{
+  const code=getCloudCode();
+  if(!code){toast('Attiva prima il Cloud Sync automatico');return}
+  let qrSvg='';
+  if(window.qrcode){
+    try{const q=qrcode(0,'M');q.addData(code);q.make();qrSvg=q.createSvgTag({cellSize:5,margin:2,scalable:true})}catch{}
+  }
+  const when=new Date().toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
+  $('#printSheet').innerHTML=`<section class="kit-box">
+    <h2 style="margin:0 0 4px;font-size:22px">🛡️ Cassaforte · Kit di Emergenza</h2>
+    <div style="color:#555;font-size:12px">Generato il ${esc(when)} · Indirizzo app: <b>https://cassaforte.gccodelab.it</b></div>
+    <p style="border:1.5px solid #b3261e;color:#b3261e;font-weight:700;font-size:12px;padding:8px 10px;border-radius:6px;margin:14px 0">DOCUMENTO RISERVATO: conserva questo foglio in un luogo sicuro e chiuso a chiave (es. cassaforte o cassetto). Serve per recuperare tutti gli account se il telefono si rompe o viene smarrito.</p>
+    <div class="kit-grid">
+      ${qrSvg?`<div class="kit-qr">${qrSvg}</div>`:''}
+      <div>
+        <div style="font-size:12px;color:#555;text-transform:uppercase;letter-spacing:.04em">Il tuo Codice Cloud</div>
+        <div style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:22px;font-weight:800;letter-spacing:.08em;margin:6px 0">${esc(code)}</div>
+        <div style="font-size:12px;color:#555">Questo codice identifica la tua cassetta cifrata sul Cloud. Da solo <b>non</b> permette di leggere le password senza la Password Principale.</div>
+      </div>
+    </div>
+    <div class="kit-pen">
+      <div style="font-size:12px;color:#555;font-weight:700;margin-bottom:8px">✍️ SCRIVI QUI A PENNA LA TUA PASSWORD PRINCIPALE (non passa mai dalla stampante):</div>
+      <div style="height:34px;border-bottom:1px dotted #888"></div>
+    </div>
+    <h3 style="margin:16px 0 6px;font-size:15px">Come recuperare tutto su un telefono o PC nuovo (3 passi):</h3>
+    <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.6">
+      <li>Apri <b>https://cassaforte.gccodelab.it</b> dal browser.</li>
+      <li>Nella schermata iniziale tocca <b>"☁️ Telefono nuovo o rotto? Ripristina da Cloud / Backup"</b>.</li>
+      <li>Inserisci il <b>Codice Cloud</b> qui sopra (o inquadra il QR) e la <b>Password Principale</b> scritta a penna, poi premi <b>Ripristina</b>.</li>
+    </ol>
+    <div style="margin-top:18px;color:#666;font-size:11px;border-top:1px solid #ccc;padding-top:6px">Cassaforte v${esc(APP_VERSION)} · GC CodeLab · Giovanni Cavallo</div>
+  </section>`;
+  allowExternal(10*60*1000);
+  window.print();
 };
 $('#bCloudPull').onclick=async()=>{
   const code=getCloudCode(); if(!code||!key)return;
