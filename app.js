@@ -8,8 +8,11 @@ const totpNow=new Map(); // codici 2FA del momento (id → codice), per copiarli
 let trash=[], trashK=null, trashDirty=false; // Cestino (in chiaro solo a cassaforte aperta); trashK = chiave con cui è salvato
 let extUntil=0;        // finestra in cui la pagina può andare in background (condivisione, selettore file) senza bloccarsi
 /* Versione dell'app: a ogni modifica pubblicata aumenta il numero e aggiungi una voce in CHANGELOG */
-const APP_VERSION='1.18.1';
+const APP_VERSION='1.18.2';
 const CHANGELOG=[
+  ['1.18.2',[
+    'L’avviso “Nuova versione” controlla più spesso: quando torni nell’app (dopo 1 minuto) e appena torna internet'
+  ]],
   ['1.18.1',[
     '🌈 L’anello di luce intorno allo scudo cambia anche colore mentre gira (oro, verde, azzurro, viola, rosa)'
   ]],
@@ -2079,7 +2082,7 @@ $('#news').innerHTML=CHANGELOG.map(([v,l],i)=>`<div class="news-v"><span class="
 /* Aggiornamenti: se sul sito c'è una versione più nuova compare l'avviso "Aggiorna" (version.json non passa dalla cache) */
 let updAt=0;
 async function checkUpdate(force){
-  if(navigator.onLine===false||(!force&&Date.now()-updAt<10*60*1000))return;
+  if(navigator.onLine===false||(!force&&Date.now()-updAt<60*1000))return;
   updAt=Date.now();
   try{
     const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),8000);
@@ -2104,6 +2107,7 @@ $('#updBtn').onclick=async()=>{
 $('#updX').onclick=()=>$('#updBar').classList.add('hide');
 setTimeout(()=>checkUpdate(true),4000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
+addEventListener('online',()=>checkUpdate(true)); // tornato internet: controlla subito
 setInterval(()=>checkUpdate(),30*60*1000);
 
 /* Dopo un aggiornamento: riquadro con le novità, una volta sola */

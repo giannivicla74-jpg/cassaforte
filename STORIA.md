@@ -17,6 +17,7 @@ Dettagli tecnici e procedura di pubblicazione: `CLAUDE.md` / `GEMINI.md`.
 ## Versioni (dalla più recente)
 | Data | Versione | Cosa |
 |---|---|---|
+| 23/11/2026 | 1.18.2 | Controllo aggiornamenti più frequente (al ritorno nell'app dopo 1 min invece di 10, e quando torna internet) |
 | 23/11/2026 | 1.18.1 | 🌈 Anello di luce dello scudo che cambia sfumatura mentre gira (hue-rotate, giro di colori in 6 s) |
 | 23/11/2026 | 1.18.0 | 🔢 Codici 2FA (TOTP) nella scheda account, con lettura del QR da foto su Android e import da CSV; 🗑️ Cestino di 30 giorni con Ripristina / Elimina per sempre / Svuota; ⬆️ avviso "Nuova versione · Aggiorna" (file `version.json`) e riquadro Novità; 🎧 La mia musica (playlist di 5 canzoni dal telefono) |
 | 23/11/2026 | 1.17.0 | 🪪 Scheda Documento con codice a barre del Codice Fiscale, ⏳ Radar Scadenze, 🔍 controllo "Furti online", 📊 Statistiche e Livello, 📳 Scuoti/Esc per bloccare, 📄 Kit di Emergenza (scritte da Gemini); Claude ha corretto il conteggio dei giorni di scadenza (era sfasato di 1), il bollino "Rubata" dopo il cambio password, "Scuoti" su iPhone, e aggiunto test, versione, manuale e novità |
